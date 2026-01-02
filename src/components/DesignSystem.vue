@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const isDark = ref(false)
 const activeTab = ref('home')
@@ -42,6 +42,37 @@ const inputValue = ref('')
 const checkboxValue = ref(false)
 const radioValue = ref('option1')
 const switchValue = ref(true)
+const switchValue2 = ref(false)
+
+// 自定义下拉框
+const clubOptions = [
+  { value: '', label: '请选择社团' },
+  { value: '1', label: '技术部' },
+  { value: '2', label: '宣传部' },
+  { value: '3', label: '文艺部' },
+  { value: '4', label: '体育部' },
+  { value: '5', label: '外联部' },
+]
+const selectedClub = ref('')
+const isDropdownOpen = ref(false)
+const selectedClubLabel = computed(() => {
+  const option = clubOptions.find(o => o.value === selectedClub.value)
+  return option?.label || '请选择社团'
+})
+
+function selectOption(value: string) {
+  selectedClub.value = value
+  isDropdownOpen.value = false
+}
+
+function toggleDropdown() {
+  isDropdownOpen.value = !isDropdownOpen.value
+}
+
+// 点击外部关闭下拉框
+function closeDropdown() {
+  isDropdownOpen.value = false
+}
 </script>
 
 <template>
@@ -232,42 +263,135 @@ const switchValue = ref(true)
           <h3 class="card-title">选择框</h3>
           <div class="form-group">
             <label class="form-label">选择社团</label>
-            <select class="form-select">
-              <option value="">请选择社团</option>
-              <option value="1">技术部</option>
-              <option value="2">宣传部</option>
-              <option value="3">文艺部</option>
-            </select>
+            <!-- 自定义下拉框 -->
+            <div class="custom-select" @click.stop>
+              <button
+                class="custom-select-trigger"
+                :class="{ 'is-open': isDropdownOpen, 'has-value': selectedClub }"
+                @click="toggleDropdown"
+              >
+                <span class="custom-select-value">{{ selectedClubLabel }}</span>
+                <span class="custom-select-arrow"></span>
+              </button>
+              <Transition name="dropdown">
+                <div v-if="isDropdownOpen" class="custom-select-dropdown">
+                  <div
+                    v-for="option in clubOptions"
+                    :key="option.value"
+                    class="custom-select-option"
+                    :class="{ 'is-selected': selectedClub === option.value, 'is-placeholder': !option.value }"
+                    @click="selectOption(option.value)"
+                  >
+                    <span>{{ option.label }}</span>
+                    <span v-if="selectedClub === option.value" class="custom-select-check">✓</span>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">多选标签</label>
+            <div class="select-tags">
+              <span class="select-tag">
+                技术部
+                <button class="select-tag-remove">&times;</button>
+              </span>
+              <span class="select-tag">
+                宣传部
+                <button class="select-tag-remove">&times;</button>
+              </span>
+              <input type="text" class="select-tags-input" placeholder="添加更多..." />
+            </div>
           </div>
         </div>
 
         <div class="card">
           <h3 class="card-title">开关</h3>
-          <div class="switch-group">
-            <label class="switch-label">
-              <span class="switch-text">接收通知</span>
+          <div class="toggle-group">
+            <!-- 方形开关带文字 -->
+            <div class="toggle-item">
+              <span class="toggle-label">接收通知</span>
               <button
-                class="switch"
-                :class="{ 'switch-on': switchValue }"
+                class="toggle"
+                :class="{ 'toggle-on': switchValue }"
                 @click="switchValue = !switchValue"
                 role="switch"
                 :aria-checked="switchValue"
               >
-                <span class="switch-thumb"></span>
+                <span class="toggle-track">
+                  <span class="toggle-text toggle-text-on">开</span>
+                  <span class="toggle-text toggle-text-off">关</span>
+                </span>
+                <span class="toggle-handle"></span>
               </button>
-            </label>
-            <label class="switch-label">
-              <span class="switch-text">暗色模式</span>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label">暗色模式</span>
               <button
-                class="switch"
-                :class="{ 'switch-on': isDark }"
+                class="toggle"
+                :class="{ 'toggle-on': isDark }"
                 @click="toggleTheme"
                 role="switch"
                 :aria-checked="isDark"
               >
-                <span class="switch-thumb"></span>
+                <span class="toggle-track">
+                  <span class="toggle-text toggle-text-on">开</span>
+                  <span class="toggle-text toggle-text-off">关</span>
+                </span>
+                <span class="toggle-handle"></span>
               </button>
-            </label>
+            </div>
+            <div class="toggle-item">
+              <span class="toggle-label">自动更新（禁用）</span>
+              <button
+                class="toggle toggle-disabled"
+                disabled
+                role="switch"
+                aria-checked="false"
+              >
+                <span class="toggle-track">
+                  <span class="toggle-text toggle-text-on">开</span>
+                  <span class="toggle-text toggle-text-off">关</span>
+                </span>
+                <span class="toggle-handle"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">开关变体</h3>
+          <div class="toggle-group">
+            <!-- 小尺寸开关 -->
+            <div class="toggle-item">
+              <span class="toggle-label">小尺寸开关</span>
+              <button
+                class="toggle toggle-sm"
+                :class="{ 'toggle-on': switchValue2 }"
+                @click="switchValue2 = !switchValue2"
+                role="switch"
+                :aria-checked="switchValue2"
+              >
+                <span class="toggle-handle"></span>
+              </button>
+            </div>
+            <!-- 带图标的开关 -->
+            <div class="toggle-item">
+              <span class="toggle-label">带状态色的开关</span>
+              <button
+                class="toggle toggle-success"
+                :class="{ 'toggle-on': switchValue }"
+                @click="switchValue = !switchValue"
+                role="switch"
+                :aria-checked="switchValue"
+              >
+                <span class="toggle-track">
+                  <span class="toggle-text toggle-text-on">✓</span>
+                  <span class="toggle-text toggle-text-off">✕</span>
+                </span>
+                <span class="toggle-handle"></span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1019,57 +1143,307 @@ const switchValue = ref(true)
   padding-right: var(--spacing-2xl);
 }
 
-/* ===== Switch ===== */
-.switch-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+/* ===== Custom Select 自定义下拉框 ===== */
+.custom-select {
+  position: relative;
+  width: 100%;
 }
 
-.switch-label {
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--spacing-md);
+  font-size: 16px;
+  font-family: inherit;
+  text-align: left;
+  background: var(--color-card);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.custom-select-trigger.has-value {
+  color: var(--color-text);
+}
+
+.custom-select-trigger.is-open {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.custom-select-trigger:active {
+  transform: scale(0.99);
+}
+
+.custom-select-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select-arrow {
+  width: 0;
+  height: 0;
+  margin-left: var(--spacing-sm);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--color-text-secondary);
+  transition: transform var(--transition-fast);
+}
+
+.custom-select-trigger.is-open .custom-select-arrow {
+  transform: rotate(180deg);
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--color-card);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.custom-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  min-height: 48px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.custom-select-option:active {
+  background: var(--color-bg);
+}
+
+.custom-select-option.is-selected {
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+}
+
+.custom-select-option.is-placeholder {
+  color: var(--color-text-secondary);
+}
+
+.custom-select-check {
+  color: var(--color-primary);
+  font-weight: var(--font-bold);
+}
+
+/* Dropdown 动画 */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all var(--transition-fast);
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 多选标签 */
+.select-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  min-height: 48px;
+  background: var(--color-card);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
+}
+
+.select-tags:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.select-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.select-tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: var(--text-base);
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.select-tag-remove:active {
+  opacity: 1;
+}
+
+.select-tags-input {
+  flex: 1;
+  min-width: 100px;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--color-text);
+  outline: none;
+}
+
+.select-tags-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* ===== Toggle 开关 ===== */
+.toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.toggle-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-sm) 0;
-  min-height: 48px;
-  cursor: pointer;
+  min-height: 52px;
 }
 
-.switch-text {
+.toggle-label {
   font-size: var(--text-base);
+  color: var(--color-text);
 }
 
-.switch {
+.toggle {
   position: relative;
-  width: 52px;
+  width: 60px;
   height: 32px;
   background: var(--color-border);
-  border: none;
-  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-fast);
   padding: 0;
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
-.switch-on {
-  background: var(--color-primary);
+.toggle:active {
+  transform: scale(0.96);
 }
 
-.switch-thumb {
+.toggle-on {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.toggle-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-disabled:active {
+  transform: none;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-text {
+  position: absolute;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  transition: opacity var(--transition-fast);
+}
+
+.toggle-text-on {
+  left: 8px;
+  color: white;
+  opacity: 0;
+}
+
+.toggle-text-off {
+  right: 8px;
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.toggle-on .toggle-text-on {
+  opacity: 1;
+}
+
+.toggle-on .toggle-text-off {
+  opacity: 0;
+}
+
+.toggle-handle {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: white;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-xs);
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition-fast);
 }
 
-.switch-on .switch-thumb {
+.toggle-on .toggle-handle {
+  transform: translateX(28px);
+}
+
+/* 小尺寸开关 */
+.toggle-sm {
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-sm .toggle-handle {
+  width: 18px;
+  height: 18px;
+  top: 1px;
+  left: 1px;
+}
+
+.toggle-sm.toggle-on .toggle-handle {
   transform: translateX(20px);
+}
+
+/* 成功色开关 */
+.toggle-success.toggle-on {
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 
 /* ===== Checkbox & Radio - 自定义样式 ===== */

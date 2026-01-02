@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 
 const isDark = ref(false)
+const activeTab = ref('home')
 
 function toggleTheme() {
   isDark.value = !isDark.value
@@ -40,6 +41,7 @@ const statusColors = [
 const inputValue = ref('')
 const checkboxValue = ref(false)
 const radioValue = ref('option1')
+const switchValue = ref(true)
 </script>
 
 <template>
@@ -47,10 +49,10 @@ const radioValue = ref('option1')
     <!-- 头部 -->
     <header class="header">
       <div class="header-content">
-        <h1 class="title">XMYZ Club Design System</h1>
-        <p class="subtitle">厦门一中学生社区 · 设计规范 v1.0</p>
-        <button class="btn btn-secondary" @click="toggleTheme">
-          {{ isDark ? '切换亮色模式' : '切换暗色模式' }}
+        <h1 class="title">XMYZ Club</h1>
+        <p class="subtitle">设计规范 v1.0</p>
+        <button class="btn btn-secondary btn-touch" @click="toggleTheme">
+          {{ isDark ? '亮色模式' : '暗色模式' }}
         </button>
       </div>
     </header>
@@ -63,7 +65,7 @@ const radioValue = ref('option1')
         <!-- 主色 -->
         <div class="color-group">
           <h3 class="group-title">主色系</h3>
-          <div class="color-grid">
+          <div class="color-scroll">
             <div v-for="color in primaryColors" :key="color.var" class="color-card">
               <div
                 class="color-preview"
@@ -72,7 +74,6 @@ const radioValue = ref('option1')
               <div class="color-info">
                 <span class="color-name">{{ color.name }}</span>
                 <code class="color-value">{{ color.value }}</code>
-                <code class="color-var">{{ color.var }}</code>
               </div>
             </div>
           </div>
@@ -81,7 +82,7 @@ const radioValue = ref('option1')
         <!-- 辅助色 -->
         <div class="color-group">
           <h3 class="group-title">辅助色系</h3>
-          <div class="color-grid">
+          <div class="color-scroll">
             <div v-for="color in secondaryColors" :key="color.var" class="color-card">
               <div
                 class="color-preview"
@@ -90,7 +91,6 @@ const radioValue = ref('option1')
               <div class="color-info">
                 <span class="color-name">{{ color.name }}</span>
                 <code class="color-value">{{ color.value }}</code>
-                <code class="color-var">{{ color.var }}</code>
               </div>
             </div>
           </div>
@@ -99,7 +99,7 @@ const radioValue = ref('option1')
         <!-- 中性色 -->
         <div class="color-group">
           <h3 class="group-title">中性色</h3>
-          <div class="color-grid">
+          <div class="color-scroll">
             <div v-for="color in neutralColors" :key="color.var" class="color-card">
               <div
                 class="color-preview"
@@ -108,7 +108,6 @@ const radioValue = ref('option1')
               <div class="color-info">
                 <span class="color-name">{{ color.name }}</span>
                 <code class="color-value">{{ color.value }}</code>
-                <code class="color-var">{{ color.var }}</code>
               </div>
             </div>
           </div>
@@ -117,7 +116,7 @@ const radioValue = ref('option1')
         <!-- 状态色 -->
         <div class="color-group">
           <h3 class="group-title">状态色</h3>
-          <div class="color-grid">
+          <div class="color-scroll">
             <div v-for="color in statusColors" :key="color.var" class="color-card">
               <div
                 class="color-preview"
@@ -126,7 +125,6 @@ const radioValue = ref('option1')
               <div class="color-info">
                 <span class="color-name">{{ color.name }}</span>
                 <code class="color-value">{{ color.value }}</code>
-                <code class="color-var">{{ color.var }}</code>
               </div>
             </div>
           </div>
@@ -138,13 +136,13 @@ const radioValue = ref('option1')
         <h2 class="section-title">排版系统</h2>
         <div class="card">
           <div class="typography-demo">
-            <h1 class="demo-h1">H1 标题 - 厦门一中学生社区</h1>
-            <h2 class="demo-h2">H2 标题 - Welcome to XMYZ Club</h2>
-            <h3 class="demo-h3">H3 标题 - 社团活动公告</h3>
-            <h4 class="demo-h4">H4 标题 - 最新动态</h4>
-            <p class="demo-body">正文文字 - 厦门一中学生社区是一个面向全校学生的综合性平台，提供社团管理、活动发布、资源共享等功能。</p>
+            <h1 class="demo-h1">H1 厦门一中</h1>
+            <h2 class="demo-h2">H2 学生社区</h2>
+            <h3 class="demo-h3">H3 社团活动公告</h3>
+            <h4 class="demo-h4">H4 最新动态</h4>
+            <p class="demo-body">正文 - 厦门一中学生社区是一个面向全校学生的综合性平台。</p>
             <p class="demo-secondary">次要文字 - 本平台由学生会技术部维护</p>
-            <p class="demo-small">小字文字 - 更新于 2024年1月</p>
+            <p class="demo-small">小字 - 更新于 2024年1月</p>
           </div>
         </div>
       </section>
@@ -156,53 +154,47 @@ const radioValue = ref('option1')
         <!-- 基础按钮 -->
         <div class="card">
           <h3 class="card-title">基础按钮</h3>
+          <div class="button-stack">
+            <button class="btn btn-primary btn-block btn-touch">主要按钮</button>
+            <button class="btn btn-secondary btn-block btn-touch">次要按钮</button>
+            <button class="btn btn-outline btn-block btn-touch">描边按钮</button>
+          </div>
           <div class="button-group">
-            <button class="btn btn-primary">主要按钮</button>
-            <button class="btn btn-secondary">次要按钮</button>
-            <button class="btn btn-outline">描边按钮</button>
-            <button class="btn btn-ghost">幽灵按钮</button>
-            <button class="btn btn-link">链接按钮</button>
+            <button class="btn btn-ghost btn-touch">幽灵按钮</button>
+            <button class="btn btn-link btn-touch">链接按钮</button>
           </div>
         </div>
 
         <!-- 状态按钮 -->
         <div class="card">
           <h3 class="card-title">状态按钮</h3>
-          <div class="button-group">
-            <button class="btn btn-success">成功</button>
-            <button class="btn btn-warning">警告</button>
-            <button class="btn btn-error">错误</button>
-            <button class="btn btn-info">信息</button>
+          <div class="button-grid">
+            <button class="btn btn-success btn-touch">成功</button>
+            <button class="btn btn-warning btn-touch">警告</button>
+            <button class="btn btn-error btn-touch">错误</button>
+            <button class="btn btn-info btn-touch">信息</button>
           </div>
         </div>
 
         <!-- 按钮尺寸 -->
         <div class="card">
           <h3 class="card-title">按钮尺寸</h3>
-          <div class="button-group button-group-align">
-            <button class="btn btn-primary btn-sm">小按钮</button>
-            <button class="btn btn-primary">默认按钮</button>
-            <button class="btn btn-primary btn-lg">大按钮</button>
-          </div>
-        </div>
-
-        <!-- 禁用状态 -->
-        <div class="card">
-          <h3 class="card-title">禁用状态</h3>
-          <div class="button-group">
-            <button class="btn btn-primary" disabled>禁用主要</button>
-            <button class="btn btn-secondary" disabled>禁用次要</button>
-            <button class="btn btn-outline" disabled>禁用描边</button>
+          <div class="button-stack">
+            <button class="btn btn-primary btn-sm btn-block">小按钮 (sm)</button>
+            <button class="btn btn-primary btn-block btn-touch">默认按钮</button>
+            <button class="btn btn-primary btn-lg btn-block">大按钮 (lg)</button>
           </div>
         </div>
 
         <!-- 圆角按钮 -->
         <div class="card">
-          <h3 class="card-title">圆角按钮</h3>
+          <h3 class="card-title">特殊按钮</h3>
           <div class="button-group">
-            <button class="btn btn-primary btn-rounded">圆角按钮</button>
-            <button class="btn btn-secondary btn-rounded">圆角按钮</button>
-            <button class="btn btn-primary btn-icon">+</button>
+            <button class="btn btn-primary btn-rounded btn-touch">圆角按钮</button>
+            <button class="btn btn-primary btn-icon btn-touch">+</button>
+            <button class="btn btn-secondary btn-icon btn-touch">
+              <span class="icon-heart"></span>
+            </button>
           </div>
         </div>
       </section>
@@ -214,28 +206,24 @@ const radioValue = ref('option1')
         <div class="card">
           <h3 class="card-title">输入框</h3>
           <div class="form-group">
-            <label class="form-label">默认输入框</label>
-            <input type="text" class="form-input" placeholder="请输入内容..." v-model="inputValue" />
+            <label class="form-label">用户名</label>
+            <input type="text" class="form-input" placeholder="请输入用户名..." v-model="inputValue" />
           </div>
           <div class="form-group">
-            <label class="form-label">禁用状态</label>
-            <input type="text" class="form-input" placeholder="禁用输入框" disabled />
+            <label class="form-label">密码</label>
+            <input type="password" class="form-input" placeholder="请输入密码..." />
           </div>
           <div class="form-group">
             <label class="form-label">错误状态</label>
             <input type="text" class="form-input form-input-error" placeholder="请输入正确的内容" />
             <span class="form-error">请输入有效的邮箱地址</span>
           </div>
-          <div class="form-group">
-            <label class="form-label">成功状态</label>
-            <input type="text" class="form-input form-input-success" value="验证通过" />
-          </div>
         </div>
 
         <div class="card">
           <h3 class="card-title">文本域</h3>
           <div class="form-group">
-            <label class="form-label">描述信息</label>
+            <label class="form-label">活动描述</label>
             <textarea class="form-textarea" placeholder="请输入详细描述..." rows="4"></textarea>
           </div>
         </div>
@@ -254,33 +242,73 @@ const radioValue = ref('option1')
         </div>
 
         <div class="card">
-          <h3 class="card-title">复选框 & 单选框</h3>
-          <div class="form-group">
+          <h3 class="card-title">开关</h3>
+          <div class="switch-group">
+            <label class="switch-label">
+              <span class="switch-text">接收通知</span>
+              <button
+                class="switch"
+                :class="{ 'switch-on': switchValue }"
+                @click="switchValue = !switchValue"
+                role="switch"
+                :aria-checked="switchValue"
+              >
+                <span class="switch-thumb"></span>
+              </button>
+            </label>
+            <label class="switch-label">
+              <span class="switch-text">暗色模式</span>
+              <button
+                class="switch"
+                :class="{ 'switch-on': isDark }"
+                @click="toggleTheme"
+                role="switch"
+                :aria-checked="isDark"
+              >
+                <span class="switch-thumb"></span>
+              </button>
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">复选框</h3>
+          <div class="check-group">
             <label class="checkbox-label">
               <input type="checkbox" class="form-checkbox" v-model="checkboxValue" />
-              <span>同意用户协议</span>
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">同意用户协议</span>
             </label>
             <label class="checkbox-label">
               <input type="checkbox" class="form-checkbox" checked />
-              <span>接收通知消息</span>
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">接收推送消息</span>
             </label>
-            <label class="checkbox-label">
+            <label class="checkbox-label checkbox-disabled">
               <input type="checkbox" class="form-checkbox" disabled />
-              <span>禁用选项</span>
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">禁用选项</span>
             </label>
           </div>
-          <div class="form-group">
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">单选框</h3>
+          <div class="check-group">
             <label class="radio-label">
               <input type="radio" name="demo" class="form-radio" v-model="radioValue" value="option1" />
-              <span>选项一</span>
+              <span class="radio-custom"></span>
+              <span class="radio-text">选项一</span>
             </label>
             <label class="radio-label">
               <input type="radio" name="demo" class="form-radio" v-model="radioValue" value="option2" />
-              <span>选项二</span>
+              <span class="radio-custom"></span>
+              <span class="radio-text">选项二</span>
             </label>
             <label class="radio-label">
               <input type="radio" name="demo" class="form-radio" v-model="radioValue" value="option3" />
-              <span>选项三</span>
+              <span class="radio-custom"></span>
+              <span class="radio-text">选项三</span>
             </label>
           </div>
         </div>
@@ -289,30 +317,67 @@ const radioValue = ref('option1')
       <!-- 卡片 -->
       <section class="section">
         <h2 class="section-title">卡片组件</h2>
-        <div class="card-grid">
-          <div class="card card-hover">
+        <div class="card-stack">
+          <div class="card card-interactive">
             <h3 class="card-title">基础卡片</h3>
-            <p class="card-content">这是一个基础卡片组件，带有 hover 效果。可以用于展示社团信息、活动详情等内容。</p>
+            <p class="card-content">这是一个基础卡片组件，点击有反馈效果。可以用于展示社团信息、活动详情等内容。</p>
             <div class="card-footer">
-              <button class="btn btn-primary btn-sm">了解更多</button>
+              <button class="btn btn-primary btn-touch btn-block">了解更多</button>
             </div>
           </div>
 
-          <div class="card card-hover">
+          <div class="card card-interactive">
             <div class="card-badge">新</div>
             <h3 class="card-title">带徽章卡片</h3>
             <p class="card-content">卡片可以包含徽章，用于标记新内容、热门活动等。</p>
             <div class="card-footer">
-              <button class="btn btn-outline btn-sm">查看详情</button>
+              <button class="btn btn-outline btn-touch btn-block">查看详情</button>
             </div>
           </div>
 
-          <div class="card card-hover card-featured">
+          <div class="card card-interactive card-featured">
             <h3 class="card-title">特色卡片</h3>
             <p class="card-content">带有主色边框的特色卡片，用于突出重要内容。</p>
-            <div class="card-footer">
-              <button class="btn btn-primary btn-sm">立即参与</button>
+            <div class="card-footer card-footer-split">
+              <button class="btn btn-ghost btn-touch">取消</button>
+              <button class="btn btn-primary btn-touch">立即参与</button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 列表项 -->
+      <section class="section">
+        <h2 class="section-title">列表项</h2>
+        <div class="list-card">
+          <div class="list-item list-item-interactive">
+            <div class="list-item-content">
+              <div class="list-item-title">社团活动通知</div>
+              <div class="list-item-desc">技术部本周六举办编程马拉松</div>
+            </div>
+            <div class="list-item-arrow"></div>
+          </div>
+          <div class="list-item list-item-interactive">
+            <div class="list-item-avatar">
+              <span>李</span>
+            </div>
+            <div class="list-item-content">
+              <div class="list-item-title">李同学</div>
+              <div class="list-item-desc">技术部 · 部长</div>
+            </div>
+            <div class="list-item-action">
+              <button class="btn btn-primary btn-sm btn-touch">关注</button>
+            </div>
+          </div>
+          <div class="list-item list-item-interactive">
+            <div class="list-item-icon list-item-icon-primary">
+              <span>!</span>
+            </div>
+            <div class="list-item-content">
+              <div class="list-item-title">系统消息</div>
+              <div class="list-item-desc">您有3条未读消息</div>
+            </div>
+            <div class="list-item-badge">3</div>
           </div>
         </div>
       </section>
@@ -336,10 +401,10 @@ const radioValue = ref('option1')
         <div class="card">
           <h3 class="card-title">标签</h3>
           <div class="tag-group">
-            <span class="tag">技术部</span>
-            <span class="tag">宣传部</span>
-            <span class="tag">文艺部</span>
-            <span class="tag tag-closable">
+            <span class="tag tag-touch">技术部</span>
+            <span class="tag tag-touch">宣传部</span>
+            <span class="tag tag-touch">文艺部</span>
+            <span class="tag tag-closable tag-touch">
               可关闭
               <button class="tag-close">&times;</button>
             </span>
@@ -347,12 +412,20 @@ const radioValue = ref('option1')
         </div>
 
         <div class="card">
-          <h3 class="card-title">圆点徽章</h3>
-          <div class="badge-group">
-            <span class="dot dot-success"></span>
-            <span class="dot dot-warning"></span>
-            <span class="dot dot-error"></span>
-            <span class="dot dot-info"></span>
+          <h3 class="card-title">状态指示</h3>
+          <div class="status-group">
+            <span class="status status-online">
+              <span class="status-dot"></span>
+              在线
+            </span>
+            <span class="status status-busy">
+              <span class="status-dot"></span>
+              忙碌
+            </span>
+            <span class="status status-offline">
+              <span class="status-dot"></span>
+              离线
+            </span>
           </div>
         </div>
       </section>
@@ -362,50 +435,99 @@ const radioValue = ref('option1')
         <h2 class="section-title">提示框</h2>
         <div class="alert-stack">
           <div class="alert alert-success">
-            <strong>成功！</strong> 您的操作已成功完成。
+            <div class="alert-icon">&#10003;</div>
+            <div class="alert-content">
+              <strong>成功！</strong> 您的操作已完成。
+            </div>
           </div>
           <div class="alert alert-warning">
-            <strong>警告！</strong> 请注意检查您的输入内容。
+            <div class="alert-icon">!</div>
+            <div class="alert-content">
+              <strong>警告！</strong> 请检查输入内容。
+            </div>
           </div>
           <div class="alert alert-error">
-            <strong>错误！</strong> 操作失败，请稍后重试。
+            <div class="alert-icon">&times;</div>
+            <div class="alert-content">
+              <strong>错误！</strong> 操作失败，请重试。
+            </div>
           </div>
           <div class="alert alert-info">
-            <strong>提示：</strong> 您可以在个人中心修改这些设置。
+            <div class="alert-icon">i</div>
+            <div class="alert-content">
+              <strong>提示：</strong> 可在个人中心修改设置。
+            </div>
           </div>
+        </div>
+      </section>
+
+      <!-- 移动端专属组件 -->
+      <section class="section">
+        <h2 class="section-title">移动端组件</h2>
+
+        <div class="card">
+          <h3 class="card-title">操作栏示例</h3>
+          <div class="action-bar-demo">
+            <div class="action-bar">
+              <button class="action-bar-btn">
+                <span class="action-icon">&#9825;</span>
+                <span>收藏</span>
+              </button>
+              <button class="action-bar-btn">
+                <span class="action-icon">&#8635;</span>
+                <span>分享</span>
+              </button>
+              <button class="action-bar-btn action-bar-btn-primary">
+                <span class="action-icon">+</span>
+                <span>报名</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">分段控制器</h3>
+          <div class="segment-control">
+            <button
+              class="segment-btn"
+              :class="{ active: activeTab === 'home' }"
+              @click="activeTab = 'home'"
+            >首页</button>
+            <button
+              class="segment-btn"
+              :class="{ active: activeTab === 'activity' }"
+              @click="activeTab = 'activity'"
+            >活动</button>
+            <button
+              class="segment-btn"
+              :class="{ active: activeTab === 'mine' }"
+              @click="activeTab = 'mine'"
+            >我的</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">底部安全区域</h3>
+          <p class="card-content">在有底部导航的页面，需要考虑 iPhone 等设备的安全区域。</p>
+          <code class="code-block">padding-bottom: env(safe-area-inset-bottom);</code>
         </div>
       </section>
 
       <!-- 阴影展示 -->
       <section class="section">
         <h2 class="section-title">阴影系统</h2>
-        <div class="shadow-grid">
+        <div class="shadow-scroll">
           <div class="shadow-demo shadow-sm">
-            <span>shadow-sm</span>
+            <span>sm</span>
           </div>
           <div class="shadow-demo shadow-md">
-            <span>shadow-md</span>
+            <span>md</span>
           </div>
           <div class="shadow-demo shadow-lg">
-            <span>shadow-lg</span>
+            <span>lg</span>
           </div>
           <div class="shadow-demo shadow-xl">
-            <span>shadow-xl</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- 间距展示 -->
-      <section class="section">
-        <h2 class="section-title">间距系统</h2>
-        <div class="card">
-          <div class="spacing-demo">
-            <div class="spacing-item" style="width: var(--spacing-xs)"><span>xs (4px)</span></div>
-            <div class="spacing-item" style="width: var(--spacing-sm)"><span>sm (8px)</span></div>
-            <div class="spacing-item" style="width: var(--spacing-md)"><span>md (16px)</span></div>
-            <div class="spacing-item" style="width: var(--spacing-lg)"><span>lg (24px)</span></div>
-            <div class="spacing-item" style="width: var(--spacing-xl)"><span>xl (32px)</span></div>
-            <div class="spacing-item" style="width: var(--spacing-2xl)"><span>2xl (48px)</span></div>
+            <span>xl</span>
           </div>
         </div>
       </section>
@@ -413,18 +535,18 @@ const radioValue = ref('option1')
       <!-- 圆角展示 -->
       <section class="section">
         <h2 class="section-title">圆角系统</h2>
-        <div class="radius-grid">
+        <div class="radius-scroll">
           <div class="radius-demo" style="border-radius: var(--radius-sm)">
-            <span>sm (4px)</span>
+            <span>sm</span>
           </div>
           <div class="radius-demo" style="border-radius: var(--radius-md)">
-            <span>md (8px)</span>
+            <span>md</span>
           </div>
           <div class="radius-demo" style="border-radius: var(--radius-lg)">
-            <span>lg (12px)</span>
+            <span>lg</span>
           </div>
           <div class="radius-demo" style="border-radius: var(--radius-xl)">
-            <span>xl (16px)</span>
+            <span>xl</span>
           </div>
           <div class="radius-demo radius-demo-circle" style="border-radius: var(--radius-full)">
             <span>full</span>
@@ -435,139 +557,197 @@ const radioValue = ref('option1')
 
     <!-- 页脚 -->
     <footer class="footer">
-      <p>XMYZ Club Design System &copy; 2024 厦门一中学生社区</p>
+      <p>XMYZ Club Design System</p>
+      <p class="footer-sub">&copy; 2024 厦门一中学生社区</p>
     </footer>
+
+    <!-- 悬浮按钮示例 -->
+    <button class="fab" aria-label="添加">
+      <span>+</span>
+    </button>
+
+    <!-- 底部导航示例 -->
+    <nav class="bottom-nav">
+      <button
+        class="bottom-nav-item"
+        :class="{ active: activeTab === 'home' }"
+        @click="activeTab = 'home'"
+      >
+        <span class="bottom-nav-icon">&#8962;</span>
+        <span class="bottom-nav-label">首页</span>
+      </button>
+      <button
+        class="bottom-nav-item"
+        :class="{ active: activeTab === 'activity' }"
+        @click="activeTab = 'activity'"
+      >
+        <span class="bottom-nav-icon">&#9733;</span>
+        <span class="bottom-nav-label">活动</span>
+      </button>
+      <button
+        class="bottom-nav-item"
+        :class="{ active: activeTab === 'message' }"
+        @click="activeTab = 'message'"
+      >
+        <span class="bottom-nav-icon">&#9993;</span>
+        <span class="bottom-nav-label">消息</span>
+      </button>
+      <button
+        class="bottom-nav-item"
+        :class="{ active: activeTab === 'mine' }"
+        @click="activeTab = 'mine'"
+      >
+        <span class="bottom-nav-icon">&#9786;</span>
+        <span class="bottom-nav-label">我的</span>
+      </button>
+    </nav>
   </div>
 </template>
 
 <style scoped>
+/* ===== 基础设置 - 移动端优先 ===== */
 .design-system {
   min-height: 100vh;
   background-color: var(--color-bg);
   color: var(--color-text);
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Header */
+/* ===== Header ===== */
 .header {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
-  padding: var(--spacing-2xl) var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-md);
+  padding-top: calc(var(--spacing-xl) + env(safe-area-inset-top, 0px));
   text-align: center;
 }
 
 .header-content {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
 .title {
-  font-size: var(--text-4xl);
+  font-size: var(--text-2xl);
   font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
 }
 
 .subtitle {
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
   opacity: 0.9;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
-/* Main */
+/* ===== Main ===== */
 .main {
-  max-width: 1200px;
+  padding: var(--spacing-md);
+  max-width: 600px;
   margin: 0 auto;
-  padding: var(--spacing-2xl) var(--spacing-lg);
 }
 
-/* Section */
+/* ===== Section ===== */
 .section {
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 .section-title {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-lg);
-  padding-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-xs);
   border-bottom: 2px solid var(--color-primary);
   display: inline-block;
 }
 
-/* Color System */
+/* ===== Color System - 水平滚动 ===== */
 .color-group {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 }
 
 .group-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   color: var(--color-text-secondary);
 }
 
-.color-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--spacing-md);
+.color-scroll {
+  display: flex;
+  gap: var(--spacing-sm);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-sm);
+  margin: 0 calc(-1 * var(--spacing-md));
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.color-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .color-card {
+  flex-shrink: 0;
+  width: 120px;
   background: var(--color-card);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border);
+  scroll-snap-align: start;
 }
 
 .color-preview {
-  height: 80px;
-  border: 1px solid var(--color-border);
+  height: 60px;
 }
 
 .color-info {
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 2px;
 }
 
 .color-name {
   font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
 }
 
-.color-value,
-.color-var {
+.color-value {
   font-family: var(--font-family-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
-/* Typography */
+/* ===== Typography ===== */
 .typography-demo {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .demo-h1 {
-  font-size: var(--text-4xl);
+  font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   line-height: var(--leading-tight);
 }
 
 .demo-h2 {
-  font-size: var(--text-3xl);
+  font-size: var(--text-xl);
   font-weight: var(--font-bold);
   line-height: var(--leading-tight);
 }
 
 .demo-h3 {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
 }
 
 .demo-h4 {
-  font-size: var(--text-xl);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
 }
 
@@ -577,33 +757,38 @@ const radioValue = ref('option1')
 }
 
 .demo-secondary {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .demo-small {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text-placeholder);
 }
 
-/* Card */
+/* ===== Card ===== */
 .card {
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border);
   margin-bottom: var(--spacing-md);
   position: relative;
 }
 
-.card-hover {
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+.card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+.card-interactive {
+  transition: transform var(--transition-fast);
+}
+
+.card-interactive:active {
+  transform: scale(0.98);
 }
 
 .card-featured {
@@ -611,14 +796,15 @@ const radioValue = ref('option1')
 }
 
 .card-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 .card-content {
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-md);
+  font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
 }
 
@@ -627,34 +813,41 @@ const radioValue = ref('option1')
   gap: var(--spacing-sm);
 }
 
+.card-footer-split {
+  justify-content: space-between;
+}
+
 .card-badge {
   position: absolute;
-  top: var(--spacing-md);
-  right: var(--spacing-md);
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
   background: var(--color-primary);
   color: white;
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: 2px var(--spacing-sm);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
 }
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--spacing-lg);
-}
-
-/* Buttons */
+/* ===== Buttons - 优化触摸 ===== */
 .button-group {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
-  align-items: flex-start;
+  align-items: center;
 }
 
-.button-group-align {
-  align-items: center;
+.button-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
 }
 
 .btn {
@@ -667,14 +860,32 @@ const radioValue = ref('option1')
   border-radius: var(--radius-md);
   border: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
   text-decoration: none;
   font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+/* 触摸优化：最小 44px 高度 */
+.btn-touch {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.btn:active {
+  transform: scale(0.96);
+  opacity: 0.9;
 }
 
 .btn:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-block {
+  width: 100%;
 }
 
 .btn-primary {
@@ -682,21 +893,9 @@ const radioValue = ref('option1')
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-light);
-}
-
-.btn-primary:active:not(:disabled) {
-  background: var(--color-primary-dark);
-}
-
 .btn-secondary {
   background: var(--color-secondary);
   color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--color-secondary-light);
 }
 
 .btn-outline {
@@ -705,72 +904,53 @@ const radioValue = ref('option1')
   border: 2px solid var(--color-primary);
 }
 
-.btn-outline:hover:not(:disabled) {
-  background: var(--color-primary-bg);
-}
-
 .btn-ghost {
   background: transparent;
   color: var(--color-text);
 }
 
-.btn-ghost:hover:not(:disabled) {
+.btn-ghost:active {
   background: var(--color-border);
 }
 
 .btn-link {
   background: transparent;
   color: var(--color-primary);
-  padding: 0;
+  padding: var(--spacing-sm);
 }
 
-.btn-link:hover:not(:disabled) {
-  text-decoration: underline;
-}
-
-.btn-success {
-  background: var(--color-success);
-  color: white;
-}
-
-.btn-warning {
-  background: var(--color-warning);
-  color: white;
-}
-
-.btn-error {
-  background: var(--color-error);
-  color: white;
-}
-
-.btn-info {
-  background: var(--color-info);
-  color: white;
-}
+.btn-success { background: var(--color-success); color: white; }
+.btn-warning { background: var(--color-warning); color: white; }
+.btn-error { background: var(--color-error); color: white; }
+.btn-info { background: var(--color-info); color: white; }
 
 .btn-sm {
   padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--text-sm);
+  min-height: 36px;
 }
 
 .btn-lg {
   padding: var(--spacing-md) var(--spacing-xl);
   font-size: var(--text-lg);
+  min-height: 52px;
 }
 
 .btn-rounded {
   border-radius: var(--radius-full);
+  padding-left: var(--spacing-lg);
+  padding-right: var(--spacing-lg);
 }
 
 .btn-icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   padding: 0;
   border-radius: var(--radius-full);
   font-size: var(--text-xl);
 }
 
-/* Form */
+/* ===== Form - 增大触摸区域 ===== */
 .form-group {
   margin-bottom: var(--spacing-md);
 }
@@ -780,20 +960,28 @@ const radioValue = ref('option1')
   font-weight: var(--font-medium);
   margin-bottom: var(--spacing-xs);
   color: var(--color-text);
+  font-size: var(--text-sm);
 }
 
 .form-input,
 .form-textarea,
 .form-select {
   width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-base);
+  padding: var(--spacing-md);
+  font-size: 16px; /* 防止 iOS 缩放 */
   font-family: inherit;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-card);
   color: var(--color-text);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.form-input,
+.form-select {
+  min-height: 48px;
 }
 
 .form-input:focus,
@@ -809,28 +997,12 @@ const radioValue = ref('option1')
   color: var(--color-text-placeholder);
 }
 
-.form-input:disabled,
-.form-textarea:disabled,
-.form-select:disabled {
-  background: var(--color-bg);
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
 .form-input-error {
   border-color: var(--color-error);
 }
 
 .form-input-error:focus {
   box-shadow: 0 0 0 3px var(--color-error-bg);
-}
-
-.form-input-success {
-  border-color: var(--color-success);
-}
-
-.form-input-success:focus {
-  box-shadow: 0 0 0 3px var(--color-success-bg);
 }
 
 .form-error {
@@ -840,26 +1012,252 @@ const radioValue = ref('option1')
   margin-top: var(--spacing-xs);
 }
 
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--spacing-md) center;
+  padding-right: var(--spacing-2xl);
+}
+
+/* ===== Switch ===== */
+.switch-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.switch-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) 0;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.switch-text {
+  font-size: var(--text-base);
+}
+
+.switch {
+  position: relative;
+  width: 52px;
+  height: 32px;
+  background: var(--color-border);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.switch-on {
+  background: var(--color-primary);
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 28px;
+  height: 28px;
+  background: white;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast);
+}
+
+.switch-on .switch-thumb {
+  transform: translateX(20px);
+}
+
+/* ===== Checkbox & Radio - 自定义样式 ===== */
+.check-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
 .checkbox-label,
 .radio-label {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
   cursor: pointer;
-  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.checkbox-disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .form-checkbox,
 .form-radio {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-primary);
-  cursor: pointer;
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
-/* Badges */
+.checkbox-custom,
+.radio-custom {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  background: var(--color-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.checkbox-custom {
+  border-radius: var(--radius-sm);
+}
+
+.radio-custom {
+  border-radius: var(--radius-full);
+}
+
+.form-checkbox:checked + .checkbox-custom,
+.form-radio:checked + .radio-custom {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.form-checkbox:checked + .checkbox-custom::after {
+  content: '✓';
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.form-radio:checked + .radio-custom::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: var(--radius-full);
+}
+
+.checkbox-text,
+.radio-text {
+  font-size: var(--text-base);
+}
+
+/* ===== List ===== */
+.list-card {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 60px;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-interactive {
+  transition: background var(--transition-fast);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.list-item-interactive:active {
+  background: var(--color-bg);
+}
+
+.list-item-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-semibold);
+  flex-shrink: 0;
+}
+
+.list-item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+
+.list-item-icon-primary {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.list-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-item-title {
+  font-weight: var(--font-medium);
+  font-size: var(--text-base);
+  margin-bottom: 2px;
+}
+
+.list-item-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-item-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--color-text-placeholder);
+  border-bottom: 2px solid var(--color-text-placeholder);
+  transform: rotate(-45deg);
+  flex-shrink: 0;
+}
+
+.list-item-badge {
+  background: var(--color-error);
+  color: white;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  min-width: 20px;
+  text-align: center;
+}
+
+.list-item-action {
+  flex-shrink: 0;
+}
+
+/* ===== Badges ===== */
 .badge-group,
-.tag-group {
+.tag-group,
+.status-group {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
@@ -873,45 +1271,17 @@ const radioValue = ref('option1')
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   border-radius: var(--radius-full);
-  text-transform: uppercase;
 }
 
-.badge-primary {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
+.badge-primary { background: var(--color-primary-bg); color: var(--color-primary); }
+.badge-secondary { background: rgba(6, 182, 212, 0.1); color: var(--color-secondary); }
+.badge-accent { background: rgba(245, 158, 11, 0.1); color: var(--color-accent); }
+.badge-success { background: var(--color-success-bg); color: var(--color-success); }
+.badge-warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.badge-error { background: var(--color-error-bg); color: var(--color-error); }
+.badge-info { background: var(--color-info-bg); color: var(--color-info); }
 
-.badge-secondary {
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--color-secondary);
-}
-
-.badge-accent {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--color-accent);
-}
-
-.badge-success {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.badge-warning {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.badge-error {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
-
-.badge-info {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
-/* Tags */
+/* ===== Tags ===== */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -923,6 +1293,16 @@ const radioValue = ref('option1')
   color: var(--color-text-secondary);
 }
 
+.tag-touch {
+  min-height: 36px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tag-touch:active {
+  background: var(--color-border);
+}
+
 .tag-closable {
   padding-right: var(--spacing-xs);
 }
@@ -931,172 +1311,409 @@ const radioValue = ref('option1')
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   margin-left: var(--spacing-xs);
   background: none;
   border: none;
   border-radius: var(--radius-full);
   color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
 }
 
-.tag-close:hover {
+.tag-close:active {
   background: var(--color-border);
-  color: var(--color-text);
 }
 
-/* Dots */
-.dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
+/* ===== Status ===== */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
   border-radius: var(--radius-full);
 }
 
-.dot-success {
-  background: var(--color-success);
-}
+.status-online .status-dot { background: var(--color-success); }
+.status-busy .status-dot { background: var(--color-warning); }
+.status-offline .status-dot { background: var(--color-text-placeholder); }
 
-.dot-warning {
-  background: var(--color-warning);
-}
-
-.dot-error {
-  background: var(--color-error);
-}
-
-.dot-info {
-  background: var(--color-info);
-}
-
-/* Alerts */
+/* ===== Alerts ===== */
 .alert-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.alert {
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  border-left: 4px solid;
-}
-
-.alert-success {
-  background: var(--color-success-bg);
-  border-color: var(--color-success);
-  color: var(--color-success);
-}
-
-.alert-warning {
-  background: var(--color-warning-bg);
-  border-color: var(--color-warning);
-  color: #92400e;
-}
-
-.alert-error {
-  background: var(--color-error-bg);
-  border-color: var(--color-error);
-  color: var(--color-error);
-}
-
-.alert-info {
-  background: var(--color-info-bg);
-  border-color: var(--color-info);
-  color: var(--color-info);
-}
-
-/* Shadows */
-.shadow-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: var(--spacing-xl);
-}
-
-.shadow-demo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100px;
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  font-family: var(--font-family-mono);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.shadow-sm {
-  box-shadow: var(--shadow-sm);
-}
-
-.shadow-md {
-  box-shadow: var(--shadow-md);
-}
-
-.shadow-lg {
-  box-shadow: var(--shadow-lg);
-}
-
-.shadow-xl {
-  box-shadow: var(--shadow-xl);
-}
-
-/* Spacing */
-.spacing-demo {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
 
-.spacing-item {
-  height: 40px;
-  background: var(--color-primary);
-  border-radius: var(--radius-sm);
+.alert {
   display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.spacing-item span {
-  position: absolute;
-  left: calc(100% + var(--spacing-md));
-  white-space: nowrap;
-  font-family: var(--font-family-mono);
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  color: var(--color-text-secondary);
 }
 
-/* Radius */
-.radius-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: var(--spacing-lg);
-}
-
-.radius-demo {
+.alert-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100px;
+  font-weight: var(--font-bold);
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+  line-height: var(--leading-relaxed);
+}
+
+.alert-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.alert-success .alert-icon { background: var(--color-success); color: white; }
+
+.alert-warning {
+  background: var(--color-warning-bg);
+  color: #92400e;
+}
+.alert-warning .alert-icon { background: var(--color-warning); color: white; }
+
+.alert-error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+.alert-error .alert-icon { background: var(--color-error); color: white; }
+
+.alert-info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+.alert-info .alert-icon { background: var(--color-info); color: white; }
+
+/* ===== Mobile Components ===== */
+.action-bar-demo {
+  margin: 0 calc(-1 * var(--spacing-md));
+  margin-bottom: calc(-1 * var(--spacing-md));
+  margin-top: var(--spacing-sm);
+}
+
+.action-bar {
+  display: flex;
+  border-top: 1px solid var(--color-border);
+}
+
+.action-bar-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--spacing-sm);
+  min-height: 56px;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.action-bar-btn:active {
+  background: var(--color-bg);
+}
+
+.action-bar-btn-primary {
+  color: var(--color-primary);
+}
+
+.action-icon {
+  font-size: var(--text-xl);
+}
+
+.segment-control {
+  display: flex;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+
+.segment-btn {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.segment-btn.active {
+  background: var(--color-card);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.code-block {
+  display: block;
+  background: var(--color-bg);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  overflow-x: auto;
+}
+
+/* ===== Shadow & Radius - 水平滚动 ===== */
+.shadow-scroll,
+.radius-scroll {
+  display: flex;
+  gap: var(--spacing-md);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-sm);
+  margin: 0 calc(-1 * var(--spacing-md));
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+  -webkit-overflow-scrolling: touch;
+}
+
+.shadow-scroll::-webkit-scrollbar,
+.radius-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.shadow-demo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+
+.radius-demo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
   background: var(--color-primary);
   color: white;
   font-family: var(--font-family-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
 .radius-demo-circle {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
 }
 
-/* Footer */
+/* ===== FAB ===== */
+.fab {
+  position: fixed;
+  right: var(--spacing-md);
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  z-index: 100;
+}
+
+.fab:active {
+  transform: scale(0.92);
+  box-shadow: var(--shadow-md);
+}
+
+/* ===== Bottom Navigation ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 1000;
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--spacing-sm) 0;
+  min-height: 56px;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-item.active {
+  color: var(--color-primary);
+}
+
+.bottom-nav-icon {
+  font-size: var(--text-xl);
+}
+
+.bottom-nav-label {
+  font-weight: var(--font-medium);
+}
+
+/* ===== Footer ===== */
 .footer {
   text-align: center;
-  padding: var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-md);
+  padding-bottom: calc(var(--spacing-xl) + 60px);
   color: var(--color-text-secondary);
-  border-top: 1px solid var(--color-border);
-  margin-top: var(--spacing-2xl);
+  font-size: var(--text-sm);
+}
+
+.footer-sub {
+  font-size: var(--text-xs);
+  margin-top: var(--spacing-xs);
+}
+
+/* ===== Desktop Overrides ===== */
+@media (min-width: 768px) {
+  .header {
+    padding: var(--spacing-2xl);
+  }
+
+  .title {
+    font-size: var(--text-4xl);
+  }
+
+  .subtitle {
+    font-size: var(--text-lg);
+  }
+
+  .main {
+    padding: var(--spacing-2xl);
+    max-width: 800px;
+  }
+
+  .section-title {
+    font-size: var(--text-2xl);
+  }
+
+  .color-scroll {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .color-card {
+    width: 160px;
+  }
+
+  .card {
+    padding: var(--spacing-lg);
+  }
+
+  .button-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .btn-block {
+    width: auto;
+  }
+
+  .shadow-scroll,
+  .radius-scroll {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .fab,
+  .bottom-nav {
+    display: none;
+  }
+
+  .design-system {
+    padding-bottom: 0;
+  }
+
+  .footer {
+    padding-bottom: var(--spacing-xl);
+  }
+
+  /* Desktop hover effects */
+  .btn:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-light);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--color-secondary-light);
+  }
+
+  .card-interactive:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .card-interactive:active {
+    transform: translateY(-2px);
+  }
+
+  .list-item-interactive:hover {
+    background: var(--color-bg);
+  }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 
 const isDark = ref(false)
 const activeTab = ref('home')
@@ -69,10 +69,177 @@ function toggleDropdown() {
   isDropdownOpen.value = !isDropdownOpen.value
 }
 
-// 点击外部关闭下拉框
-function closeDropdown() {
-  isDropdownOpen.value = false
+// ===== 分段控制器 - 带滑动动画 =====
+const segmentTabs = [
+  { key: 'home', label: '首页' },
+  { key: 'activity', label: '活动' },
+  { key: 'mine', label: '我的' },
+]
+const segmentRef = ref<HTMLElement | null>(null)
+const sliderStyle = ref({ left: '0px', width: '0px' })
+
+function updateSliderPosition() {
+  nextTick(() => {
+    if (!segmentRef.value) return
+    const activeBtn = segmentRef.value.querySelector('.segment-btn.active') as HTMLElement
+    if (activeBtn) {
+      sliderStyle.value = {
+        left: `${activeBtn.offsetLeft}px`,
+        width: `${activeBtn.offsetWidth}px`,
+      }
+    }
+  })
 }
+
+function setActiveTab(key: string) {
+  activeTab.value = key
+  updateSliderPosition()
+}
+
+onMounted(() => {
+  updateSliderPosition()
+  window.addEventListener('resize', updateSliderPosition)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateSliderPosition)
+})
+
+// ===== Modal 模态框 =====
+const showModal = ref(false)
+const showModalConfirm = ref(false)
+
+// ===== Toast 消息提示 =====
+interface ToastItem {
+  id: number
+  message: string
+  type: 'success' | 'warning' | 'error' | 'info'
+}
+const toasts = ref<ToastItem[]>([])
+let toastId = 0
+
+function showToast(message: string, type: ToastItem['type'] = 'info') {
+  const id = ++toastId
+  toasts.value.push({ id, message, type })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter(t => t.id !== id)
+  }, 3000)
+}
+
+// ===== Drawer 抽屉 =====
+const showDrawer = ref(false)
+const drawerPosition = ref<'left' | 'right' | 'bottom'>('right')
+
+function openDrawer(position: 'left' | 'right' | 'bottom') {
+  drawerPosition.value = position
+  showDrawer.value = true
+}
+
+// ===== Loading 加载 =====
+const showLoading = ref(false)
+
+function simulateLoading() {
+  showLoading.value = true
+  setTimeout(() => {
+    showLoading.value = false
+  }, 2000)
+}
+
+// ===== Progress 进度条 =====
+const progressValue = ref(65)
+
+// ===== Tabs 标签页 =====
+const tabsValue = ref('tab1')
+const tabsList = [
+  { key: 'tab1', label: '全部活动' },
+  { key: 'tab2', label: '进行中' },
+  { key: 'tab3', label: '已结束' },
+]
+
+// ===== Collapse 折叠面板 =====
+const expandedPanels = ref<string[]>(['panel1'])
+
+function togglePanel(key: string) {
+  const index = expandedPanels.value.indexOf(key)
+  if (index > -1) {
+    expandedPanels.value.splice(index, 1)
+  } else {
+    expandedPanels.value.push(key)
+  }
+}
+
+// ===== Tooltip & Popover =====
+const showPopover = ref(false)
+
+// ===== Steps 步骤条 =====
+const currentStep = ref(1)
+
+// ===== Dropdown 下拉菜单 =====
+const showDropdownMenu = ref(false)
+
+// ===== Pagination 分页 =====
+const currentPage = ref(1)
+const totalPages = 10
+
+function goToPage(page: number) {
+  if (page >= 1 && page <= totalPages) {
+    currentPage.value = page
+  }
+}
+
+// ===== Slider 滑块 =====
+const sliderValue = ref(50)
+
+// ===== Rate 评分 =====
+const rateValue = ref(3)
+const hoverRate = ref(0)
+
+// ===== ActionSheet 操作菜单 =====
+const showActionSheet = ref(false)
+
+// ===== Notification 通知 =====
+interface NotificationItem {
+  id: number
+  title: string
+  message: string
+  type: 'success' | 'warning' | 'error' | 'info'
+}
+const notifications = ref<NotificationItem[]>([])
+let notificationId = 0
+
+function showNotification(title: string, message: string, type: NotificationItem['type'] = 'info') {
+  const id = ++notificationId
+  notifications.value.push({ id, title, message, type })
+  setTimeout(() => {
+    notifications.value = notifications.value.filter(n => n.id !== id)
+  }, 5000)
+}
+
+function closeNotification(id: number) {
+  notifications.value = notifications.value.filter(n => n.id !== id)
+}
+
+// ===== Swiper 轮播 =====
+const swiperIndex = ref(0)
+const swiperItems = ['轮播图 1', '轮播图 2', '轮播图 3']
+
+function nextSlide() {
+  swiperIndex.value = (swiperIndex.value + 1) % swiperItems.length
+}
+
+function prevSlide() {
+  swiperIndex.value = (swiperIndex.value - 1 + swiperItems.length) % swiperItems.length
+}
+
+// ===== ImagePreview 图片预览 =====
+const showImagePreview = ref(false)
+
+// ===== Table 表格数据 =====
+const tableData = [
+  { id: 1, name: '张三', department: '技术部', status: '在线' },
+  { id: 2, name: '李四', department: '宣传部', status: '忙碌' },
+  { id: 3, name: '王五', department: '文艺部', status: '离线' },
+]
 </script>
 
 <template>
@@ -610,23 +777,16 @@ function closeDropdown() {
         </div>
 
         <div class="card">
-          <h3 class="card-title">分段控制器</h3>
-          <div class="segment-control">
+          <h3 class="card-title">分段控制器（带滑动动画）</h3>
+          <div class="segment-control" ref="segmentRef">
+            <div class="segment-slider" :style="sliderStyle"></div>
             <button
+              v-for="tab in segmentTabs"
+              :key="tab.key"
               class="segment-btn"
-              :class="{ active: activeTab === 'home' }"
-              @click="activeTab = 'home'"
-            >首页</button>
-            <button
-              class="segment-btn"
-              :class="{ active: activeTab === 'activity' }"
-              @click="activeTab = 'activity'"
-            >活动</button>
-            <button
-              class="segment-btn"
-              :class="{ active: activeTab === 'mine' }"
-              @click="activeTab = 'mine'"
-            >我的</button>
+              :class="{ active: activeTab === tab.key }"
+              @click="setActiveTab(tab.key)"
+            >{{ tab.label }}</button>
           </div>
         </div>
 
@@ -677,6 +837,535 @@ function closeDropdown() {
           </div>
         </div>
       </section>
+
+      <!-- ==================== 反馈组件 ==================== -->
+
+      <!-- Modal 模态框 -->
+      <section class="section">
+        <h2 class="section-title">模态框 Modal</h2>
+        <div class="card">
+          <h3 class="card-title">基础模态框</h3>
+          <div class="button-group">
+            <button class="btn btn-primary btn-touch" @click="showModal = true">打开模态框</button>
+            <button class="btn btn-secondary btn-touch" @click="showModalConfirm = true">确认对话框</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Toast 消息提示 -->
+      <section class="section">
+        <h2 class="section-title">消息提示 Toast</h2>
+        <div class="card">
+          <h3 class="card-title">不同类型的消息</h3>
+          <div class="button-grid">
+            <button class="btn btn-success btn-touch" @click="showToast('操作成功！', 'success')">成功</button>
+            <button class="btn btn-warning btn-touch" @click="showToast('请注意检查', 'warning')">警告</button>
+            <button class="btn btn-error btn-touch" @click="showToast('操作失败', 'error')">错误</button>
+            <button class="btn btn-info btn-touch" @click="showToast('这是一条提示信息', 'info')">信息</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Notification 通知 -->
+      <section class="section">
+        <h2 class="section-title">通知 Notification</h2>
+        <div class="card">
+          <h3 class="card-title">带标题的通知</h3>
+          <div class="button-grid">
+            <button class="btn btn-success btn-touch" @click="showNotification('成功', '您的操作已完成', 'success')">成功通知</button>
+            <button class="btn btn-error btn-touch" @click="showNotification('错误', '网络连接失败', 'error')">错误通知</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Loading 加载 -->
+      <section class="section">
+        <h2 class="section-title">加载 Loading</h2>
+        <div class="card">
+          <h3 class="card-title">加载状态</h3>
+          <div class="loading-demos">
+            <div class="loading-demo-item">
+              <div class="loading-spinner"></div>
+              <span>加载中</span>
+            </div>
+            <div class="loading-demo-item">
+              <div class="loading-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <span>加载中</span>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-touch btn-block" @click="simulateLoading">模拟全屏加载</button>
+        </div>
+      </section>
+
+      <!-- Drawer 抽屉 -->
+      <section class="section">
+        <h2 class="section-title">抽屉 Drawer</h2>
+        <div class="card">
+          <h3 class="card-title">不同方向的抽屉</h3>
+          <div class="button-group">
+            <button class="btn btn-outline btn-touch" @click="openDrawer('left')">左侧抽屉</button>
+            <button class="btn btn-outline btn-touch" @click="openDrawer('right')">右侧抽屉</button>
+            <button class="btn btn-outline btn-touch" @click="openDrawer('bottom')">底部抽屉</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ActionSheet 操作菜单 -->
+      <section class="section">
+        <h2 class="section-title">操作菜单 ActionSheet</h2>
+        <div class="card">
+          <button class="btn btn-primary btn-touch btn-block" @click="showActionSheet = true">打开操作菜单</button>
+        </div>
+      </section>
+
+      <!-- ==================== 数据展示 ==================== -->
+
+      <!-- Progress 进度条 -->
+      <section class="section">
+        <h2 class="section-title">进度条 Progress</h2>
+        <div class="card">
+          <h3 class="card-title">线形进度条</h3>
+          <div class="progress-demos">
+            <div class="progress-item">
+              <div class="progress-bar">
+                <div class="progress-bar-inner" :style="{ width: progressValue + '%' }"></div>
+              </div>
+              <span class="progress-text">{{ progressValue }}%</span>
+            </div>
+            <div class="progress-item">
+              <div class="progress-bar progress-bar-success">
+                <div class="progress-bar-inner" style="width: 100%"></div>
+              </div>
+              <span class="progress-text">完成</span>
+            </div>
+            <div class="progress-item">
+              <div class="progress-bar progress-bar-striped">
+                <div class="progress-bar-inner" style="width: 45%"></div>
+              </div>
+              <span class="progress-text">45%</span>
+            </div>
+          </div>
+          <div class="progress-controls">
+            <button class="btn btn-sm btn-outline" @click="progressValue = Math.max(0, progressValue - 10)">-10%</button>
+            <button class="btn btn-sm btn-outline" @click="progressValue = Math.min(100, progressValue + 10)">+10%</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">环形进度条</h3>
+          <div class="progress-circle-demos">
+            <div class="progress-circle" :style="{ '--progress': progressValue }">
+              <svg viewBox="0 0 100 100">
+                <circle class="progress-circle-bg" cx="50" cy="50" r="45"></circle>
+                <circle class="progress-circle-bar" cx="50" cy="50" r="45"></circle>
+              </svg>
+              <span class="progress-circle-text">{{ progressValue }}%</span>
+            </div>
+            <div class="progress-circle progress-circle-success" style="--progress: 100">
+              <svg viewBox="0 0 100 100">
+                <circle class="progress-circle-bg" cx="50" cy="50" r="45"></circle>
+                <circle class="progress-circle-bar" cx="50" cy="50" r="45"></circle>
+              </svg>
+              <span class="progress-circle-text">✓</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Skeleton 骨架屏 -->
+      <section class="section">
+        <h2 class="section-title">骨架屏 Skeleton</h2>
+        <div class="card">
+          <div class="skeleton-demo">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-text"></div>
+              <div class="skeleton-text skeleton-text-short"></div>
+            </div>
+          </div>
+          <div class="skeleton-demo">
+            <div class="skeleton-image"></div>
+          </div>
+          <div class="skeleton-demo">
+            <div class="skeleton-paragraph">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line skeleton-line-short"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tabs 标签页 -->
+      <section class="section">
+        <h2 class="section-title">标签页 Tabs</h2>
+        <div class="card">
+          <div class="tabs">
+            <div class="tabs-nav">
+              <button
+                v-for="tab in tabsList"
+                :key="tab.key"
+                class="tabs-nav-item"
+                :class="{ active: tabsValue === tab.key }"
+                @click="tabsValue = tab.key"
+              >{{ tab.label }}</button>
+            </div>
+            <div class="tabs-content">
+              <div v-if="tabsValue === 'tab1'" class="tabs-pane">
+                <p>这里显示全部活动的内容。包括进行中和已结束的所有活动列表。</p>
+              </div>
+              <div v-if="tabsValue === 'tab2'" class="tabs-pane">
+                <p>这里显示正在进行中的活动，可以立即报名参与。</p>
+              </div>
+              <div v-if="tabsValue === 'tab3'" class="tabs-pane">
+                <p>这里显示已经结束的活动，可以查看活动回顾。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Collapse 折叠面板 -->
+      <section class="section">
+        <h2 class="section-title">折叠面板 Collapse</h2>
+        <div class="collapse-list">
+          <div class="collapse-item" :class="{ expanded: expandedPanels.includes('panel1') }">
+            <div class="collapse-header" @click="togglePanel('panel1')">
+              <span>什么是学生社区？</span>
+              <span class="collapse-arrow"></span>
+            </div>
+            <div class="collapse-content">
+              <div class="collapse-body">
+                学生社区是厦门一中为全校学生打造的综合性在线平台，提供社团管理、活动报名、信息发布等功能。
+              </div>
+            </div>
+          </div>
+          <div class="collapse-item" :class="{ expanded: expandedPanels.includes('panel2') }">
+            <div class="collapse-header" @click="togglePanel('panel2')">
+              <span>如何加入社团？</span>
+              <span class="collapse-arrow"></span>
+            </div>
+            <div class="collapse-content">
+              <div class="collapse-body">
+                在社团列表页面找到感兴趣的社团，点击"申请加入"按钮，填写申请表后等待社团负责人审核即可。
+              </div>
+            </div>
+          </div>
+          <div class="collapse-item" :class="{ expanded: expandedPanels.includes('panel3') }">
+            <div class="collapse-header" @click="togglePanel('panel3')">
+              <span>如何发起活动？</span>
+              <span class="collapse-arrow"></span>
+            </div>
+            <div class="collapse-content">
+              <div class="collapse-body">
+                社团管理员可以在社团管理页面创建新活动，填写活动详情后提交审核，通过后即可发布。
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Empty 空状态 -->
+      <section class="section">
+        <h2 class="section-title">空状态 Empty</h2>
+        <div class="card">
+          <div class="empty">
+            <div class="empty-image">
+              <svg viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+                <path d="M20 28h24M20 36h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+              </svg>
+            </div>
+            <p class="empty-text">暂无数据</p>
+            <p class="empty-desc">当前没有任何内容可显示</p>
+            <button class="btn btn-primary btn-sm">立即创建</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Avatar 头像 -->
+      <section class="section">
+        <h2 class="section-title">头像 Avatar</h2>
+        <div class="card">
+          <h3 class="card-title">头像尺寸</h3>
+          <div class="avatar-group">
+            <div class="avatar avatar-xs">小</div>
+            <div class="avatar avatar-sm">中</div>
+            <div class="avatar">默</div>
+            <div class="avatar avatar-lg">大</div>
+            <div class="avatar avatar-xl">特</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">头像形状</h3>
+          <div class="avatar-group">
+            <div class="avatar">圆</div>
+            <div class="avatar avatar-square">方</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">头像组</h3>
+          <div class="avatar-stack">
+            <div class="avatar">A</div>
+            <div class="avatar">B</div>
+            <div class="avatar">C</div>
+            <div class="avatar avatar-more">+5</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tooltip 工具提示 -->
+      <section class="section">
+        <h2 class="section-title">工具提示 Tooltip</h2>
+        <div class="card">
+          <div class="tooltip-demos">
+            <div class="tooltip-wrapper">
+              <button class="btn btn-outline btn-touch">上方提示</button>
+              <div class="tooltip tooltip-top">这是提示内容</div>
+            </div>
+            <div class="tooltip-wrapper">
+              <button class="btn btn-outline btn-touch">下方提示</button>
+              <div class="tooltip tooltip-bottom">这是提示内容</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Popover 气泡卡片 -->
+      <section class="section">
+        <h2 class="section-title">气泡卡片 Popover</h2>
+        <div class="card">
+          <div class="popover-wrapper">
+            <button class="btn btn-primary btn-touch" @click="showPopover = !showPopover">
+              点击弹出
+            </button>
+            <Transition name="popover">
+              <div v-if="showPopover" class="popover">
+                <div class="popover-title">这是标题</div>
+                <div class="popover-content">这是气泡卡片的内容，可以包含任何元素。</div>
+                <div class="popover-footer">
+                  <button class="btn btn-sm btn-ghost" @click="showPopover = false">取消</button>
+                  <button class="btn btn-sm btn-primary" @click="showPopover = false">确定</button>
+                </div>
+              </div>
+            </Transition>
+          </div>
+        </div>
+      </section>
+
+      <!-- Table 表格 -->
+      <section class="section">
+        <h2 class="section-title">表格 Table</h2>
+        <div class="card table-card">
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>姓名</th>
+                  <th>部门</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in tableData" :key="row.id">
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.department }}</td>
+                  <td>
+                    <span class="status" :class="{
+                      'status-online': row.status === '在线',
+                      'status-busy': row.status === '忙碌',
+                      'status-offline': row.status === '离线'
+                    }">
+                      <span class="status-dot"></span>
+                      {{ row.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 导航组件 ==================== -->
+
+      <!-- Breadcrumb 面包屑 -->
+      <section class="section">
+        <h2 class="section-title">面包屑 Breadcrumb</h2>
+        <div class="card">
+          <nav class="breadcrumb">
+            <a href="#" class="breadcrumb-item">首页</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="#" class="breadcrumb-item">社团列表</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item breadcrumb-current">技术部</span>
+          </nav>
+        </div>
+      </section>
+
+      <!-- Steps 步骤条 -->
+      <section class="section">
+        <h2 class="section-title">步骤条 Steps</h2>
+        <div class="card">
+          <div class="steps">
+            <div class="step" :class="{ active: currentStep >= 1, completed: currentStep > 1 }">
+              <div class="step-icon">{{ currentStep > 1 ? '✓' : '1' }}</div>
+              <div class="step-content">
+                <div class="step-title">填写信息</div>
+              </div>
+            </div>
+            <div class="step-line" :class="{ active: currentStep > 1 }"></div>
+            <div class="step" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
+              <div class="step-icon">{{ currentStep > 2 ? '✓' : '2' }}</div>
+              <div class="step-content">
+                <div class="step-title">审核中</div>
+              </div>
+            </div>
+            <div class="step-line" :class="{ active: currentStep > 2 }"></div>
+            <div class="step" :class="{ active: currentStep >= 3 }">
+              <div class="step-icon">3</div>
+              <div class="step-content">
+                <div class="step-title">完成</div>
+              </div>
+            </div>
+          </div>
+          <div class="steps-controls">
+            <button class="btn btn-outline btn-sm" @click="currentStep = Math.max(1, currentStep - 1)" :disabled="currentStep <= 1">上一步</button>
+            <button class="btn btn-primary btn-sm" @click="currentStep = Math.min(3, currentStep + 1)" :disabled="currentStep >= 3">下一步</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dropdown 下拉菜单 -->
+      <section class="section">
+        <h2 class="section-title">下拉菜单 Dropdown</h2>
+        <div class="card">
+          <div class="dropdown" @click.stop>
+            <button class="btn btn-outline btn-touch" @click="showDropdownMenu = !showDropdownMenu">
+              更多操作
+              <span class="dropdown-arrow" :class="{ open: showDropdownMenu }"></span>
+            </button>
+            <Transition name="dropdown">
+              <div v-if="showDropdownMenu" class="dropdown-menu">
+                <button class="dropdown-item" @click="showDropdownMenu = false">编辑</button>
+                <button class="dropdown-item" @click="showDropdownMenu = false">复制</button>
+                <button class="dropdown-item" @click="showDropdownMenu = false">分享</button>
+                <div class="dropdown-divider"></div>
+                <button class="dropdown-item dropdown-item-danger" @click="showDropdownMenu = false">删除</button>
+              </div>
+            </Transition>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pagination 分页 -->
+      <section class="section">
+        <h2 class="section-title">分页 Pagination</h2>
+        <div class="card">
+          <div class="pagination">
+            <button class="pagination-btn" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">
+              <span class="pagination-arrow pagination-arrow-left"></span>
+            </button>
+            <button
+              v-for="page in 5"
+              :key="page"
+              class="pagination-btn"
+              :class="{ active: currentPage === page }"
+              @click="goToPage(page)"
+            >{{ page }}</button>
+            <span class="pagination-ellipsis">...</span>
+            <button class="pagination-btn" :class="{ active: currentPage === totalPages }" @click="goToPage(totalPages)">{{ totalPages }}</button>
+            <button class="pagination-btn" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">
+              <span class="pagination-arrow pagination-arrow-right"></span>
+            </button>
+          </div>
+          <p class="pagination-info">第 {{ currentPage }} 页，共 {{ totalPages }} 页</p>
+        </div>
+      </section>
+
+      <!-- ==================== 表单增强 ==================== -->
+
+      <!-- Slider 滑块 -->
+      <section class="section">
+        <h2 class="section-title">滑块 Slider</h2>
+        <div class="card">
+          <div class="slider-demo">
+            <input
+              type="range"
+              class="slider"
+              v-model.number="sliderValue"
+              min="0"
+              max="100"
+            />
+            <span class="slider-value">{{ sliderValue }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rate 评分 -->
+      <section class="section">
+        <h2 class="section-title">评分 Rate</h2>
+        <div class="card">
+          <div class="rate">
+            <button
+              v-for="i in 5"
+              :key="i"
+              class="rate-star"
+              :class="{ active: i <= (hoverRate || rateValue), hover: i <= hoverRate }"
+              @click="rateValue = i"
+              @mouseenter="hoverRate = i"
+              @mouseleave="hoverRate = 0"
+            >★</button>
+          </div>
+          <p class="rate-text">当前评分: {{ rateValue }} 分</p>
+        </div>
+      </section>
+
+      <!-- Swiper 轮播 -->
+      <section class="section">
+        <h2 class="section-title">轮播 Swiper</h2>
+        <div class="card swiper-card">
+          <div class="swiper">
+            <div class="swiper-track" :style="{ transform: `translateX(-${swiperIndex * 100}%)` }">
+              <div v-for="(item, index) in swiperItems" :key="index" class="swiper-slide">
+                {{ item }}
+              </div>
+            </div>
+            <button class="swiper-btn swiper-btn-prev" @click="prevSlide">‹</button>
+            <button class="swiper-btn swiper-btn-next" @click="nextSlide">›</button>
+            <div class="swiper-dots">
+              <button
+                v-for="(_item, index) in swiperItems"
+                :key="index"
+                class="swiper-dot"
+                :class="{ active: swiperIndex === index }"
+                @click="swiperIndex = index"
+              ></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ImagePreview 图片预览 -->
+      <section class="section">
+        <h2 class="section-title">图片预览 ImagePreview</h2>
+        <div class="card">
+          <div class="image-grid">
+            <div class="image-item" @click="showImagePreview = true">
+              <div class="image-placeholder">点击预览</div>
+            </div>
+            <div class="image-item">
+              <div class="image-placeholder">图片 2</div>
+            </div>
+            <div class="image-item">
+              <div class="image-placeholder">图片 3</div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- 页脚 -->
@@ -684,6 +1373,159 @@ function closeDropdown() {
       <p>XMYZ Club Design System</p>
       <p class="footer-sub">&copy; 2024 厦门一中学生社区</p>
     </footer>
+
+    <!-- ==================== 全局覆盖层组件 ==================== -->
+
+    <!-- Toast 消息容器 -->
+    <Teleport to="body">
+      <div class="toast-container">
+        <TransitionGroup name="toast">
+          <div
+            v-for="toast in toasts"
+            :key="toast.id"
+            class="toast"
+            :class="'toast-' + toast.type"
+          >
+            <span class="toast-icon">
+              {{ toast.type === 'success' ? '✓' : toast.type === 'error' ? '✕' : toast.type === 'warning' ? '!' : 'i' }}
+            </span>
+            <span class="toast-message">{{ toast.message }}</span>
+          </div>
+        </TransitionGroup>
+      </div>
+    </Teleport>
+
+    <!-- Notification 通知容器 -->
+    <Teleport to="body">
+      <div class="notification-container">
+        <TransitionGroup name="notification">
+          <div
+            v-for="notification in notifications"
+            :key="notification.id"
+            class="notification"
+            :class="'notification-' + notification.type"
+          >
+            <div class="notification-icon">
+              {{ notification.type === 'success' ? '✓' : notification.type === 'error' ? '✕' : notification.type === 'warning' ? '!' : 'i' }}
+            </div>
+            <div class="notification-content">
+              <div class="notification-title">{{ notification.title }}</div>
+              <div class="notification-message">{{ notification.message }}</div>
+            </div>
+            <button class="notification-close" @click="closeNotification(notification.id)">&times;</button>
+          </div>
+        </TransitionGroup>
+      </div>
+    </Teleport>
+
+    <!-- Modal 基础模态框 -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+          <div class="modal">
+            <div class="modal-header">
+              <h3 class="modal-title">模态框标题</h3>
+              <button class="modal-close" @click="showModal = false">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p>这是一个基础的模态框组件，可以用于显示重要信息、表单或其他内容。</p>
+              <p>点击遮罩层或关闭按钮可以关闭模态框。</p>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-ghost btn-touch" @click="showModal = false">取消</button>
+              <button class="btn btn-primary btn-touch" @click="showModal = false">确定</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Modal 确认对话框 -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showModalConfirm" class="modal-overlay" @click.self="showModalConfirm = false">
+          <div class="modal modal-confirm">
+            <div class="modal-confirm-icon modal-confirm-warning">!</div>
+            <h3 class="modal-confirm-title">确认操作</h3>
+            <p class="modal-confirm-message">您确定要执行此操作吗？此操作无法撤销。</p>
+            <div class="modal-confirm-actions">
+              <button class="btn btn-ghost btn-touch btn-block" @click="showModalConfirm = false">取消</button>
+              <button class="btn btn-primary btn-touch btn-block" @click="showModalConfirm = false; showToast('操作已确认', 'success')">确定</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Drawer 抽屉 -->
+    <Teleport to="body">
+      <Transition name="drawer-overlay">
+        <div v-if="showDrawer" class="drawer-overlay" @click="showDrawer = false"></div>
+      </Transition>
+      <Transition :name="'drawer-' + drawerPosition">
+        <div v-if="showDrawer" class="drawer" :class="'drawer-' + drawerPosition">
+          <div class="drawer-header">
+            <h3 class="drawer-title">{{ drawerPosition === 'left' ? '左侧' : drawerPosition === 'right' ? '右侧' : '底部' }}抽屉</h3>
+            <button class="drawer-close" @click="showDrawer = false">&times;</button>
+          </div>
+          <div class="drawer-body">
+            <p>这是抽屉组件的内容区域。</p>
+            <p>可以放置导航菜单、表单或其他内容。</p>
+            <div class="drawer-menu">
+              <div class="drawer-menu-item">个人资料</div>
+              <div class="drawer-menu-item">我的社团</div>
+              <div class="drawer-menu-item">消息通知</div>
+              <div class="drawer-menu-item">设置</div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ActionSheet 操作菜单 -->
+    <Teleport to="body">
+      <Transition name="actionsheet-overlay">
+        <div v-if="showActionSheet" class="actionsheet-overlay" @click="showActionSheet = false"></div>
+      </Transition>
+      <Transition name="actionsheet">
+        <div v-if="showActionSheet" class="actionsheet">
+          <div class="actionsheet-content">
+            <button class="actionsheet-item" @click="showActionSheet = false; showToast('已保存到相册', 'success')">保存到相册</button>
+            <button class="actionsheet-item" @click="showActionSheet = false">分享给朋友</button>
+            <button class="actionsheet-item" @click="showActionSheet = false">复制链接</button>
+            <button class="actionsheet-item actionsheet-item-danger" @click="showActionSheet = false">举报</button>
+          </div>
+          <button class="actionsheet-cancel" @click="showActionSheet = false">取消</button>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Loading 全屏加载 -->
+    <Teleport to="body">
+      <Transition name="loading">
+        <div v-if="showLoading" class="loading-overlay">
+          <div class="loading-content">
+            <div class="loading-spinner loading-spinner-lg"></div>
+            <p class="loading-text">加载中...</p>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ImagePreview 图片预览 -->
+    <Teleport to="body">
+      <Transition name="imagepreview">
+        <div v-if="showImagePreview" class="imagepreview-overlay" @click="showImagePreview = false">
+          <div class="imagepreview-content">
+            <div class="imagepreview-placeholder">
+              <span>图片预览区域</span>
+              <span>点击任意位置关闭</span>
+            </div>
+          </div>
+          <button class="imagepreview-close" @click="showImagePreview = false">&times;</button>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- 悬浮按钮示例 -->
     <button class="fab" aria-label="添加">
@@ -1817,14 +2659,29 @@ function closeDropdown() {
   font-size: var(--text-xl);
 }
 
+/* ===== Segment Control 分段控制器（带滑动动画）===== */
 .segment-control {
+  position: relative;
   display: flex;
   background: var(--color-bg);
   border-radius: var(--radius-md);
   padding: 4px;
 }
 
+.segment-slider {
+  position: absolute;
+  top: 4px;
+  height: calc(100% - 8px);
+  background: var(--color-card);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
 .segment-btn {
+  position: relative;
+  z-index: 1;
   flex: 1;
   padding: var(--spacing-sm) var(--spacing-md);
   min-height: 40px;
@@ -1835,14 +2692,12 @@ function closeDropdown() {
   font-weight: var(--font-medium);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
   -webkit-tap-highlight-color: transparent;
 }
 
 .segment-btn.active {
-  background: var(--color-card);
   color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
 }
 
 .code-block {
@@ -2088,6 +2943,1639 @@ function closeDropdown() {
 
   .list-item-interactive:hover {
     background: var(--color-bg);
+  }
+}
+
+/* ==================== 新增组件样式 ==================== */
+
+/* ===== Modal 模态框 ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xl);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+}
+
+.modal-close:active {
+  background: var(--color-bg);
+}
+
+.modal-body {
+  padding: var(--spacing-md);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.modal-body p {
+  margin-bottom: var(--spacing-sm);
+}
+
+.modal-footer {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  justify-content: flex-end;
+}
+
+/* Modal 确认对话框 */
+.modal-confirm {
+  text-align: center;
+  padding: var(--spacing-lg);
+}
+
+.modal-confirm-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-md);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+}
+
+.modal-confirm-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.modal-confirm-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.modal-confirm-message {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.modal-confirm-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Modal 动画 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal,
+.modal-leave-to .modal {
+  transform: scale(0.9) translateY(20px);
+}
+
+/* ===== Toast 消息提示 ===== */
+.toast-container {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  min-width: 120px;
+  max-width: 300px;
+}
+
+.toast-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+
+.toast-message {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast-success .toast-icon { background: var(--color-success); color: white; }
+.toast-warning .toast-icon { background: var(--color-warning); color: white; }
+.toast-error .toast-icon { background: var(--color-error); color: white; }
+.toast-info .toast-icon { background: var(--color-info); color: white; }
+
+/* Toast 动画 */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.9);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.9);
+}
+
+/* ===== Notification 通知 ===== */
+.notification-container {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
+  right: var(--spacing-md);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 360px;
+  width: 100%;
+}
+
+.notification {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border-left: 4px solid var(--color-info);
+}
+
+.notification-success { border-left-color: var(--color-success); }
+.notification-warning { border-left-color: var(--color-warning); }
+.notification-error { border-left-color: var(--color-error); }
+
+.notification-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+  background: var(--color-info);
+  color: white;
+}
+
+.notification-success .notification-icon { background: var(--color-success); }
+.notification-warning .notification-icon { background: var(--color-warning); }
+.notification-error .notification-icon { background: var(--color-error); }
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: var(--font-semibold);
+  margin-bottom: 2px;
+}
+
+.notification-message {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.notification-close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Notification 动画 */
+.notification-enter-active,
+.notification-leave-active {
+  transition: all 0.3s ease;
+}
+
+.notification-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+/* ===== Drawer 抽屉 ===== */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1999;
+}
+
+.drawer {
+  position: fixed;
+  background: var(--color-card);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 80vw;
+}
+
+.drawer-right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 80vw;
+}
+
+.drawer-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 80vh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.drawer-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+}
+
+.drawer-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xl);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawer-body {
+  flex: 1;
+  padding: var(--spacing-md);
+  overflow-y: auto;
+}
+
+.drawer-menu {
+  margin-top: var(--spacing-md);
+}
+
+.drawer-menu-item {
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.drawer-menu-item:active {
+  background: var(--color-bg);
+}
+
+/* Drawer 动画 */
+.drawer-overlay-enter-active,
+.drawer-overlay-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.drawer-overlay-enter-from,
+.drawer-overlay-leave-to {
+  opacity: 0;
+}
+
+.drawer-left-enter-active,
+.drawer-left-leave-active,
+.drawer-right-enter-active,
+.drawer-right-leave-active,
+.drawer-bottom-enter-active,
+.drawer-bottom-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.drawer-left-enter-from,
+.drawer-left-leave-to {
+  transform: translateX(-100%);
+}
+
+.drawer-right-enter-from,
+.drawer-right-leave-to {
+  transform: translateX(100%);
+}
+
+.drawer-bottom-enter-from,
+.drawer-bottom-leave-to {
+  transform: translateY(100%);
+}
+
+/* ===== ActionSheet 操作菜单 ===== */
+.actionsheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1999;
+}
+
+.actionsheet {
+  position: fixed;
+  left: var(--spacing-sm);
+  right: var(--spacing-sm);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--spacing-sm));
+  z-index: 2000;
+}
+
+.actionsheet-content {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.actionsheet-item {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-md);
+  min-height: 56px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-base);
+  text-align: center;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.actionsheet-item:last-child {
+  border-bottom: none;
+}
+
+.actionsheet-item:active {
+  background: var(--color-bg);
+}
+
+.actionsheet-item-danger {
+  color: var(--color-error);
+}
+
+.actionsheet-cancel {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-md);
+  min-height: 56px;
+  border: none;
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  text-align: center;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast);
+}
+
+.actionsheet-cancel:active {
+  background: var(--color-bg);
+}
+
+/* ActionSheet 动画 */
+.actionsheet-overlay-enter-active,
+.actionsheet-overlay-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.actionsheet-overlay-enter-from,
+.actionsheet-overlay-leave-to {
+  opacity: 0;
+}
+
+.actionsheet-enter-active,
+.actionsheet-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.actionsheet-enter-from,
+.actionsheet-leave-to {
+  transform: translateY(100%);
+}
+
+/* ===== Loading 加载 ===== */
+.loading-demos {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+}
+
+.loading-demo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-spinner-lg {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: bounce 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: 0s; }
+.loading-dots span:nth-child(2) { animation-delay: 0.16s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.dark .loading-overlay {
+  background: rgba(17, 24, 39, 0.9);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.loading-text {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* Loading 动画 */
+.loading-enter-active,
+.loading-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.loading-enter-from,
+.loading-leave-to {
+  opacity: 0;
+}
+
+/* ===== Progress 进度条 ===== */
+.progress-demos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.progress-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-inner {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.progress-bar-success .progress-bar-inner {
+  background: var(--color-success);
+}
+
+.progress-bar-striped .progress-bar-inner {
+  background: linear-gradient(
+    45deg,
+    var(--color-primary) 25%,
+    var(--color-primary-light) 25%,
+    var(--color-primary-light) 50%,
+    var(--color-primary) 50%,
+    var(--color-primary) 75%,
+    var(--color-primary-light) 75%
+  );
+  background-size: 20px 20px;
+  animation: progress-stripes 1s linear infinite;
+}
+
+@keyframes progress-stripes {
+  from { background-position: 20px 0; }
+  to { background-position: 0 0; }
+}
+
+.progress-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  min-width: 45px;
+  text-align: right;
+}
+
+.progress-controls {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+/* 环形进度条 */
+.progress-circle-demos {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xl);
+}
+
+.progress-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.progress-circle svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progress-circle-bg {
+  fill: none;
+  stroke: var(--color-bg);
+  stroke-width: 8;
+}
+
+.progress-circle-bar {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 283;
+  stroke-dashoffset: calc(283 - (283 * var(--progress, 0)) / 100);
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.progress-circle-success .progress-circle-bar {
+  stroke: var(--color-success);
+}
+
+.progress-circle-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+/* ===== Skeleton 骨架屏 ===== */
+.skeleton-demo {
+  margin-bottom: var(--spacing-md);
+}
+
+.skeleton-demo:last-child {
+  margin-bottom: 0;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--color-bg) 25%, var(--color-border) 50%, var(--color-bg) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  float: left;
+  margin-right: var(--spacing-sm);
+}
+
+.skeleton-content {
+  overflow: hidden;
+}
+
+.skeleton-title {
+  height: 16px;
+  width: 40%;
+  background: linear-gradient(90deg, var(--color-bg) 25%, var(--color-border) 50%, var(--color-bg) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.skeleton-text {
+  height: 14px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--color-bg) 25%, var(--color-border) 50%, var(--color-bg) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.skeleton-text-short {
+  width: 70%;
+}
+
+.skeleton-image {
+  height: 120px;
+  background: linear-gradient(90deg, var(--color-bg) 25%, var(--color-border) 50%, var(--color-bg) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-paragraph {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, var(--color-bg) 25%, var(--color-border) 50%, var(--color-bg) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-line-short {
+  width: 60%;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===== Tabs 标签页 ===== */
+.tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs-nav {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin: 0 calc(-1 * var(--spacing-md));
+  padding: 0 var(--spacing-md);
+}
+
+.tabs-nav-item {
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+.tabs-nav-item.active {
+  color: var(--color-primary);
+}
+
+.tabs-nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--color-primary);
+}
+
+.tabs-content {
+  padding: var(--spacing-md) 0;
+}
+
+.tabs-pane {
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* ===== Collapse 折叠面板 ===== */
+.collapse-list {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.collapse-item {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.collapse-item:last-child {
+  border-bottom: none;
+}
+
+.collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  min-height: 56px;
+  cursor: pointer;
+  font-weight: var(--font-medium);
+  transition: background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.collapse-header:active {
+  background: var(--color-bg);
+}
+
+.collapse-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--color-text-secondary);
+  border-bottom: 2px solid var(--color-text-secondary);
+  transform: rotate(-45deg);
+  transition: transform var(--transition-fast);
+}
+
+.collapse-item.expanded .collapse-arrow {
+  transform: rotate(45deg);
+}
+
+.collapse-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.collapse-item.expanded .collapse-content {
+  max-height: 200px;
+}
+
+.collapse-body {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* ===== Empty 空状态 ===== */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.empty-image {
+  width: 80px;
+  height: 80px;
+  color: var(--color-text-placeholder);
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-image svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-text {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-xs);
+}
+
+.empty-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+/* ===== Avatar 头像 ===== */
+.avatar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+}
+
+.avatar-xs { width: 24px; height: 24px; font-size: var(--text-xs); }
+.avatar-sm { width: 32px; height: 32px; font-size: var(--text-xs); }
+.avatar-lg { width: 48px; height: 48px; font-size: var(--text-base); }
+.avatar-xl { width: 64px; height: 64px; font-size: var(--text-lg); }
+
+.avatar-square {
+  border-radius: var(--radius-md);
+}
+
+.avatar-stack {
+  display: flex;
+}
+
+.avatar-stack .avatar {
+  border: 2px solid var(--color-card);
+  margin-left: -8px;
+}
+
+.avatar-stack .avatar:first-child {
+  margin-left: 0;
+}
+
+.avatar-more {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* ===== Tooltip 工具提示 ===== */
+.tooltip-demos {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-lg);
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-text);
+  color: var(--color-card);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  z-index: 100;
+}
+
+.tooltip-top {
+  bottom: calc(100% + 8px);
+}
+
+.tooltip-bottom {
+  top: calc(100% + 8px);
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+}
+
+.tooltip-top::after {
+  top: 100%;
+  border-top-color: var(--color-text);
+}
+
+.tooltip-bottom::after {
+  bottom: 100%;
+  border-bottom-color: var(--color-text);
+}
+
+.tooltip-wrapper:hover .tooltip {
+  opacity: 1;
+}
+
+.tooltip-wrapper:hover .tooltip-top {
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.tooltip-wrapper:hover .tooltip-bottom {
+  transform: translateX(-50%) translateY(4px);
+}
+
+/* ===== Popover 气泡卡片 ===== */
+.popover-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 200px;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+  z-index: 100;
+}
+
+.popover-title {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-weight: var(--font-semibold);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.popover-content {
+  padding: var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Popover 动画 */
+.popover-enter-active,
+.popover-leave-active {
+  transition: all 0.2s ease;
+}
+
+.popover-enter-from,
+.popover-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* ===== Table 表格 ===== */
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  background: var(--color-bg);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:active {
+  background: var(--color-bg);
+}
+
+/* ===== Breadcrumb 面包屑 ===== */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+}
+
+.breadcrumb-item {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.breadcrumb-item:not(.breadcrumb-current):active {
+  color: var(--color-primary);
+}
+
+.breadcrumb-current {
+  color: var(--color-text);
+}
+
+.breadcrumb-separator {
+  color: var(--color-text-placeholder);
+}
+
+/* ===== Steps 步骤条 ===== */
+.steps {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-lg);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-xs);
+  transition: all var(--transition-fast);
+}
+
+.step.active .step-icon {
+  background: var(--color-primary);
+  color: white;
+}
+
+.step.completed .step-icon {
+  background: var(--color-success);
+  color: white;
+}
+
+.step-content {
+  text-align: center;
+}
+
+.step-title {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.step.active .step-title {
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin-top: 16px;
+  margin-left: -8px;
+  margin-right: -8px;
+  transition: background var(--transition-fast);
+}
+
+.step-line.active {
+  background: var(--color-success);
+}
+
+.steps-controls {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+/* ===== Dropdown 下拉菜单 ===== */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-arrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: var(--spacing-xs);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform var(--transition-fast);
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 160px;
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-item:active {
+  background: var(--color-bg);
+}
+
+.dropdown-item-danger {
+  color: var(--color-error);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--spacing-xs) 0;
+}
+
+/* ===== Pagination 分页 ===== */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.pagination-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-btn:not(:disabled):active {
+  background: var(--color-bg);
+}
+
+.pagination-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.pagination-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+.pagination-arrow-left {
+  transform: rotate(135deg);
+}
+
+.pagination-arrow-right {
+  transform: rotate(-45deg);
+}
+
+.pagination-ellipsis {
+  color: var(--color-text-secondary);
+  padding: 0 var(--spacing-xs);
+}
+
+.pagination-info {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ===== Slider 滑块 ===== */
+.slider-demo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-fast);
+}
+
+.slider::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  border: none;
+  box-shadow: var(--shadow-md);
+}
+
+.slider-value {
+  min-width: 40px;
+  text-align: center;
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+/* ===== Rate 评分 ===== */
+.rate {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.rate-star {
+  font-size: var(--text-2xl);
+  color: var(--color-border);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  padding: 0;
+}
+
+.rate-star.active {
+  color: var(--color-warning);
+}
+
+.rate-star.hover {
+  transform: scale(1.2);
+}
+
+.rate-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ===== Swiper 轮播 ===== */
+.swiper-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.swiper {
+  position: relative;
+  overflow: hidden;
+}
+
+.swiper-track {
+  display: flex;
+  transition: transform 0.3s ease;
+}
+
+.swiper-slide {
+  flex-shrink: 0;
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+}
+
+.swiper-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text);
+  font-size: var(--text-xl);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+}
+
+.swiper-btn-prev {
+  left: var(--spacing-sm);
+}
+
+.swiper-btn-next {
+  right: var(--spacing-sm);
+}
+
+.swiper-dots {
+  position: absolute;
+  bottom: var(--spacing-sm);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.swiper-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all var(--transition-fast);
+}
+
+.swiper-dot.active {
+  background: white;
+  width: 20px;
+}
+
+/* ===== ImagePreview 图片预览 ===== */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.image-item {
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.imagepreview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.imagepreview-content {
+  max-width: 90vw;
+  max-height: 80vh;
+}
+
+.imagepreview-placeholder {
+  width: 300px;
+  height: 300px;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+}
+
+.imagepreview-close {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + var(--spacing-md));
+  right: var(--spacing-md);
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: var(--text-2xl);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ImagePreview 动画 */
+.imagepreview-enter-active,
+.imagepreview-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.imagepreview-enter-from,
+.imagepreview-leave-to {
+  opacity: 0;
+}
+
+/* ===== Desktop 优化 ===== */
+@media (min-width: 768px) {
+  .tooltip-wrapper:hover .tooltip {
+    opacity: 1;
+  }
+
+  .dropdown-item:hover {
+    background: var(--color-bg);
+  }
+
+  .drawer-menu-item:hover {
+    background: var(--color-bg);
+  }
+
+  .table tbody tr:hover {
+    background: var(--color-bg);
+  }
+
+  .pagination-btn:not(:disabled):hover {
+    background: var(--color-bg);
+    border-color: var(--color-primary);
   }
 }
 </style>

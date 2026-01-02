@@ -3063,7 +3063,12 @@ const tableData = [
 /* Modal 动画 */
 .modal-enter-active,
 .modal-leave-active {
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-active .modal,
+.modal-leave-active .modal {
+  transition: transform 0.3s ease;
 }
 
 .modal-enter-from,
@@ -3071,9 +3076,12 @@ const tableData = [
   opacity: 0;
 }
 
-.modal-enter-from .modal,
-.modal-leave-to .modal {
+.modal-enter-from .modal {
   transform: scale(0.9) translateY(20px);
+}
+
+.modal-leave-to .modal {
+  transform: scale(0.95) translateY(10px);
 }
 
 /* ===== Toast 消息提示 ===== */

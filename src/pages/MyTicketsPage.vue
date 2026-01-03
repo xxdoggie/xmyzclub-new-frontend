@@ -20,6 +20,12 @@ const tickets = ref<Ticket[]>([])
 // 筛选状态
 const statusFilter = ref<TicketStatus | 'all'>('all')
 
+// 标签页索引（用于滑块动画）
+const tabIndex = computed(() => {
+  const tabs = ['all', 'pending', 'confirmed', 'used']
+  return tabs.indexOf(statusFilter.value)
+})
+
 // 筛选后的票据
 const filteredTickets = computed(() => {
   if (statusFilter.value === 'all') {
@@ -104,6 +110,8 @@ onMounted(() => {
         <template v-else>
           <!-- 状态筛选 -->
           <div class="status-tabs">
+            <!-- 滑块指示器 -->
+            <div class="tab-slider" :style="{ transform: `translateX(${tabIndex * 100}%)` }"></div>
             <button
               class="status-tab"
               :class="{ active: statusFilter === 'all' }"
@@ -265,18 +273,32 @@ onMounted(() => {
 
 /* ===== Status Tabs ===== */
 .status-tabs {
+  position: relative;
   display: flex;
-  gap: 2px;
-  margin-bottom: var(--spacing-md);
-  padding: 3px;
+  margin-bottom: var(--spacing-lg);
+  padding: 4px;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
+.tab-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(25% - 2px);
+  height: calc(100% - 8px);
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-md);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
 .status-tab {
   flex: 1;
-  padding: var(--spacing-xs) 0;
+  position: relative;
+  z-index: 1;
+  padding: var(--spacing-sm) 0;
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
@@ -284,7 +306,7 @@ onMounted(() => {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
   text-align: center;
 }
 
@@ -294,7 +316,6 @@ onMounted(() => {
 
 .status-tab.active {
   color: var(--color-primary);
-  background: var(--color-primary-bg);
 }
 
 /* ===== Empty ===== */
@@ -366,7 +387,7 @@ onMounted(() => {
   cursor: pointer;
   transition: all var(--transition-fast);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  min-height: 88px;
+  min-height: 100px;
 }
 
 .ticket-card::before {
@@ -429,12 +450,12 @@ onMounted(() => {
 /* Left info section */
 .ticket-left {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-sm) var(--spacing-md) var(--spacing-lg);
   min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .ticket-status-badge {
@@ -578,8 +599,14 @@ onMounted(() => {
   }
 
   .status-tabs {
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs);
+    padding: 5px;
+  }
+
+  .tab-slider {
+    top: 5px;
+    left: 5px;
+    width: calc(25% - 2.5px);
+    height: calc(100% - 10px);
   }
 
   .status-tab {
@@ -591,7 +618,7 @@ onMounted(() => {
   }
 
   .ticket-card {
-    min-height: 100px;
+    min-height: 110px;
   }
 
   .ticket-punch {

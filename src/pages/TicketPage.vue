@@ -420,31 +420,33 @@ onMounted(() => {
 .activities-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 
 .activity-card {
   display: flex;
+  flex-direction: column;
   background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   cursor: pointer;
   transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .activity-card:hover {
-  border-color: var(--color-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .activity-card:active {
-  background: var(--color-bg);
+  transform: translateY(0);
 }
 
 .activity-cover {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 100%;
+  height: 140px;
   flex-shrink: 0;
 }
 
@@ -460,64 +462,65 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-border);
+  background: linear-gradient(135deg, var(--color-border) 0%, var(--color-bg) 100%);
   color: var(--color-text-placeholder);
 }
 
 .cover-placeholder svg {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
 }
 
 .status-badge {
   position: absolute;
-  top: var(--spacing-xs);
-  left: var(--spacing-xs);
-  padding: 2px 6px;
-  font-size: 10px;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
+  padding: 4px 10px;
+  font-size: var(--text-xs);
   font-weight: var(--font-semibold);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: white;
+  backdrop-filter: blur(4px);
 }
 
 .status-badge.status-active {
-  background: var(--color-success);
+  background: rgba(34, 197, 94, 0.9);
 }
 
 .status-badge.status-published {
-  background: var(--color-info);
+  background: rgba(59, 130, 246, 0.9);
 }
 
 .status-badge.status-ended {
-  background: var(--color-text-secondary);
+  background: rgba(107, 114, 128, 0.9);
 }
 
 .status-badge.status-cancelled {
-  background: var(--color-error);
+  background: rgba(239, 68, 68, 0.9);
 }
 
 .activity-info {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-sm);
+  padding: var(--spacing-md);
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: var(--spacing-xs);
 }
 
 .activity-name {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
-  margin-bottom: 2px;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .activity-desc {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  margin-bottom: 2px;
+  line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -527,8 +530,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-xs);
 }
 
 .meta-divider {
@@ -536,15 +540,7 @@ onMounted(() => {
 }
 
 .activity-arrow {
-  display: flex;
-  align-items: center;
-  padding: 0 var(--spacing-sm);
-  color: var(--color-text-placeholder);
-}
-
-.activity-arrow svg {
-  width: 16px;
-  height: 16px;
+  display: none;
 }
 
 /* ===== Load More ===== */
@@ -616,24 +612,45 @@ onMounted(() => {
   }
 
   .activities-list {
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
+  }
+
+  .activity-card {
+    flex-direction: row;
   }
 
   .activity-cover {
-    width: 120px;
-    height: 100px;
+    width: 180px;
+    height: 120px;
   }
 
   .activity-info {
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--spacing-lg);
+    justify-content: center;
   }
 
   .activity-name {
-    font-size: var(--text-base);
+    font-size: var(--text-lg);
   }
 
   .activity-desc {
+    font-size: var(--text-base);
+  }
+
+  .activity-meta {
     font-size: var(--text-sm);
+  }
+
+  .activity-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-lg);
+    color: var(--color-text-placeholder);
+  }
+
+  .activity-arrow svg {
+    width: 20px;
+    height: 20px;
   }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -22,6 +22,27 @@ const pageSize = ref(20)
 
 // 筛选状态
 const statusFilter = ref<ActivityStatus | 'all'>('all')
+
+// Tab 切换动画
+const tabOrder = ['all', 'draft', 'published', 'active', 'ended'] as const
+const slideDirection = ref<'left' | 'right' | ''>('')
+const isAnimating = ref(false)
+
+// 监听 Tab 切换
+watch(statusFilter, (newVal, oldVal) => {
+  if (!oldVal) return
+  const oldIndex = tabOrder.indexOf(oldVal as typeof tabOrder[number])
+  const newIndex = tabOrder.indexOf(newVal as typeof tabOrder[number])
+  slideDirection.value = newIndex > oldIndex ? 'left' : 'right'
+  isAnimating.value = true
+
+  nextTick(() => {
+    setTimeout(() => {
+      isAnimating.value = false
+      slideDirection.value = ''
+    }, 300)
+  })
+})
 
 // 删除确认
 const showDeleteConfirm = ref(false)
@@ -250,25 +271,33 @@ onMounted(() => {
             </button>
           </div>
 
-          <!-- 空状态 -->
-          <div v-if="filteredActivities.length === 0" class="empty-container">
-            <div class="empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
+          <!-- 内容区域（带动画） -->
+          <div
+            class="content-slide-wrapper"
+            :class="{
+              'slide-left': isAnimating && slideDirection === 'left',
+              'slide-right': isAnimating && slideDirection === 'right'
+            }"
+          >
+            <!-- 空状态 -->
+            <div v-if="filteredActivities.length === 0" class="empty-container">
+              <div class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <h2>{{ statusFilter === 'all' ? '暂无活动' : '暂无相关活动' }}</h2>
+              <p>{{ statusFilter === 'all' ? '还没有创建任何活动' : '没有找到该状态的活动' }}</p>
+              <button v-if="statusFilter === 'all'" class="empty-action-btn" @click="goToCreateActivity">
+                创建第一个活动
+              </button>
             </div>
-            <h2>{{ statusFilter === 'all' ? '暂无活动' : '暂无相关活动' }}</h2>
-            <p>{{ statusFilter === 'all' ? '还没有创建任何活动' : '没有找到该状态的活动' }}</p>
-            <button v-if="statusFilter === 'all'" class="empty-action-btn" @click="goToCreateActivity">
-              创建第一个活动
-            </button>
-          </div>
 
-          <!-- 活动列表 -->
-          <div v-else class="activities-list">
+            <!-- 活动列表 -->
+            <div v-else class="activities-list">
             <div
               v-for="activity in filteredActivities"
               :key="activity.id"
@@ -535,6 +564,41 @@ onMounted(() => {
 .status-tab.active {
   color: var(--color-primary);
   background: var(--color-primary-bg);
+}
+
+/* ===== Content Slide Animation ===== */
+.content-slide-wrapper {
+  animation-fill-mode: both;
+}
+
+.content-slide-wrapper.slide-left {
+  animation: slideInFromRight 0.3s ease;
+}
+
+.content-slide-wrapper.slide-right {
+  animation: slideInFromLeft 0.3s ease;
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* ===== Empty ===== */

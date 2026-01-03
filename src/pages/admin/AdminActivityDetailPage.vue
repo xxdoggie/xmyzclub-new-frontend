@@ -13,6 +13,7 @@ import {
   updateSession,
   deleteSession,
 } from '@/api/ticket'
+import { uploadFile } from '@/api/file'
 import type {
   TicketActivityDetail,
   ActivityConfig,
@@ -76,6 +77,10 @@ const deleteType = ref<'activity' | 'session'>('activity')
 const deleteTargetId = ref<number | null>(null)
 const deleteTargetName = ref('')
 const isDeleting = ref(false)
+
+// 图片上传
+const isUploadingImage = ref(false)
+const imageInputRef = ref<HTMLInputElement | null>(null)
 
 // 额外信息字段类型选项
 const fieldTypes = [
@@ -337,6 +342,52 @@ function goToReview() {
   }
 }
 
+// 触发图片选择
+function triggerImageUpload() {
+  imageInputRef.value?.click()
+}
+
+// 处理图片上传
+async function handleImageUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  // 检查文件类型
+  if (!file.type.startsWith('image/')) {
+    toast.error('请选择图片文件')
+    return
+  }
+
+  // 检查文件大小 (10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    toast.error('图片大小不能超过 10MB')
+    return
+  }
+
+  isUploadingImage.value = true
+  try {
+    const res = await uploadFile(file, 'activity_image')
+    if (res.data.code === 200) {
+      form.value.imageUrl = res.data.data.fileUrl
+      toast.success('图片上传成功')
+    } else {
+      toast.error(res.data.message || '上传失败')
+    }
+  } catch (error) {
+    toast.error('上传失败，请重试')
+  } finally {
+    isUploadingImage.value = false
+    // 清空 input 以便重复选择同一文件
+    input.value = ''
+  }
+}
+
+// 删除图片
+function removeImage() {
+  form.value.imageUrl = ''
+}
+
 // 获取状态信息
 function getStatusInfo(status: string) {
   const statusMap: Record<string, { label: string; class: string }> = {
@@ -472,15 +523,39 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
               ></textarea>
             </div>
             <div class="form-group">
-              <label class="form-label">封面图片 URL</label>
+              <label class="form-label">封面图片</label>
               <input
-                v-model="form.imageUrl"
-                type="url"
-                class="form-input"
-                placeholder="https://..."
+                ref="imageInputRef"
+                type="file"
+                accept="image/*"
+                class="hidden-input"
+                @change="handleImageUpload"
               />
-              <div v-if="form.imageUrl" class="image-preview">
-                <img :src="form.imageUrl" alt="封面预览" />
+              <div v-if="form.imageUrl" class="image-preview-wrapper">
+                <img :src="form.imageUrl" alt="封面预览" class="preview-image" />
+                <div class="image-actions">
+                  <button type="button" class="image-action-btn change" @click="triggerImageUpload" :disabled="isUploadingImage">
+                    {{ isUploadingImage ? '上传中...' : '更换图片' }}
+                  </button>
+                  <button type="button" class="image-action-btn remove" @click="removeImage">
+                    删除
+                  </button>
+                </div>
+              </div>
+              <div v-else class="image-upload-area" @click="triggerImageUpload">
+                <div v-if="isUploadingImage" class="upload-loading">
+                  <div class="loading-spinner small"></div>
+                  <span>上传中...</span>
+                </div>
+                <template v-else>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span>点击上传封面图片</span>
+                  <span class="upload-hint">支持 JPG、PNG、GIF，最大 10MB</span>
+                </template>
               </div>
             </div>
           </div>
@@ -544,33 +619,35 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
               </label>
             </div>
             <template v-if="form.config.require_extra_info">
-              <div
-                v-for="(field, index) in form.config.extra_info_fields"
-                :key="field.name"
-                class="extra-field-item"
-              >
-                <input
-                  v-model="field.label"
-                  type="text"
-                  class="form-input"
-                  placeholder="字段名称"
-                />
-                <select v-model="field.type" class="form-select">
-                  <option v-for="t in fieldTypes" :key="t.value" :value="t.value">
-                    {{ t.label }}
-                  </option>
-                </select>
-                <label class="field-required">
-                  <input type="checkbox" v-model="field.required" />
-                  <span>必填</span>
-                </label>
-                <button class="remove-field-btn" @click="removeExtraField(index)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
+              <TransitionGroup name="field-list" tag="div" class="extra-fields-container">
+                <div
+                  v-for="(field, index) in form.config.extra_info_fields"
+                  :key="field.name"
+                  class="extra-field-item"
+                >
+                  <input
+                    v-model="field.label"
+                    type="text"
+                    class="form-input"
+                    placeholder="字段名称"
+                  />
+                  <select v-model="field.type" class="form-select">
+                    <option v-for="t in fieldTypes" :key="t.value" :value="t.value">
+                      {{ t.label }}
+                    </option>
+                  </select>
+                  <label class="field-required">
+                    <input type="checkbox" v-model="field.required" />
+                    <span>必填</span>
+                  </label>
+                  <button class="remove-field-btn" @click="removeExtraField(index)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+              </TransitionGroup>
               <button class="add-field-btn" @click="addExtraField">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -944,19 +1021,104 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
 }
 
 .form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-md);
 }
 
-.image-preview {
-  margin-top: var(--spacing-sm);
-  max-width: 200px;
+.hidden-input {
+  display: none;
 }
 
-.image-preview img {
+/* ===== Image Upload ===== */
+.image-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--color-text-secondary);
+}
+
+.image-upload-area:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.image-upload-area svg {
+  width: 48px;
+  height: 48px;
+  color: var(--color-text-placeholder);
+}
+
+.image-upload-area span {
+  font-size: var(--text-sm);
+}
+
+.upload-hint {
+  font-size: var(--text-xs) !important;
+  color: var(--color-text-placeholder);
+}
+
+.upload-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.loading-spinner.small {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.image-preview-wrapper {
+  position: relative;
+  max-width: 300px;
+}
+
+.preview-image {
   width: 100%;
+  border-radius: var(--radius-lg);
+  display: block;
+}
+
+.image-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.image-action-btn {
+  flex: 1;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border: none;
   border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.image-action-btn.change {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.image-action-btn.change:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.image-action-btn.remove {
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 /* ===== Config ===== */
@@ -1004,11 +1166,52 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
 }
 
 /* ===== Extra Fields ===== */
+.extra-fields-container {
+  position: relative;
+}
+
 .extra-field-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
+}
+
+/* Field list transition */
+.field-list-enter-active {
+  animation: fieldSlideIn 0.3s ease;
+}
+
+.field-list-leave-active {
+  animation: fieldSlideOut 0.25s ease;
+  position: absolute;
+  width: 100%;
+}
+
+.field-list-move {
+  transition: transform 0.3s ease;
+}
+
+@keyframes fieldSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fieldSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
 }
 
 .extra-field-item .form-input {
@@ -1366,6 +1569,14 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
 
   .page-title {
     font-size: var(--text-2xl);
+  }
+
+  .form-row {
+    flex-direction: row;
+  }
+
+  .form-row .form-group {
+    flex: 1;
   }
 }
 </style>

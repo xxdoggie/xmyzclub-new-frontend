@@ -11,10 +11,7 @@ import type {
   CreateSessionRequest,
   UpdateSessionRequest,
   AdminActivitiesResponse,
-  AdminTicketsResponse,
-  UpdateTicketStatusRequest,
   ActivitySession,
-  TicketStatus,
 } from '@/types/ticket'
 
 /**
@@ -55,12 +52,13 @@ export function getMyTicketsForActivity(activityId: number) {
 }
 
 // ==================== Admin APIs ====================
+// 基础路径：/admin/ticket
 
 /**
  * 管理员 - 获取活动列表
  */
 export function getAdminActivities(page = 1, pageSize = 10, status?: string) {
-  return api.get<ApiResponse<AdminActivitiesResponse>>('/admin/ticket-activities', {
+  return api.get<ApiResponse<AdminActivitiesResponse>>('/admin/ticket/activities', {
     params: { page, pageSize, status },
   })
 }
@@ -69,84 +67,91 @@ export function getAdminActivities(page = 1, pageSize = 10, status?: string) {
  * 管理员 - 获取活动详情
  */
 export function getAdminActivityDetail(id: number) {
-  return api.get<ApiResponse<TicketActivityDetail>>(`/admin/ticket-activities/${id}`)
+  return api.get<ApiResponse<TicketActivityDetail>>(`/admin/ticket/activities/${id}`)
 }
 
 /**
  * 管理员 - 创建活动
  */
 export function createActivity(data: CreateActivityRequest) {
-  return api.post<ApiResponse<TicketActivityDetail>>('/admin/ticket-activities', data)
+  return api.post<ApiResponse<TicketActivityDetail>>('/admin/ticket/activities', data)
 }
 
 /**
  * 管理员 - 更新活动
  */
 export function updateActivity(id: number, data: UpdateActivityRequest) {
-  return api.put<ApiResponse<TicketActivityDetail>>(`/admin/ticket-activities/${id}`, data)
+  return api.put<ApiResponse<TicketActivityDetail>>(`/admin/ticket/activities/${id}`, data)
 }
 
 /**
  * 管理员 - 删除活动
  */
 export function deleteActivity(id: number) {
-  return api.delete<ApiResponse<{ message: string }>>(`/admin/ticket-activities/${id}`)
+  return api.delete<ApiResponse<{ message: string }>>(`/admin/ticket/activities/${id}`)
 }
 
 /**
  * 管理员 - 更新活动状态
  */
 export function updateActivityStatus(id: number, status: string) {
-  return api.patch<ApiResponse<TicketActivityDetail>>(`/admin/ticket-activities/${id}/status`, { status })
+  return api.patch<ApiResponse<TicketActivityDetail>>(`/admin/ticket/activities/${id}/status`, { status })
 }
 
 /**
  * 管理员 - 创建档期
  */
-export function createSession(data: CreateSessionRequest) {
-  return api.post<ApiResponse<ActivitySession>>('/admin/activity-sessions', data)
+export function createSession(activityId: number, data: CreateSessionRequest) {
+  return api.post<ApiResponse<ActivitySession>>(`/admin/ticket/activities/${activityId}/sessions`, data)
 }
 
 /**
  * 管理员 - 更新档期
  */
 export function updateSession(id: number, data: UpdateSessionRequest) {
-  return api.put<ApiResponse<ActivitySession>>(`/admin/activity-sessions/${id}`, data)
+  return api.put<ApiResponse<ActivitySession>>(`/admin/ticket/sessions/${id}`, data)
 }
 
 /**
  * 管理员 - 删除档期
  */
 export function deleteSession(id: number) {
-  return api.delete<ApiResponse<{ message: string }>>(`/admin/activity-sessions/${id}`)
+  return api.delete<ApiResponse<{ message: string }>>(`/admin/ticket/sessions/${id}`)
 }
 
 /**
- * 管理员 - 更新档期状态
+ * 管理员 - 审核活动
  */
-export function updateSessionStatus(id: number, status: string) {
-  return api.patch<ApiResponse<ActivitySession>>(`/admin/activity-sessions/${id}/status`, { status })
+export function reviewActivity(activityId: number, data: { approved: boolean; reason?: string }) {
+  return api.post<ApiResponse<TicketActivityDetail>>(`/admin/ticket/activities/${activityId}/review`, data)
 }
 
 /**
- * 管理员 - 获取活动票据列表
+ * 管理员 - 审核票据
  */
-export function getAdminTickets(activityId: number, page = 1, pageSize = 20, status?: TicketStatus) {
-  return api.get<ApiResponse<AdminTicketsResponse>>(`/admin/ticket-activities/${activityId}/tickets`, {
-    params: { page, pageSize, status },
+export function reviewTicket(ticketId: number, data: { approved: boolean; reason?: string }) {
+  return api.post<ApiResponse<{ message: string }>>(`/admin/ticket/tickets/${ticketId}/review`, data)
+}
+
+/**
+ * 管理员 - 批量审核票据
+ */
+export function batchReviewTickets(data: { ticketIds: number[]; approved: boolean; reason?: string }) {
+  return api.post<ApiResponse<{ message: string; processed: number }>>('/admin/ticket/tickets/batch-review', data)
+}
+
+/**
+ * 管理员 - 验票（查询票据信息）
+ */
+export function verifyTicket(code: string) {
+  return api.get<ApiResponse<{ ticket: unknown }>>('/admin/ticket/verify', {
+    params: { code },
   })
 }
 
 /**
- * 管理员 - 更新票据状态
+ * 管理员 - 核销票据
  */
-export function updateTicketStatus(ticketId: number, data: UpdateTicketStatusRequest) {
-  return api.patch<ApiResponse<{ message: string }>>(`/admin/tickets/${ticketId}/status`, data)
-}
-
-/**
- * 管理员 - 批量确认票据
- */
-export function batchConfirmTickets(ticketIds: number[]) {
-  return api.post<ApiResponse<{ message: string; confirmed: number }>>('/admin/tickets/batch-confirm', { ticketIds })
+export function useTicket(code: string) {
+  return api.post<ApiResponse<{ message: string }>>('/admin/ticket/verify/use', { code })
 }

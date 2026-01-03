@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, readonly } from 'vue'
+import { ref } from 'vue'
 
 export interface ToastItem {
   id: number

@@ -113,10 +113,10 @@ function handleBindCampus() {
 async function handleBindQQ() {
   try {
     const res = await userStore.getQQBindAuthorizeUrl()
-    if (res.code === 200 && res.data?.authorizeUrl) {
-      window.location.href = res.data.authorizeUrl
+    if (res.data.code === 200 && res.data.data?.authorizeUrl) {
+      window.location.href = res.data.data.authorizeUrl
     } else {
-      toast.error(res.message || '获取授权链接失败')
+      toast.error(res.data.message || '获取授权链接失败')
     }
   } catch (error) {
     toast.error('获取授权链接失败')

@@ -183,6 +183,17 @@ const router = createRouter({
         parent: 'admin-tickets-detail',
       },
     },
+    {
+      path: '/admin/dorm',
+      name: 'admin-dorm',
+      component: () => import('../pages/admin/DormManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '宿舍管理',
+        parent: 'home',
+      },
+    },
 
     // ==================== 404 ====================
     {

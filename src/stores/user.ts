@@ -1,0 +1,255 @@
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import type { UserInfo, CampusInfo, QQData } from '@/types/user'
+import * as authApi from '@/api/auth'
+
+const TOKEN_KEY = 'token'
+const USER_KEY = 'user'
+const EXPIRES_KEY = 'expiresAt'
+const CAMPUS_INFO_KEY = 'campusInfo'
+
+export const useUserStore = defineStore('user', () => {
+  // ==================== State ====================
+  const token = ref<string | null>(null)
+  const user = ref<UserInfo | null>(null)
+  const expiresAt = ref<number | null>(null)
+  const campusInfo = ref<CampusInfo | null>(null)
+
+  // 登录 Modal 控制
+  const showLoginModal = ref(false)
+  const loginModalMessage = ref<string | null>(null)
+
+  // 登录成功后的跳转目标
+  const redirectRoute = ref<string | null>(null)
+
+  // ==================== Getters ====================
+  const isLoggedIn = computed(() => {
+    if (!token.value || !expiresAt.value) return false
+    // 检查 token 是否过期
+    return Date.now() < expiresAt.value
+  })
+
+  // ==================== Actions ====================
+
+  /**
+   * 从 localStorage 恢复登录状态
+   * 在应用启动时调用
+   */
+  function restoreSession() {
+    const savedToken = localStorage.getItem(TOKEN_KEY)
+    const savedUser = localStorage.getItem(USER_KEY)
+    const savedExpires = localStorage.getItem(EXPIRES_KEY)
+    const savedCampusInfo = localStorage.getItem(CAMPUS_INFO_KEY)
+
+    if (savedToken && savedUser && savedExpires) {
+      const expires = Number(savedExpires)
+      // 检查是否过期
+      if (Date.now() < expires) {
+        token.value = savedToken
+        user.value = JSON.parse(savedUser)
+        expiresAt.value = expires
+        if (savedCampusInfo) {
+          campusInfo.value = JSON.parse(savedCampusInfo)
+        }
+      } else {
+        // Token 已过期，清除本地存储
+        clearLocalStorage()
+      }
+    }
+  }
+
+  /**
+   * 保存登录信息到 localStorage
+   */
+  function saveToLocalStorage() {
+    if (token.value) {
+      localStorage.setItem(TOKEN_KEY, token.value)
+    }
+    if (user.value) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+    }
+    if (expiresAt.value) {
+      localStorage.setItem(EXPIRES_KEY, String(expiresAt.value))
+    }
+    if (campusInfo.value) {
+      localStorage.setItem(CAMPUS_INFO_KEY, JSON.stringify(campusInfo.value))
+    }
+  }
+
+  /**
+   * 清除 localStorage
+   */
+  function clearLocalStorage() {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+    localStorage.removeItem(EXPIRES_KEY)
+    localStorage.removeItem(CAMPUS_INFO_KEY)
+  }
+
+  /**
+   * 设置登录数据
+   */
+  function setLoginData(data: {
+    token: string
+    user: UserInfo
+    expiresAt: number
+    campusInfo?: CampusInfo
+  }) {
+    token.value = data.token
+    user.value = data.user
+    expiresAt.value = data.expiresAt
+    campusInfo.value = data.campusInfo ?? null
+    saveToLocalStorage()
+  }
+
+  /**
+   * 普通登录
+   */
+  async function login(username: string, password: string) {
+    const res = await authApi.login(username, password)
+    if (res.data.code === 200) {
+      setLoginData(res.data.data)
+    }
+    return res.data
+  }
+
+  /**
+   * 普通注册
+   */
+  async function register(username: string, password: string) {
+    const res = await authApi.register(username, password)
+    if (res.data.code === 200) {
+      setLoginData(res.data.data)
+    }
+    return res.data
+  }
+
+  /**
+   * 校园网登录
+   */
+  async function loginByCampus(
+    campusAccount: string,
+    campusPassword: string,
+    captchaCode: string,
+    jsessionId: string
+  ) {
+    const res = await authApi.loginByCampus(
+      campusAccount,
+      campusPassword,
+      captchaCode,
+      jsessionId
+    )
+    if (res.data.code === 200) {
+      setLoginData(res.data.data)
+    }
+    return res.data
+  }
+
+  /**
+   * QQ 登录（提交 code + state）
+   */
+  async function qqLogin(code: string, state: string) {
+    const res = await authApi.qqLogin(code, state)
+    if (res.data.code === 200 && 'token' in res.data.data) {
+      setLoginData(res.data.data)
+    }
+    return res.data
+  }
+
+  /**
+   * QQ 绑定已有账号
+   */
+  async function qqBind(username: string, password: string, qqData: QQData) {
+    const res = await authApi.qqBind(username, password, qqData)
+    if (res.data.code === 200) {
+      setLoginData(res.data.data)
+    }
+    return res.data
+  }
+
+  /**
+   * QQ 注册新账号
+   */
+  async function qqRegister(
+    username: string,
+    password: string,
+    qqData: QQData
+  ) {
+    const res = await authApi.qqRegister(username, password, qqData)
+    if (res.data.code === 200) {
+      setLoginData(res.data.data)
+    }
+    return res.data
+  }
+
+  /**
+   * 登出
+   */
+  function logout() {
+    token.value = null
+    user.value = null
+    expiresAt.value = null
+    campusInfo.value = null
+    clearLocalStorage()
+  }
+
+  /**
+   * 打开登录 Modal
+   */
+  function openLoginModal(message?: string) {
+    loginModalMessage.value = message ?? null
+    showLoginModal.value = true
+  }
+
+  /**
+   * 关闭登录 Modal
+   */
+  function closeLoginModal() {
+    showLoginModal.value = false
+    loginModalMessage.value = null
+  }
+
+  /**
+   * 设置登录后的跳转路由
+   */
+  function setRedirectRoute(route: string | null) {
+    redirectRoute.value = route
+  }
+
+  /**
+   * 获取并清除跳转路由
+   */
+  function consumeRedirectRoute(): string | null {
+    const route = redirectRoute.value
+    redirectRoute.value = null
+    return route
+  }
+
+  return {
+    // State
+    token,
+    user,
+    expiresAt,
+    campusInfo,
+    showLoginModal,
+    loginModalMessage,
+    redirectRoute,
+
+    // Getters
+    isLoggedIn,
+
+    // Actions
+    restoreSession,
+    login,
+    register,
+    loginByCampus,
+    qqLogin,
+    qqBind,
+    qqRegister,
+    logout,
+    openLoginModal,
+    closeLoginModal,
+    setRedirectRoute,
+    consumeRedirectRoute,
+  }
+})

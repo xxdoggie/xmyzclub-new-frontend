@@ -4,7 +4,8 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
-  getAdminCampaigns,
+  getCampaigns,
+  getCampaignDetail,
   createCampaign,
   updateCampaign,
   deleteCampaign,
@@ -196,7 +197,7 @@ async function loadCampuses() {
 async function loadCampaigns() {
   isLoading.value = true
   try {
-    const res = await getAdminCampaigns()
+    const res = await getCampaigns()
     if (res.data.code === 200) {
       campaigns.value = res.data.data
     } else {

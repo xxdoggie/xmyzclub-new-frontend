@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
-  getAdminCampaignDetail,
+  getCampaignDetail,
   getReviewSubmissions,
   reviewSubmissions,
   deleteSubmissions,
@@ -86,7 +86,7 @@ async function loadData() {
   isLoading.value = true
   try {
     const [campaignRes, submissionsRes] = await Promise.all([
-      getAdminCampaignDetail(campaignId.value),
+      getCampaignDetail(campaignId.value),
       getReviewSubmissions(campaignId.value),
     ])
 

@@ -1,0 +1,87 @@
+import api, { type ApiResponse } from './index'
+import type {
+  ProfileInfo,
+  UpdateProfileRequest,
+  CampusBindingInfo,
+  BindCampusRequest,
+  QQBindingInfo,
+  QQAuthorizeUrlResponse,
+  BindQQRequest,
+  CampusCaptchaResponse,
+} from '@/types/user'
+
+// ==================== 个人资料 ====================
+
+/**
+ * 获取个人资料
+ */
+export function getProfile() {
+  return api.get<ApiResponse<ProfileInfo>>('/user/profile')
+}
+
+/**
+ * 更新个人资料
+ */
+export function updateProfile(data: UpdateProfileRequest) {
+  return api.put<ApiResponse<ProfileInfo>>('/user/profile', data)
+}
+
+// ==================== 校园网绑定 ====================
+
+/**
+ * 获取校园网验证码（用于绑定）
+ */
+export function getCampusCaptcha() {
+  return api.get<ApiResponse<CampusCaptchaResponse>>('/campus/captcha')
+}
+
+/**
+ * 获取校园网绑定信息
+ */
+export function getCampusBinding() {
+  return api.get<ApiResponse<CampusBindingInfo>>('/user/campus-binding')
+}
+
+/**
+ * 绑定校园网
+ */
+export function bindCampus(data: BindCampusRequest) {
+  return api.post<ApiResponse<CampusBindingInfo>>('/user/bind-campus', data)
+}
+
+/**
+ * 解绑校园网
+ */
+export function unbindCampus() {
+  return api.delete<ApiResponse<{ message: string }>>('/user/unbind-campus')
+}
+
+// ==================== QQ 绑定 ====================
+
+/**
+ * 获取 QQ 绑定信息
+ */
+export function getQQBinding() {
+  return api.get<ApiResponse<QQBindingInfo>>('/user/qq-binding')
+}
+
+/**
+ * 获取 QQ 绑定授权 URL
+ */
+export function getQQBindAuthorizeUrl() {
+  return api.get<ApiResponse<QQAuthorizeUrlResponse>>('/user/qq/authorize-url')
+}
+
+/**
+ * 完成 QQ 绑定
+ */
+export function bindQQ(data: BindQQRequest) {
+  return api.post<ApiResponse<QQBindingInfo>>('/user/bind-qq', data)
+}
+
+/**
+ * 解绑 QQ
+ */
+export function unbindQQ() {
+  return api.delete<ApiResponse<{ message: string }>>('/user/unbind-qq')
+}

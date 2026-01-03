@@ -1,7 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { UserInfo, CampusInfo, QQData } from '@/types/user'
+import type {
+  UserInfo,
+  CampusInfo,
+  QQData,
+  ProfileInfo,
+  UpdateProfileRequest,
+  CampusBindingInfo,
+  QQBindingInfo,
+} from '@/types/user'
 import * as authApi from '@/api/auth'
+import * as userApi from '@/api/user'
 
 const TOKEN_KEY = 'token'
 const USER_KEY = 'user'
@@ -14,6 +23,13 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<UserInfo | null>(null)
   const expiresAt = ref<number | null>(null)
   const campusInfo = ref<CampusInfo | null>(null)
+
+  // 个人资料（从 API 获取的完整信息）
+  const profile = ref<ProfileInfo | null>(null)
+
+  // 绑定信息
+  const campusBinding = ref<CampusBindingInfo | null>(null)
+  const qqBinding = ref<QQBindingInfo | null>(null)
 
   // 登录 Modal 控制
   const showLoginModal = ref(false)
@@ -97,7 +113,8 @@ export const useUserStore = defineStore('user', () => {
   }) {
     token.value = data.token
     user.value = data.user
-    expiresAt.value = data.expiresAt
+    // API 返回的 expiresAt 是秒级时间戳，转换为毫秒
+    expiresAt.value = data.expiresAt * 1000
     campusInfo.value = data.campusInfo ?? null
     saveToLocalStorage()
   }
@@ -190,7 +207,131 @@ export const useUserStore = defineStore('user', () => {
     user.value = null
     expiresAt.value = null
     campusInfo.value = null
+    profile.value = null
+    campusBinding.value = null
+    qqBinding.value = null
     clearLocalStorage()
+  }
+
+  // ==================== 个人资料 ====================
+
+  /**
+   * 获取个人资料
+   */
+  async function fetchProfile() {
+    const res = await userApi.getProfile()
+    if (res.data.code === 200) {
+      profile.value = res.data.data
+    }
+    return res.data
+  }
+
+  /**
+   * 更新个人资料
+   */
+  async function updateProfile(data: UpdateProfileRequest) {
+    const res = await userApi.updateProfile(data)
+    if (res.data.code === 200) {
+      profile.value = res.data.data
+      // 同步更新 user 中的相关字段
+      if (user.value) {
+        if (data.nickname !== undefined) user.value.nickname = data.nickname
+        if (data.gender !== undefined) user.value.gender = data.gender
+        if (data.signature !== undefined) user.value.signature = data.signature
+        if (data.birthdate !== undefined) user.value.birthdate = data.birthdate
+        saveToLocalStorage()
+      }
+    }
+    return res.data
+  }
+
+  // ==================== 校园网绑定 ====================
+
+  /**
+   * 获取校园网绑定信息
+   */
+  async function fetchCampusBinding() {
+    const res = await userApi.getCampusBinding()
+    if (res.data.code === 200) {
+      campusBinding.value = res.data.data
+    }
+    return res.data
+  }
+
+  /**
+   * 绑定校园网
+   */
+  async function bindCampus(
+    campusAccount: string,
+    campusPassword: string,
+    captchaCode: string,
+    jsessionId: string
+  ) {
+    const res = await userApi.bindCampus({
+      campusAccount,
+      campusPassword,
+      captchaCode,
+      jsessionId,
+    })
+    if (res.data.code === 200) {
+      campusBinding.value = res.data.data
+    }
+    return res.data
+  }
+
+  /**
+   * 解绑校园网
+   */
+  async function unbindCampus() {
+    const res = await userApi.unbindCampus()
+    if (res.data.code === 200) {
+      campusBinding.value = { isBound: false }
+      campusInfo.value = null
+      saveToLocalStorage()
+    }
+    return res.data
+  }
+
+  // ==================== QQ 绑定 ====================
+
+  /**
+   * 获取 QQ 绑定信息
+   */
+  async function fetchQQBinding() {
+    const res = await userApi.getQQBinding()
+    if (res.data.code === 200) {
+      qqBinding.value = res.data.data
+    }
+    return res.data
+  }
+
+  /**
+   * 获取 QQ 绑定授权 URL
+   */
+  async function getQQBindAuthorizeUrl() {
+    return userApi.getQQBindAuthorizeUrl()
+  }
+
+  /**
+   * 完成 QQ 绑定
+   */
+  async function bindQQ(code: string, state: string) {
+    const res = await userApi.bindQQ({ code, state })
+    if (res.data.code === 200) {
+      qqBinding.value = res.data.data
+    }
+    return res.data
+  }
+
+  /**
+   * 解绑 QQ
+   */
+  async function unbindQQ() {
+    const res = await userApi.unbindQQ()
+    if (res.data.code === 200) {
+      qqBinding.value = { isBound: false }
+    }
+    return res.data
   }
 
   /**
@@ -231,6 +372,9 @@ export const useUserStore = defineStore('user', () => {
     user,
     expiresAt,
     campusInfo,
+    profile,
+    campusBinding,
+    qqBinding,
     showLoginModal,
     loginModalMessage,
     redirectRoute,
@@ -238,7 +382,7 @@ export const useUserStore = defineStore('user', () => {
     // Getters
     isLoggedIn,
 
-    // Actions
+    // Actions - 认证
     restoreSession,
     login,
     register,
@@ -247,6 +391,23 @@ export const useUserStore = defineStore('user', () => {
     qqBind,
     qqRegister,
     logout,
+
+    // Actions - 个人资料
+    fetchProfile,
+    updateProfile,
+
+    // Actions - 校园网绑定
+    fetchCampusBinding,
+    bindCampus,
+    unbindCampus,
+
+    // Actions - QQ 绑定
+    fetchQQBinding,
+    getQQBindAuthorizeUrl,
+    bindQQ,
+    unbindQQ,
+
+    // Actions - Modal 控制
     openLoginModal,
     closeLoginModal,
     setRedirectRoute,

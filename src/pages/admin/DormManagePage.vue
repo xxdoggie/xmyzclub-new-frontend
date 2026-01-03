@@ -845,216 +845,244 @@ onMounted(() => {
     <PageFooter />
 
     <!-- ==================== 校区 Modal ==================== -->
-    <div v-if="showCampusModal" class="modal-overlay" @click.self="closeCampusModal">
-      <div class="modal-content">
-        <h3 class="modal-title">{{ campusModalMode === 'create' ? '添加校区' : '编辑校区' }}</h3>
-        <div class="form-group">
-          <label class="form-label">校区名称</label>
-          <input
-            v-model="campusForm.name"
-            type="text"
-            class="form-input"
-            placeholder="例如：南校区"
-            maxlength="50"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label">校区代码</label>
-          <input
-            v-model="campusForm.code"
-            type="text"
-            class="form-input"
-            placeholder="例如：SOUTH"
-            maxlength="20"
-          />
-        </div>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" @click="closeCampusModal" :disabled="isSavingCampus">取消</button>
-          <button class="modal-btn confirm" @click="saveCampus" :disabled="isSavingCampus">
-            {{ isSavingCampus ? '保存中...' : '保存' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 宿舍楼 Modal ==================== -->
-    <div v-if="showBuildingModal" class="modal-overlay" @click.self="closeBuildingModal">
-      <div class="modal-content">
-        <h3 class="modal-title">{{ buildingModalMode === 'create' ? '添加宿舍楼' : '编辑宿舍楼' }}</h3>
-        <div class="form-group">
-          <label class="form-label">所属校区</label>
-          <select v-model="buildingForm.campusId" class="form-select">
-            <option v-for="campus in campuses" :key="campus.id" :value="campus.id">
-              {{ campus.name }}
-            </option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">宿舍楼名称</label>
-          <input
-            v-model="buildingForm.name"
-            type="text"
-            class="form-input"
-            placeholder="例如：1号楼"
-            maxlength="50"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label">宿舍楼代码</label>
-          <input
-            v-model="buildingForm.code"
-            type="text"
-            class="form-input"
-            placeholder="例如：B1"
-            maxlength="20"
-          />
-        </div>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" @click="closeBuildingModal" :disabled="isSavingBuilding">取消</button>
-          <button class="modal-btn confirm" @click="saveBuilding" :disabled="isSavingBuilding">
-            {{ isSavingBuilding ? '保存中...' : '保存' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 铃声时段 Modal ==================== -->
-    <div v-if="showTimePeriodModal" class="modal-overlay" @click.self="closeTimePeriodModal">
-      <div class="modal-content">
-        <h3 class="modal-title">{{ timePeriodModalMode === 'create' ? '添加铃声时段' : '编辑铃声时段' }}</h3>
-        <div class="form-group">
-          <label class="form-label">时段名称</label>
-          <input
-            v-model="timePeriodForm.name"
-            type="text"
-            class="form-input"
-            placeholder="例如：起床铃"
-            maxlength="50"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label">时段代码</label>
-          <input
-            v-model="timePeriodForm.code"
-            type="text"
-            class="form-input"
-            placeholder="例如：WAKE_UP"
-            maxlength="20"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label">时段描述</label>
-          <textarea
-            v-model="timePeriodForm.description"
-            class="form-textarea"
-            placeholder="例如：早上起床铃声"
-            maxlength="200"
-            rows="3"
-          ></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">排序顺序</label>
-          <input
-            v-model.number="timePeriodForm.sortOrder"
-            type="number"
-            class="form-input"
-            placeholder="数值越小越靠前"
-          />
-        </div>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" @click="closeTimePeriodModal" :disabled="isSavingTimePeriod">取消</button>
-          <button class="modal-btn confirm" @click="saveTimePeriod" :disabled="isSavingTimePeriod">
-            {{ isSavingTimePeriod ? '保存中...' : '保存' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 时段关联 Modal ==================== -->
-    <div v-if="showTimePeriodLinkModal" class="modal-overlay" @click.self="closeTimePeriodLinkModal">
-      <div class="modal-content modal-lg">
-        <h3 class="modal-title">管理铃声时段 - {{ linkingBuilding?.name }}</h3>
-        <p class="modal-subtitle">选择该宿舍楼适用的铃声时段</p>
-
-        <div v-if="isLoadingBuildingTimePeriods" class="modal-loading">
-          <div class="loading-spinner"></div>
-          <p>加载中...</p>
-        </div>
-
-        <div v-else class="time-period-list">
-          <div
-            v-for="tp in timePeriods"
-            :key="tp.id"
-            class="time-period-item"
-            :class="{ 'is-linked': isTimePeriodLinked(tp.id) }"
-            @click="toggleTimePeriodLink(tp)"
-          >
-            <div class="tp-info">
-              <span class="tp-name">{{ tp.name }}</span>
-              <span class="tp-code">{{ tp.code }}</span>
+    <Transition name="modal-fade">
+      <div v-if="showCampusModal" class="modal-overlay" @click.self="closeCampusModal">
+        <Transition name="modal-scale" appear>
+          <div v-if="showCampusModal" class="modal-content" @click.stop>
+            <h3 class="modal-title">{{ campusModalMode === 'create' ? '添加校区' : '编辑校区' }}</h3>
+            <div class="form-group">
+              <label class="form-label">校区名称</label>
+              <input
+                v-model="campusForm.name"
+                type="text"
+                class="form-input"
+                placeholder="例如：南校区"
+                maxlength="50"
+              />
             </div>
-            <div class="tp-check">
-              <svg v-if="isTimePeriodLinked(tp.id)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
+            <div class="form-group">
+              <label class="form-label">校区代码</label>
+              <input
+                v-model="campusForm.code"
+                type="text"
+                class="form-input"
+                placeholder="例如：SOUTH"
+                maxlength="20"
+              />
+            </div>
+            <div class="modal-actions">
+              <button class="modal-btn cancel" @click="closeCampusModal" :disabled="isSavingCampus">取消</button>
+              <button class="modal-btn confirm" @click="saveCampus" :disabled="isSavingCampus">
+                {{ isSavingCampus ? '保存中...' : '保存' }}
+              </button>
             </div>
           </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="modal-btn cancel" @click="closeTimePeriodLinkModal">完成</button>
-        </div>
+        </Transition>
       </div>
-    </div>
+    </Transition>
+
+    <!-- ==================== 宿舍楼 Modal ==================== -->
+    <Transition name="modal-fade">
+      <div v-if="showBuildingModal" class="modal-overlay" @click.self="closeBuildingModal">
+        <Transition name="modal-scale" appear>
+          <div v-if="showBuildingModal" class="modal-content" @click.stop>
+            <h3 class="modal-title">{{ buildingModalMode === 'create' ? '添加宿舍楼' : '编辑宿舍楼' }}</h3>
+            <div class="form-group">
+              <label class="form-label">所属校区</label>
+              <select v-model="buildingForm.campusId" class="form-select">
+                <option v-for="campus in campuses" :key="campus.id" :value="campus.id">
+                  {{ campus.name }}
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">宿舍楼名称</label>
+              <input
+                v-model="buildingForm.name"
+                type="text"
+                class="form-input"
+                placeholder="例如：1号楼"
+                maxlength="50"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">宿舍楼代码</label>
+              <input
+                v-model="buildingForm.code"
+                type="text"
+                class="form-input"
+                placeholder="例如：B1"
+                maxlength="20"
+              />
+            </div>
+            <div class="modal-actions">
+              <button class="modal-btn cancel" @click="closeBuildingModal" :disabled="isSavingBuilding">取消</button>
+              <button class="modal-btn confirm" @click="saveBuilding" :disabled="isSavingBuilding">
+                {{ isSavingBuilding ? '保存中...' : '保存' }}
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
+
+    <!-- ==================== 铃声时段 Modal ==================== -->
+    <Transition name="modal-fade">
+      <div v-if="showTimePeriodModal" class="modal-overlay" @click.self="closeTimePeriodModal">
+        <Transition name="modal-scale" appear>
+          <div v-if="showTimePeriodModal" class="modal-content" @click.stop>
+            <h3 class="modal-title">{{ timePeriodModalMode === 'create' ? '添加铃声时段' : '编辑铃声时段' }}</h3>
+            <div class="form-group">
+              <label class="form-label">时段名称</label>
+              <input
+                v-model="timePeriodForm.name"
+                type="text"
+                class="form-input"
+                placeholder="例如：起床铃"
+                maxlength="50"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">时段代码</label>
+              <input
+                v-model="timePeriodForm.code"
+                type="text"
+                class="form-input"
+                placeholder="例如：WAKE_UP"
+                maxlength="20"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">时段描述</label>
+              <textarea
+                v-model="timePeriodForm.description"
+                class="form-textarea"
+                placeholder="例如：早上起床铃声"
+                maxlength="200"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">排序顺序</label>
+              <input
+                v-model.number="timePeriodForm.sortOrder"
+                type="number"
+                class="form-input"
+                placeholder="数值越小越靠前"
+              />
+            </div>
+            <div class="modal-actions">
+              <button class="modal-btn cancel" @click="closeTimePeriodModal" :disabled="isSavingTimePeriod">取消</button>
+              <button class="modal-btn confirm" @click="saveTimePeriod" :disabled="isSavingTimePeriod">
+                {{ isSavingTimePeriod ? '保存中...' : '保存' }}
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
+
+    <!-- ==================== 时段关联 Modal ==================== -->
+    <Transition name="modal-fade">
+      <div v-if="showTimePeriodLinkModal" class="modal-overlay" @click.self="closeTimePeriodLinkModal">
+        <Transition name="modal-scale" appear>
+          <div v-if="showTimePeriodLinkModal" class="modal-content modal-lg" @click.stop>
+            <h3 class="modal-title">管理铃声时段 - {{ linkingBuilding?.name }}</h3>
+            <p class="modal-subtitle">选择该宿舍楼适用的铃声时段</p>
+
+            <div v-if="isLoadingBuildingTimePeriods" class="modal-loading">
+              <div class="loading-spinner"></div>
+              <p>加载中...</p>
+            </div>
+
+            <div v-else class="time-period-list">
+              <div
+                v-for="tp in timePeriods"
+                :key="tp.id"
+                class="time-period-item"
+                :class="{ 'is-linked': isTimePeriodLinked(tp.id) }"
+                @click="toggleTimePeriodLink(tp)"
+              >
+                <div class="tp-info">
+                  <span class="tp-name">{{ tp.name }}</span>
+                  <span class="tp-code">{{ tp.code }}</span>
+                </div>
+                <div class="tp-check">
+                  <svg v-if="isTimePeriodLinked(tp.id)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              <button class="modal-btn cancel" @click="closeTimePeriodLinkModal">完成</button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
 
     <!-- ==================== 删除确认 Modals ==================== -->
     <!-- 校区删除确认 -->
-    <div v-if="showDeleteCampusConfirm" class="modal-overlay" @click.self="cancelDeleteCampus">
-      <div class="modal-content">
-        <h3 class="modal-title">确认删除</h3>
-        <p class="modal-desc">
-          确定要删除校区"{{ deleteCampusTarget?.name }}"吗？此操作不可撤销。
-        </p>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" @click="cancelDeleteCampus" :disabled="isDeletingCampus">取消</button>
-          <button class="modal-btn confirm danger" @click="confirmDeleteCampus" :disabled="isDeletingCampus">
-            {{ isDeletingCampus ? '删除中...' : '确认删除' }}
-          </button>
-        </div>
+    <Transition name="modal-fade">
+      <div v-if="showDeleteCampusConfirm" class="modal-overlay" @click.self="cancelDeleteCampus">
+        <Transition name="modal-scale" appear>
+          <div v-if="showDeleteCampusConfirm" class="modal-content" @click.stop>
+            <h3 class="modal-title">确认删除</h3>
+            <p class="modal-desc">
+              确定要删除校区"{{ deleteCampusTarget?.name }}"吗？此操作不可撤销。
+            </p>
+            <div class="modal-actions">
+              <button class="modal-btn cancel" @click="cancelDeleteCampus" :disabled="isDeletingCampus">取消</button>
+              <button class="modal-btn confirm danger" @click="confirmDeleteCampus" :disabled="isDeletingCampus">
+                {{ isDeletingCampus ? '删除中...' : '确认删除' }}
+              </button>
+            </div>
+          </div>
+        </Transition>
       </div>
-    </div>
+    </Transition>
 
     <!-- 宿舍楼删除确认 -->
-    <div v-if="showDeleteBuildingConfirm" class="modal-overlay" @click.self="cancelDeleteBuilding">
-      <div class="modal-content">
-        <h3 class="modal-title">确认删除</h3>
-        <p class="modal-desc">
-          确定要删除宿舍楼"{{ deleteBuildingTarget?.name }}"吗？此操作不可撤销。
-        </p>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" @click="cancelDeleteBuilding" :disabled="isDeletingBuilding">取消</button>
-          <button class="modal-btn confirm danger" @click="confirmDeleteBuilding" :disabled="isDeletingBuilding">
-            {{ isDeletingBuilding ? '删除中...' : '确认删除' }}
-          </button>
-        </div>
+    <Transition name="modal-fade">
+      <div v-if="showDeleteBuildingConfirm" class="modal-overlay" @click.self="cancelDeleteBuilding">
+        <Transition name="modal-scale" appear>
+          <div v-if="showDeleteBuildingConfirm" class="modal-content" @click.stop>
+            <h3 class="modal-title">确认删除</h3>
+            <p class="modal-desc">
+              确定要删除宿舍楼"{{ deleteBuildingTarget?.name }}"吗？此操作不可撤销。
+            </p>
+            <div class="modal-actions">
+              <button class="modal-btn cancel" @click="cancelDeleteBuilding" :disabled="isDeletingBuilding">取消</button>
+              <button class="modal-btn confirm danger" @click="confirmDeleteBuilding" :disabled="isDeletingBuilding">
+                {{ isDeletingBuilding ? '删除中...' : '确认删除' }}
+              </button>
+            </div>
+          </div>
+        </Transition>
       </div>
-    </div>
+    </Transition>
 
     <!-- 铃声时段删除确认 -->
-    <div v-if="showDeleteTimePeriodConfirm" class="modal-overlay" @click.self="cancelDeleteTimePeriod">
-      <div class="modal-content">
-        <h3 class="modal-title">确认删除</h3>
-        <p class="modal-desc">
-          确定要删除铃声时段"{{ deleteTimePeriodTarget?.name }}"吗？此操作不可撤销。
-        </p>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" @click="cancelDeleteTimePeriod" :disabled="isDeletingTimePeriod">取消</button>
-          <button class="modal-btn confirm danger" @click="confirmDeleteTimePeriod" :disabled="isDeletingTimePeriod">
-            {{ isDeletingTimePeriod ? '删除中...' : '确认删除' }}
-          </button>
-        </div>
+    <Transition name="modal-fade">
+      <div v-if="showDeleteTimePeriodConfirm" class="modal-overlay" @click.self="cancelDeleteTimePeriod">
+        <Transition name="modal-scale" appear>
+          <div v-if="showDeleteTimePeriodConfirm" class="modal-content" @click.stop>
+            <h3 class="modal-title">确认删除</h3>
+            <p class="modal-desc">
+              确定要删除铃声时段"{{ deleteTimePeriodTarget?.name }}"吗？此操作不可撤销。
+            </p>
+            <div class="modal-actions">
+              <button class="modal-btn cancel" @click="cancelDeleteTimePeriod" :disabled="isDeletingTimePeriod">取消</button>
+              <button class="modal-btn confirm danger" @click="confirmDeleteTimePeriod" :disabled="isDeletingTimePeriod">
+                {{ isDeletingTimePeriod ? '删除中...' : '确认删除' }}
+              </button>
+            </div>
+          </div>
+        </Transition>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -1744,5 +1772,27 @@ onMounted(() => {
     padding: 6px 14px;
     font-size: var(--text-sm);
   }
+}
+
+/* ===== Modal Animations ===== */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-scale-enter-active,
+.modal-scale-leave-active {
+  transition: all 0.2s ease;
+}
+
+.modal-scale-enter-from,
+.modal-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
 }
 </style>

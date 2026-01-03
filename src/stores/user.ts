@@ -62,6 +62,11 @@ export const useUserStore = defineStore('user', () => {
    */
   const canManageTickets = computed(() => hasPermission('ticket.manage'))
 
+  /**
+   * 检查用户是否可以管理活动/宿舍铃声
+   */
+  const canManageCampaigns = computed(() => hasPermission('campaign.manage'))
+
   // ==================== Actions ====================
 
   /**
@@ -438,6 +443,7 @@ export const useUserStore = defineStore('user', () => {
     // Getters
     isLoggedIn,
     canManageTickets,
+    canManageCampaigns,
 
     // Actions - 认证
     restoreSession,

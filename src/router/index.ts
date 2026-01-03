@@ -183,6 +183,50 @@ const router = createRouter({
         parent: 'admin-tickets-detail',
       },
     },
+    {
+      path: '/admin/dorm',
+      name: 'admin-dorm',
+      component: () => import('../pages/admin/DormManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '宿舍管理',
+        parent: 'home',
+      },
+    },
+    {
+      path: '/admin/campaigns',
+      name: 'admin-campaigns',
+      component: () => import('../pages/admin/CampaignManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '活动管理',
+        parent: 'home',
+      },
+    },
+    {
+      path: '/admin/campaigns/:id/review',
+      name: 'admin-campaigns-review',
+      component: () => import('../pages/admin/CampaignReviewPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '审核投稿',
+        parent: 'admin-campaigns',
+      },
+    },
+    {
+      path: '/admin/campaigns/:id/results',
+      name: 'admin-campaigns-results',
+      component: () => import('../pages/admin/CampaignResultsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '投票结果',
+        parent: 'admin-campaigns',
+      },
+    },
 
     // ==================== 404 ====================
     {

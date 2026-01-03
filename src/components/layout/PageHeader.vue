@@ -133,7 +133,7 @@ function goToProfile() {
           登录
         </button>
         <button v-else class="user-name-btn" @click="goToProfile">
-          {{ userStore.userInfo?.nickname || userStore.userInfo?.username }}
+          {{ userStore.user?.nickname || userStore.user?.username }}
         </button>
 
         <slot name="desktop-right"></slot>

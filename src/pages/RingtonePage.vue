@@ -1,24 +1,11 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-
-function goBack() {
-  router.push('/')
-}
+import PageHeader from '@/components/layout/PageHeader.vue'
+import PageFooter from '@/components/layout/PageFooter.vue'
 </script>
 
 <template>
-  <div class="placeholder-page">
-    <header class="page-header">
-      <button class="back-btn" @click="goBack">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </button>
-      <h1 class="page-title">宿舍铃声</h1>
-      <div class="header-spacer"></div>
-    </header>
+  <div class="page-container">
+    <PageHeader back-to="/" />
 
     <main class="page-content">
       <div class="placeholder-container">
@@ -33,66 +20,26 @@ function goBack() {
         <p class="placeholder-hint">这里将会提供宿舍铃声定制和下载</p>
       </div>
     </main>
+
+    <PageFooter />
   </div>
 </template>
 
 <style scoped>
-.placeholder-page {
+.page-container {
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--color-bg);
   color: var(--color-text);
-}
-
-.page-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-card);
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.back-btn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.back-btn:hover {
-  background: var(--color-border);
-}
-
-.back-btn svg {
-  width: 24px;
-  height: 24px;
-}
-
-.page-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-}
-
-.header-spacer {
-  width: 40px;
+  flex-direction: column;
 }
 
 .page-content {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 60px);
   padding: var(--spacing-md);
 }
 

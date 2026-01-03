@@ -21,6 +21,19 @@ const toast = useToast()
 // Tab 切换
 type TabType = 'login' | 'register' | 'campus'
 const activeTab = ref<TabType>('login')
+const prevTab = ref<TabType>('login')
+const tabDirection = ref<'left' | 'right'>('right')
+
+// Tab 顺序: login(0) < register(1) < campus(2)
+const tabOrder: Record<TabType, number> = { login: 0, register: 1, campus: 2 }
+
+function switchTab(newTab: TabType) {
+  const oldOrder = tabOrder[activeTab.value]
+  const newOrder = tabOrder[newTab]
+  tabDirection.value = newOrder > oldOrder ? 'right' : 'left'
+  prevTab.value = activeTab.value
+  activeTab.value = newTab
+}
 
 // 滑块动画
 const tabsRef = ref<HTMLElement | null>(null)
@@ -62,6 +75,12 @@ const campusForm = ref({
 const loading = ref(false)
 const campusCaptchaImage = ref('')
 const captchaLoading = ref(false)
+
+// 密码显示切换
+const showLoginPassword = ref(false)
+const showRegisterPassword = ref(false)
+const showRegisterConfirmPassword = ref(false)
+const showCampusPassword = ref(false)
 
 // 监听 show 变化
 watch(
@@ -276,21 +295,23 @@ onMounted(() => {
             <button
               class="login-tab"
               :class="{ active: activeTab === 'login' }"
-              @click="activeTab = 'login'"
+              @click="switchTab('login')"
             >
               普通登录
             </button>
             <button
               class="login-tab"
               :class="{ active: activeTab === 'campus' }"
-              @click="activeTab = 'campus'"
+              @click="switchTab('campus')"
             >
               校园网登录
             </button>
           </div>
 
+          <!-- 表单内容 - 带过渡动画 -->
+          <Transition :name="'tab-slide-' + tabDirection" mode="out-in">
           <!-- 普通登录表单 -->
-          <div v-if="activeTab === 'login'" class="modal-body">
+          <div v-if="activeTab === 'login'" key="login" class="modal-body">
             <div class="form-group">
               <label class="form-label">用户名</label>
               <input
@@ -304,14 +325,31 @@ onMounted(() => {
             </div>
             <div class="form-group">
               <label class="form-label">密码</label>
-              <input
-                v-model="loginForm.password"
-                type="password"
-                class="form-input"
-                placeholder="请输入密码"
-                :disabled="loading"
-                @keyup.enter="handleLogin"
-              />
+              <div class="password-input-wrapper">
+                <input
+                  v-model="loginForm.password"
+                  :type="showLoginPassword ? 'text' : 'password'"
+                  class="form-input"
+                  placeholder="请输入密码"
+                  :disabled="loading"
+                  @keyup.enter="handleLogin"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  @click="showLoginPassword = !showLoginPassword"
+                  tabindex="-1"
+                >
+                  <svg v-if="showLoginPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <button
@@ -327,7 +365,7 @@ onMounted(() => {
               <button
                 class="btn btn-link"
                 :disabled="loading"
-                @click="activeTab = 'register'"
+                @click="switchTab('register')"
               >
                 立即注册
               </button>
@@ -356,7 +394,7 @@ onMounted(() => {
           </div>
 
           <!-- 注册表单 -->
-          <div v-else-if="activeTab === 'register'" class="modal-body">
+          <div v-else-if="activeTab === 'register'" key="register" class="modal-body">
             <div class="form-group">
               <label class="form-label">用户名</label>
               <input
@@ -369,24 +407,58 @@ onMounted(() => {
             </div>
             <div class="form-group">
               <label class="form-label">密码</label>
-              <input
-                v-model="registerForm.password"
-                type="password"
-                class="form-input"
-                placeholder="至少 6 位"
-                :disabled="loading"
-              />
+              <div class="password-input-wrapper">
+                <input
+                  v-model="registerForm.password"
+                  :type="showRegisterPassword ? 'text' : 'password'"
+                  class="form-input"
+                  placeholder="至少 6 位"
+                  :disabled="loading"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  @click="showRegisterPassword = !showRegisterPassword"
+                  tabindex="-1"
+                >
+                  <svg v-if="showRegisterPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">确认密码</label>
-              <input
-                v-model="registerForm.confirmPassword"
-                type="password"
-                class="form-input"
-                placeholder="再次输入密码"
-                :disabled="loading"
-                @keyup.enter="handleRegister"
-              />
+              <div class="password-input-wrapper">
+                <input
+                  v-model="registerForm.confirmPassword"
+                  :type="showRegisterConfirmPassword ? 'text' : 'password'"
+                  class="form-input"
+                  placeholder="再次输入密码"
+                  :disabled="loading"
+                  @keyup.enter="handleRegister"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  @click="showRegisterConfirmPassword = !showRegisterConfirmPassword"
+                  tabindex="-1"
+                >
+                  <svg v-if="showRegisterConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <button
@@ -402,7 +474,7 @@ onMounted(() => {
               <button
                 class="btn btn-link"
                 :disabled="loading"
-                @click="activeTab = 'login'"
+                @click="switchTab('login')"
               >
                 返回登录
               </button>
@@ -410,7 +482,7 @@ onMounted(() => {
           </div>
 
           <!-- 校园网登录表单 -->
-          <div v-else-if="activeTab === 'campus'" class="modal-body">
+          <div v-else-if="activeTab === 'campus'" key="campus" class="modal-body">
             <div class="form-group">
               <label class="form-label">学号</label>
               <input
@@ -423,13 +495,30 @@ onMounted(() => {
             </div>
             <div class="form-group">
               <label class="form-label">校园网密码</label>
-              <input
-                v-model="campusForm.password"
-                type="password"
-                class="form-input"
-                placeholder="请输入校园网密码"
-                :disabled="loading"
-              />
+              <div class="password-input-wrapper">
+                <input
+                  v-model="campusForm.password"
+                  :type="showCampusPassword ? 'text' : 'password'"
+                  class="form-input"
+                  placeholder="请输入校园网密码"
+                  :disabled="loading"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  @click="showCampusPassword = !showCampusPassword"
+                  tabindex="-1"
+                >
+                  <svg v-if="showCampusPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">验证码</label>
@@ -460,6 +549,9 @@ onMounted(() => {
               </div>
             </div>
 
+            <!-- 填充空间保持高度一致 -->
+            <div class="form-spacer"></div>
+
             <button
               class="btn btn-primary btn-block btn-touch"
               :disabled="loading"
@@ -470,6 +562,7 @@ onMounted(() => {
 
             <p class="campus-hint">首次使用校园网登录将自动创建账号</p>
           </div>
+          </Transition>
         </div>
       </div>
     </Transition>
@@ -497,6 +590,8 @@ onMounted(() => {
   max-height: 90vh;
   overflow: hidden;
   box-shadow: var(--shadow-xl);
+  /* 添加高度过渡动画 */
+  transition: height var(--transition-normal);
 }
 
 .modal-header {
@@ -579,6 +674,10 @@ onMounted(() => {
 /* 表单 */
 .modal-body {
   padding: var(--spacing-md);
+  /* 固定最小高度防止切换时模态框跳变 */
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group {
@@ -615,6 +714,49 @@ onMounted(() => {
 
 .form-input::placeholder {
   color: var(--color-text-placeholder);
+}
+
+/* 密码输入框容器 */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.password-toggle:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-border);
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.password-toggle:active svg {
+  transform: scale(0.85);
+  opacity: 0.7;
 }
 
 /* 验证码行 */
@@ -697,6 +839,7 @@ onMounted(() => {
   background: transparent;
   color: var(--color-primary);
   padding: 0;
+  font-size: var(--text-sm);
 }
 
 .btn-link:hover:not(:disabled) {
@@ -788,6 +931,44 @@ onMounted(() => {
   text-align: center;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+/* 表单内容填充 - 确保按钮位置一致 */
+.form-spacer {
+  flex: 1;
+  min-height: var(--spacing-md);
+}
+
+/* Tab 切换动画 - 向右滑动 (login -> campus) */
+.tab-slide-right-enter-active,
+.tab-slide-right-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.tab-slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.tab-slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* Tab 切换动画 - 向左滑动 (campus -> login) */
+.tab-slide-left-enter-active,
+.tab-slide-left-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.tab-slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.tab-slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
 }
 
 /* Modal 动画 */

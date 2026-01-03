@@ -82,6 +82,7 @@ defineExpose({
   pointer-events: auto;
   cursor: pointer;
   max-width: 90vw;
+  min-width: min(320px, 85vw);
 }
 
 .toast-icon {

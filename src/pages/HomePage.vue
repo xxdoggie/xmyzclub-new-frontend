@@ -1,14 +1,50 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 
-const router = useRouter()
 const userStore = useUserStore()
 const toast = useToast()
 
 const isDark = ref(false)
+const isMobileMenuOpen = ref(false)
+const currentBannerIndex = ref(0)
+
+// Banner 轮播数据
+const banners: Array<{
+  title: string
+  subtitle: string
+  gradient: string
+}> = [
+  {
+    title: '欢迎来到厦门一中学生社区',
+    subtitle: '连接校园，分享青春',
+    gradient: 'from-primary to-primary-dark',
+  },
+  {
+    title: '社团招新季火热进行中',
+    subtitle: '发现你的热爱，加入精彩社团',
+    gradient: 'from-secondary to-info',
+  },
+  {
+    title: '失物招领平台已上线',
+    subtitle: '帮助同学找回遗失物品',
+    gradient: 'from-accent to-warning',
+  },
+]
+
+// 当前 banner 计算属性（非空断言因为 index 永远在有效范围内）
+const currentBanner = computed(() => {
+  const banner = banners[currentBannerIndex.value]
+  return banner!
+})
+
+// 轮播自动切换
+onMounted(() => {
+  setInterval(() => {
+    currentBannerIndex.value = (currentBannerIndex.value + 1) % banners.length
+  }, 5000)
+})
 
 function toggleTheme() {
   isDark.value = !isDark.value
@@ -24,18 +60,21 @@ function handleLogout() {
   toast.success('已退出登录')
 }
 
-function goToAuth() {
-  router.push('/auth')
-}
-
 // 需要登录的功能点击
 function handleProtectedAction(name: string) {
   if (userStore.isLoggedIn) {
-    // TODO: 实际功能实现
     toast.info(`功能 "${name}" 开发中...`)
   } else {
     userStore.openLoginModal()
   }
+}
+
+function toggleMobileMenu() {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
+function goToBanner(index: number) {
+  currentBannerIndex.value = index
 }
 </script>
 
@@ -44,24 +83,33 @@ function handleProtectedAction(name: string) {
     <!-- Header -->
     <header class="header">
       <div class="header-container">
-        <div class="header-left">
-          <div class="logo">
-            <span class="logo-icon">X</span>
-          </div>
-          <div class="logo-text">
-            <h1 class="logo-title">XMYZ Club</h1>
-            <p class="logo-subtitle">厦门一中学生社区</p>
-          </div>
+        <!-- Mobile Menu Button (Left) -->
+        <button class="mobile-menu-btn" @click="toggleMobileMenu">
+          <svg v-if="!isMobileMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <!-- Title (Center) -->
+        <div class="header-center">
+          <h1 class="header-title">厦门一中学生社区</h1>
         </div>
 
         <!-- Desktop Navigation -->
         <nav class="nav-links">
           <a href="#" class="nav-link active">首页</a>
-          <a href="#" class="nav-link">动态</a>
-          <a href="#" class="nav-link">社团</a>
-          <a href="#" class="nav-link">失物招领</a>
+          <a href="#" class="nav-link">活动抢票</a>
+          <a href="#" class="nav-link">宿舍铃声</a>
+          <a href="#" class="nav-link">评分社区</a>
         </nav>
 
+        <!-- Right Actions -->
         <div class="header-right">
           <button class="theme-toggle-btn" @click="toggleTheme" title="切换主题">
             <svg v-if="isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -79,6 +127,8 @@ function handleProtectedAction(name: string) {
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </button>
+
+          <!-- Desktop Auth Buttons -->
           <template v-if="userStore.isLoggedIn">
             <div class="user-menu">
               <div class="user-avatar">
@@ -89,91 +139,64 @@ function handleProtectedAction(name: string) {
             </div>
           </template>
           <template v-else>
-            <button class="btn btn-ghost btn-sm" @click="handleLogin">登录</button>
-            <button class="btn btn-primary btn-sm" @click="goToAuth">注册</button>
+            <button class="btn btn-primary btn-sm desktop-only" @click="handleLogin">登录</button>
           </template>
         </div>
       </div>
     </header>
 
-    <!-- Main Layout -->
-    <div class="main-layout">
-      <!-- Left Sidebar (Desktop) -->
-      <aside class="sidebar sidebar-left">
-        <div class="sidebar-card user-card" v-if="userStore.isLoggedIn">
-          <div class="user-card-avatar">
-            {{ userStore.user?.nickname?.charAt(0) || 'U' }}
-          </div>
-          <div class="user-card-info">
-            <div class="user-card-name">{{ userStore.user?.nickname }}</div>
-            <div class="user-card-meta">欢迎回来</div>
-          </div>
-        </div>
-        <div class="sidebar-card user-card" v-else>
-          <div class="user-card-avatar guest">?</div>
-          <div class="user-card-info">
-            <div class="user-card-name">游客</div>
-            <div class="user-card-meta">
-              <button class="link-btn" @click="handleLogin">登录</button>
-              加入社区
+    <!-- Mobile Menu Overlay -->
+    <Transition name="menu-fade">
+      <div v-if="isMobileMenuOpen" class="mobile-menu-overlay" @click="toggleMobileMenu"></div>
+    </Transition>
+    <Transition name="menu-slide">
+      <div v-if="isMobileMenuOpen" class="mobile-menu">
+        <!-- 用户区域 -->
+        <div class="drawer-user-section">
+          <template v-if="userStore.isLoggedIn">
+            <div class="drawer-user-avatar">
+              {{ userStore.user?.nickname?.charAt(0) || 'U' }}
             </div>
-          </div>
+            <div class="drawer-user-info">
+              <span class="drawer-user-name">{{ userStore.user?.nickname }}</span>
+              <span class="drawer-user-status">已登录</span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="drawer-user-avatar guest">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="drawer-user-info">
+              <span class="drawer-user-name">游客</span>
+              <button class="drawer-login-btn" @click="handleLogin">点击登录</button>
+            </div>
+          </template>
+          <button class="drawer-close-btn" @click="toggleMobileMenu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
-        <div class="sidebar-card">
-          <h3 class="sidebar-title">快捷功能</h3>
-          <div class="sidebar-actions">
-            <button class="sidebar-action" @click="handleProtectedAction('课程表')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              <span>课程表</span>
-            </button>
-            <button class="sidebar-action" @click="handleProtectedAction('公告')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              <span>公告</span>
-            </button>
-            <button class="sidebar-action" @click="handleProtectedAction('社团')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span>社团</span>
-            </button>
-            <button class="sidebar-action" @click="handleProtectedAction('失物招领')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <span>失物招领</span>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="main-content">
-        <!-- 公告横幅 -->
-        <section class="banner">
-          <div class="banner-content">
-            <span class="banner-tag">公告</span>
-            <p class="banner-text">欢迎来到厦门一中学生社区！更多功能正在开发中...</p>
-          </div>
-        </section>
-
-        <!-- Mobile Quick Actions -->
-        <section class="mobile-quick-actions">
-          <div class="quick-actions-grid">
-            <button class="quick-action-item" @click="handleProtectedAction('课程表')">
-              <div class="action-icon">
+        <!-- 导航区域 -->
+        <div class="drawer-nav-section">
+          <p class="drawer-section-title">导航</p>
+          <nav class="drawer-nav">
+            <a href="#" class="drawer-nav-item active">
+              <div class="drawer-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+              </div>
+              <span>首页</span>
+            </a>
+            <a href="#" class="drawer-nav-item">
+              <div class="drawer-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                   <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -181,129 +204,280 @@ function handleProtectedAction(name: string) {
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               </div>
-              <span>课程表</span>
-            </button>
-            <button class="quick-action-item" @click="handleProtectedAction('公告')">
-              <div class="action-icon">
+              <span>活动抢票</span>
+            </a>
+            <a href="#" class="drawer-nav-item">
+              <div class="drawer-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
               </div>
-              <span>公告</span>
-            </button>
-            <button class="quick-action-item" @click="handleProtectedAction('社团')">
-              <div class="action-icon">
+              <span>宿舍铃声</span>
+            </a>
+            <a href="#" class="drawer-nav-item">
+              <div class="drawer-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
               </div>
-              <span>社团</span>
-            </button>
-            <button class="quick-action-item" @click="handleProtectedAction('失物招领')">
-              <div class="action-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-              </div>
-              <span>失物招领</span>
-            </button>
-          </div>
-        </section>
-
-        <!-- 最新动态 -->
-        <section class="feed-section">
-          <div class="section-header">
-            <h2 class="section-title">最新动态</h2>
-            <button class="btn-text">查看全部</button>
-          </div>
-          <div class="feed-list">
-            <div class="feed-item feed-placeholder">
-              <div class="feed-avatar"></div>
-              <div class="feed-body">
-                <div class="feed-line feed-line-short"></div>
-                <div class="feed-line"></div>
-                <div class="feed-line feed-line-medium"></div>
-              </div>
-            </div>
-            <div class="feed-item feed-placeholder">
-              <div class="feed-avatar"></div>
-              <div class="feed-body">
-                <div class="feed-line feed-line-short"></div>
-                <div class="feed-line"></div>
-              </div>
-            </div>
-            <div class="feed-item feed-placeholder">
-              <div class="feed-avatar"></div>
-              <div class="feed-body">
-                <div class="feed-line feed-line-short"></div>
-                <div class="feed-line feed-line-medium"></div>
-              </div>
-            </div>
-          </div>
-          <p class="placeholder-hint">动态功能开发中...</p>
-        </section>
-      </main>
-
-      <!-- Right Sidebar (Desktop) -->
-      <aside class="sidebar sidebar-right">
-        <div class="sidebar-card">
-          <h3 class="sidebar-title">开发资源</h3>
-          <div class="resource-list">
-            <router-link to="/design-system" class="resource-item">
-              <div class="resource-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="13.5" cy="6.5" r="2.5"></circle>
-                  <path d="M22 17l-3.5-2-1.5 1-4-2"></path>
-                  <path d="M2 17l3.5-2 1.5 1 4-2"></path>
-                  <path d="M10 21l2-4 2 4"></path>
-                </svg>
-              </div>
-              <div class="resource-info">
-                <span class="resource-name">设计系统</span>
-                <span class="resource-desc">UI 组件库</span>
-              </div>
-            </router-link>
-            <router-link to="/auth" class="resource-item">
-              <div class="resource-icon secondary">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                  <polyline points="10 17 15 12 10 7"></polyline>
-                  <line x1="15" y1="12" x2="3" y2="12"></line>
-                </svg>
-              </div>
-              <div class="resource-info">
-                <span class="resource-name">登录页面</span>
-                <span class="resource-desc">大屏设计</span>
-              </div>
-            </router-link>
-          </div>
+              <span>评分社区</span>
+            </a>
+          </nav>
         </div>
 
-        <div class="sidebar-card">
-          <h3 class="sidebar-title">热门话题</h3>
-          <div class="topic-list">
-            <div class="topic-item placeholder">
-              <span class="topic-rank">1</span>
-              <div class="topic-line"></div>
+        <!-- 设置区域 -->
+        <div class="drawer-settings-section" v-if="userStore.isLoggedIn">
+          <p class="drawer-section-title">账户</p>
+          <button class="drawer-settings-item" @click="handleLogout">
+            <div class="drawer-nav-icon logout">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
             </div>
-            <div class="topic-item placeholder">
-              <span class="topic-rank">2</span>
-              <div class="topic-line"></div>
+            <span>退出登录</span>
+          </button>
+        </div>
+
+        <!-- 底部信息 -->
+        <div class="drawer-footer">
+          <p class="drawer-brand">厦门一中学生社区</p>
+          <p class="drawer-credit">designed by 23届玄学狗狗</p>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Hero Banner Section -->
+      <section class="hero-section">
+        <div class="hero-container">
+          <div class="hero-banner" :class="currentBanner.gradient">
+            <div class="hero-content">
+              <Transition name="fade" mode="out-in">
+                <div :key="currentBannerIndex" class="hero-text">
+                  <h2 class="hero-title">{{ currentBanner.title }}</h2>
+                  <p class="hero-subtitle">{{ currentBanner.subtitle }}</p>
+                </div>
+              </Transition>
             </div>
-            <div class="topic-item placeholder">
-              <span class="topic-rank">3</span>
-              <div class="topic-line"></div>
+            <div class="hero-decoration">
+              <div class="decoration-circle decoration-circle-1"></div>
+              <div class="decoration-circle decoration-circle-2"></div>
+              <div class="decoration-circle decoration-circle-3"></div>
             </div>
           </div>
-          <p class="placeholder-hint-sm">开发中...</p>
+          <!-- Banner Indicators -->
+          <div class="hero-indicators">
+            <button
+              v-for="(_, index) in banners"
+              :key="index"
+              class="indicator-dot"
+              :class="{ active: currentBannerIndex === index }"
+              @click="goToBanner(index)"
+            ></button>
+          </div>
         </div>
-      </aside>
-    </div>
+      </section>
+
+      <!-- Bento Grid Section -->
+      <section class="bento-section">
+        <div class="bento-container">
+          <!-- Quick Actions - Mobile First -->
+          <div class="bento-quick-actions">
+            <h3 class="section-label">快捷入口</h3>
+            <div class="quick-grid three-cols">
+              <button class="quick-card" @click="handleProtectedAction('活动抢票')">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <span class="quick-label">活动抢票</span>
+              </button>
+              <button class="quick-card" @click="handleProtectedAction('宿舍铃声')">
+                <div class="quick-icon secondary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                </div>
+                <span class="quick-label">宿舍铃声</span>
+              </button>
+              <button class="quick-card" @click="handleProtectedAction('评分社区')">
+                <div class="quick-icon accent">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <span class="quick-label">评分社区</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Content Grid - Desktop -->
+          <div class="bento-grid">
+            <!-- User Card -->
+            <div class="bento-card bento-user">
+              <div class="user-card-content" v-if="userStore.isLoggedIn">
+                <div class="user-card-avatar large">
+                  {{ userStore.user?.nickname?.charAt(0) || 'U' }}
+                </div>
+                <div class="user-card-info">
+                  <h4 class="user-card-name">{{ userStore.user?.nickname }}</h4>
+                  <p class="user-card-meta">欢迎回来</p>
+                </div>
+              </div>
+              <div class="user-card-content guest" v-else>
+                <div class="user-card-avatar large guest">?</div>
+                <div class="user-card-info">
+                  <h4 class="user-card-name">游客</h4>
+                  <p class="user-card-meta">
+                    <button class="link-btn" @click="handleLogin">登录</button>
+                    加入社区
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feed Card - Large -->
+            <div class="bento-card bento-feed">
+              <div class="card-header">
+                <h3 class="card-title">最新动态</h3>
+                <button class="btn-text">查看全部</button>
+              </div>
+              <div class="feed-list">
+                <div class="feed-item feed-placeholder">
+                  <div class="feed-avatar"></div>
+                  <div class="feed-body">
+                    <div class="feed-line feed-line-short"></div>
+                    <div class="feed-line"></div>
+                    <div class="feed-line feed-line-medium"></div>
+                  </div>
+                </div>
+                <div class="feed-item feed-placeholder">
+                  <div class="feed-avatar"></div>
+                  <div class="feed-body">
+                    <div class="feed-line feed-line-short"></div>
+                    <div class="feed-line"></div>
+                  </div>
+                </div>
+                <div class="feed-item feed-placeholder">
+                  <div class="feed-avatar"></div>
+                  <div class="feed-body">
+                    <div class="feed-line feed-line-short"></div>
+                    <div class="feed-line feed-line-medium"></div>
+                  </div>
+                </div>
+              </div>
+              <p class="placeholder-hint">动态功能开发中...</p>
+            </div>
+
+            <!-- Quick Functions - Desktop -->
+            <div class="bento-card bento-functions desktop-only">
+              <h3 class="card-title">快捷功能</h3>
+              <div class="function-list">
+                <button class="function-item" @click="handleProtectedAction('活动抢票')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  <span>活动抢票</span>
+                </button>
+                <button class="function-item" @click="handleProtectedAction('宿舍铃声')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                  <span>宿舍铃声</span>
+                </button>
+                <button class="function-item" @click="handleProtectedAction('评分社区')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                  <span>评分社区</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Hot Topics -->
+            <div class="bento-card bento-topics">
+              <h3 class="card-title">热门话题</h3>
+              <div class="topic-list">
+                <div class="topic-item placeholder">
+                  <span class="topic-rank hot">1</span>
+                  <div class="topic-line"></div>
+                </div>
+                <div class="topic-item placeholder">
+                  <span class="topic-rank">2</span>
+                  <div class="topic-line"></div>
+                </div>
+                <div class="topic-item placeholder">
+                  <span class="topic-rank">3</span>
+                  <div class="topic-line"></div>
+                </div>
+                <div class="topic-item placeholder">
+                  <span class="topic-rank">4</span>
+                  <div class="topic-line"></div>
+                </div>
+                <div class="topic-item placeholder">
+                  <span class="topic-rank">5</span>
+                  <div class="topic-line"></div>
+                </div>
+              </div>
+              <p class="placeholder-hint-sm">话题功能开发中...</p>
+            </div>
+
+            <!-- Dev Resources -->
+            <div class="bento-card bento-resources desktop-only">
+              <h3 class="card-title">开发资源</h3>
+              <div class="resource-list">
+                <router-link to="/design-system" class="resource-item">
+                  <div class="resource-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="13.5" cy="6.5" r="2.5"></circle>
+                      <path d="M22 17l-3.5-2-1.5 1-4-2"></path>
+                      <path d="M2 17l3.5-2 1.5 1 4-2"></path>
+                      <path d="M10 21l2-4 2 4"></path>
+                    </svg>
+                  </div>
+                  <div class="resource-info">
+                    <span class="resource-name">设计系统</span>
+                    <span class="resource-desc">UI 组件库</span>
+                  </div>
+                  <svg class="resource-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </router-link>
+                <router-link to="/auth" class="resource-item">
+                  <div class="resource-icon secondary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                      <polyline points="10 17 15 12 10 7"></polyline>
+                      <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                  </div>
+                  <div class="resource-info">
+                    <span class="resource-name">登录页面</span>
+                    <span class="resource-desc">大屏设计</span>
+                  </div>
+                  <svg class="resource-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </router-link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
 
     <!-- Footer -->
     <footer class="footer">
@@ -314,15 +488,18 @@ function handleProtectedAction(name: string) {
           <a href="#">隐私政策</a>
           <a href="#">帮助中心</a>
         </div>
-        <p class="copyright">&copy; 2024 厦门一中学生社区</p>
+        <p class="copyright">&copy; 2026 厦门一中学生社区 · designed by 23届玄学狗狗</p>
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="icp-link">闽ICP备2024074144号-4</a>
       </div>
     </footer>
   </div>
 </template>
 
 <style scoped>
+/* ===== Base ===== */
 .home {
   min-height: 100vh;
+  min-height: 100dvh; /* 动态视口高度，移动端更准确 */
   background: var(--color-bg);
   color: var(--color-text);
   display: flex;
@@ -341,48 +518,26 @@ function handleProtectedAction(name: string) {
 .header-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) 10px; /* 移动端更小边距 */
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  justify-content: space-between;
 }
 
-.header-left {
+.header-center {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.logo {
-  width: 40px;
-  height: 40px;
-  background: var(--color-primary);
-  color: white;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.logo-icon {
-  font-size: var(--text-xl);
+.header-title {
+  font-size: var(--text-sm);
   font-weight: var(--font-bold);
-}
-
-.logo-text {
-  display: none;
-}
-
-.logo-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-  line-height: 1.2;
-}
-
-.logo-subtitle {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
+  white-space: nowrap;
 }
 
 /* Navigation */
@@ -400,6 +555,7 @@ function handleProtectedAction(name: string) {
   text-decoration: none;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  position: relative;
 }
 
 .nav-link:hover {
@@ -412,6 +568,18 @@ function handleProtectedAction(name: string) {
   font-weight: var(--font-medium);
 }
 
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -419,9 +587,13 @@ function handleProtectedAction(name: string) {
   margin-left: auto;
 }
 
+.desktop-only {
+  display: none;
+}
+
 .theme-toggle-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -443,6 +615,270 @@ function handleProtectedAction(name: string) {
   height: 20px;
 }
 
+.mobile-menu-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.mobile-menu-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Mobile Menu - Overlay Drawer */
+.mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
+/* ===== Modern Drawer ===== */
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 80vw;
+  background: var(--color-card);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+}
+
+
+/* 用户区域 */
+.drawer-user-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  position: relative;
+}
+
+.drawer-user-avatar {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+
+.drawer-user-avatar.guest {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.drawer-user-avatar.guest svg {
+  width: 24px;
+  height: 24px;
+  opacity: 0.9;
+}
+
+.drawer-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.drawer-user-name {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-user-status {
+  display: block;
+  font-size: var(--text-xs);
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.drawer-login-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: var(--text-xs);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all var(--transition-fast);
+}
+
+.drawer-login-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.drawer-close-btn {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.drawer-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(90deg);
+}
+
+.drawer-close-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 导航区域 */
+.drawer-nav-section {
+  flex: 1;
+  padding: var(--spacing-md);
+  overflow-y: auto;
+}
+
+.drawer-section-title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-sm);
+  padding-left: var(--spacing-sm);
+}
+
+.drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drawer-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.drawer-nav-item:hover {
+  background: var(--color-border);
+}
+
+.drawer-nav-item.active {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.drawer-nav-item.active .drawer-nav-icon {
+  background: var(--color-primary);
+  color: white;
+}
+
+.drawer-nav-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.drawer-nav-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.drawer-nav-icon.logout {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+}
+
+
+/* 设置区域 */
+.drawer-settings-section {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+}
+
+.drawer-settings-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: #EF4444;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.drawer-settings-item:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 底部信息 */
+.drawer-footer {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.drawer-brand {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.drawer-credit {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+}
+
+/* User Menu */
 .user-menu {
   display: flex;
   align-items: center;
@@ -452,7 +888,7 @@ function handleProtectedAction(name: string) {
 .user-avatar {
   width: 32px;
   height: 32px;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -480,10 +916,15 @@ function handleProtectedAction(name: string) {
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--transition-fast);
+  text-decoration: none;
 }
 
 .btn-sm {
   padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.btn-block {
+  width: 100%;
 }
 
 .btn-primary {
@@ -493,6 +934,11 @@ function handleProtectedAction(name: string) {
 
 .btn-primary:hover {
   background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .btn-ghost {
@@ -530,49 +976,283 @@ function handleProtectedAction(name: string) {
   text-decoration: underline;
 }
 
-/* ===== Main Layout ===== */
-.main-layout {
+/* ===== Main Content ===== */
+.main {
   flex: 1;
+}
+
+/* Hero Section */
+.hero-section {
+  padding: 10px;
+  padding-bottom: 0;
+}
+
+.hero-container {
   max-width: 1400px;
   margin: 0 auto;
-  width: 100%;
-  padding: var(--spacing-md);
-  display: flex;
-  gap: var(--spacing-lg);
 }
 
-/* Sidebar */
-.sidebar {
-  display: none;
+.hero-banner {
+  position: relative;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-md);
+  overflow: hidden;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+}
+
+.hero-banner.from-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+.hero-banner.from-secondary {
+  background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-info) 100%);
+}
+
+.hero-banner.from-accent {
+  background: linear-gradient(135deg, var(--color-accent) 0%, #D97706 100%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  color: white;
+}
+
+.hero-text {
+  margin-bottom: var(--spacing-md);
+}
+
+.hero-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--spacing-xs);
+  line-height: var(--leading-tight);
+}
+
+.hero-subtitle {
+  font-size: var(--text-sm);
+  opacity: 0.9;
+}
+
+.hero-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.btn-hero-primary {
+  background: white;
+  color: var(--color-primary);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-hero-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-hero-ghost {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-hero-ghost:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.hero-decoration {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.decoration-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.decoration-circle-1 {
+  width: 200px;
+  height: 200px;
+  top: -50px;
+  right: -50px;
+}
+
+.decoration-circle-2 {
+  width: 150px;
+  height: 150px;
+  bottom: -40px;
+  right: 80px;
+}
+
+.decoration-circle-3 {
+  width: 80px;
+  height: 80px;
+  top: 50%;
+  right: 200px;
+}
+
+.hero-indicators {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.indicator-dot.active {
+  background: var(--color-primary);
+  width: 24px;
+  border-radius: var(--radius-full);
+}
+
+/* Bento Section */
+.bento-section {
+  padding: var(--spacing-md) 10px;
+}
+
+.bento-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Quick Actions - Mobile */
+.bento-quick-actions {
+  margin-bottom: var(--spacing-lg);
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.quick-grid.three-cols {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quick-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  transform: translateY(-2px);
+}
+
+.quick-card:active {
+  transform: scale(0.96);
+}
+
+.quick-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-radius: var(--radius-lg);
+}
+
+.quick-icon.secondary {
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-secondary);
+}
+
+.quick-icon.accent {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-accent);
+}
+
+.quick-icon.info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.quick-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.quick-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+}
+
+/* Bento Grid */
+.bento-grid {
+  display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  flex-shrink: 0;
 }
 
-.sidebar-left {
-  width: 280px;
-}
-
-.sidebar-right {
-  width: 300px;
-}
-
-.sidebar-card {
+.bento-card {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-md);
 }
 
-.sidebar-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-secondary);
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: var(--spacing-md);
 }
 
+.card-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+}
+
 /* User Card */
-.user-card {
+.user-card-content {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
@@ -581,7 +1261,7 @@ function handleProtectedAction(name: string) {
 .user-card-avatar {
   width: 48px;
   height: 48px;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -590,6 +1270,12 @@ function handleProtectedAction(name: string) {
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
   flex-shrink: 0;
+}
+
+.user-card-avatar.large {
+  width: 56px;
+  height: 56px;
+  font-size: var(--text-xl);
 }
 
 .user-card-avatar.guest {
@@ -607,249 +1293,7 @@ function handleProtectedAction(name: string) {
   color: var(--color-text-secondary);
 }
 
-/* Sidebar Actions */
-.sidebar-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.sidebar-action {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-sm);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: left;
-}
-
-.sidebar-action:hover {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
-
-.sidebar-action svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* Resource List */
-.resource-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.resource-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  color: inherit;
-  transition: all var(--transition-fast);
-}
-
-.resource-item:hover {
-  background: var(--color-border);
-}
-
-.resource-icon {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-}
-
-.resource-icon.secondary {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
-.resource-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.resource-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.resource-name {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-}
-
-.resource-desc {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-/* Topic List */
-.topic-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.topic-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.topic-rank {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
-}
-
-.topic-item.placeholder .topic-line {
-  flex: 1;
-  height: 14px;
-  background: var(--color-border);
-  border-radius: var(--radius-sm);
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
-
-.placeholder-hint-sm {
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
-  margin-top: var(--spacing-sm);
-}
-
-/* ===== Main Content ===== */
-.main-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-/* Banner */
-.banner {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-md);
-}
-
-.banner-content {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.banner-tag {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  flex-shrink: 0;
-}
-
-.banner-text {
-  font-size: var(--text-sm);
-  line-height: var(--leading-normal);
-}
-
-/* Mobile Quick Actions */
-.mobile-quick-actions {
-  display: block;
-}
-
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-sm);
-}
-
-.quick-action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-md) var(--spacing-sm);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.quick-action-item:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.quick-action-item:active {
-  transform: scale(0.96);
-}
-
-.quick-action-item .action-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.quick-action-item .action-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.quick-action-item span {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-/* Feed Section */
-.feed-section {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-md);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-md);
-}
-
-.section-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-}
-
+/* Feed */
 .feed-list {
   display: flex;
   flex-direction: column;
@@ -911,17 +1355,176 @@ function handleProtectedAction(name: string) {
   margin-top: var(--spacing-md);
 }
 
+.placeholder-hint-sm {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  margin-top: var(--spacing-sm);
+}
+
+/* Function List - Desktop */
+.function-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.function-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.function-item:hover {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.function-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Topics */
+.topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.topic-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.topic-rank {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+}
+
+.topic-rank.hot {
+  background: var(--color-primary);
+  color: white;
+}
+
+.topic-item.placeholder .topic-line {
+  flex: 1;
+  height: 14px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* Resources */
+.resource-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.resource-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--transition-fast);
+}
+
+.resource-item:hover {
+  background: var(--color-bg);
+}
+
+.resource-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.resource-icon.secondary {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.resource-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.resource-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.resource-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.resource-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.resource-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-placeholder);
+}
+
 /* ===== Footer ===== */
 .footer {
   border-top: 1px solid var(--color-border);
-  padding: var(--spacing-lg) var(--spacing-md);
+  padding: var(--spacing-md) 10px;
+  padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
   margin-top: auto;
+  background: var(--color-card);
 }
 
 .footer-container {
   max-width: 1400px;
   margin: 0 auto;
   text-align: center;
+}
+
+.icp-link {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  text-decoration: none;
+  margin-top: var(--spacing-sm);
+  transition: color var(--transition-fast);
+}
+
+.icp-link:hover {
+  color: var(--color-text-secondary);
 }
 
 .footer-links {
@@ -945,54 +1548,207 @@ function handleProtectedAction(name: string) {
 
 .copyright {
   color: var(--color-text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
-/* ===== Responsive ===== */
-@media (min-width: 640px) {
-  .logo-text {
-    display: block;
-  }
+/* ===== Animations ===== */
+/* Menu Fade */
+.menu-fade-enter-active,
+.menu-fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
 
+.menu-fade-enter-from,
+.menu-fade-leave-to {
+  opacity: 0;
+}
+
+/* Menu Slide */
+.menu-slide-enter-active,
+.menu-slide-leave-active {
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-slide-enter-from,
+.menu-slide-leave-to {
+  transform: translateX(-100%);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-fast);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ===== Responsive - Tablet ===== */
+@media (min-width: 640px) {
   .user-name {
     display: block;
   }
 
-  .quick-action-item .action-icon {
-    width: 48px;
-    height: 48px;
+  .hero-title {
+    font-size: var(--text-2xl);
   }
 
-  .quick-action-item .action-icon svg {
-    width: 24px;
-    height: 24px;
+  .hero-subtitle {
+    font-size: var(--text-base);
   }
 
-  .quick-action-item span {
+  .hero-banner {
+    min-height: 200px;
+    padding: var(--spacing-2xl) var(--spacing-xl);
+  }
+
+  .quick-icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .quick-icon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .quick-label {
+    font-size: var(--text-sm);
+  }
+
+  .decoration-circle-1 {
+    width: 300px;
+    height: 300px;
+  }
+
+  .decoration-circle-2 {
+    width: 200px;
+    height: 200px;
+  }
+
+  .decoration-circle-3 {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+/* ===== Responsive - Desktop ===== */
+@media (min-width: 1024px) {
+  .header-container {
+    padding: var(--spacing-sm) var(--spacing-xl);
+    gap: var(--spacing-lg);
+  }
+
+  .header-center {
+    position: static;
+    transform: none;
+  }
+
+  .nav-links {
+    display: flex;
+    flex: 1;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+  }
+
+  .desktop-only {
+    display: inline-flex;
+  }
+
+  .hero-section {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    padding-bottom: 0;
+  }
+
+  .hero-banner {
+    min-height: 280px;
+    padding: var(--spacing-2xl);
+  }
+
+  .hero-title {
+    font-size: var(--text-3xl);
+  }
+
+  .hero-subtitle {
+    font-size: var(--text-lg);
+  }
+
+  .bento-section {
+    padding: var(--spacing-xl);
+  }
+
+  .bento-quick-actions {
+    display: none;
+  }
+
+  /* Desktop Bento Grid Layout */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    grid-template-rows: auto auto;
+    gap: var(--spacing-lg);
+  }
+
+  .bento-user {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .bento-functions {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .bento-feed {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+
+  .bento-topics {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .bento-resources {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .footer {
+    padding: var(--spacing-xl);
+  }
+
+  .footer-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .footer-links {
+    margin-bottom: 0;
+  }
+
+  .copyright {
     font-size: var(--text-sm);
   }
 }
 
-@media (min-width: 1024px) {
-  .nav-links {
-    display: flex;
-  }
-
-  .sidebar {
-    display: flex;
-  }
-
-  .mobile-quick-actions {
-    display: none;
-  }
-}
-
+/* ===== Responsive - Large Desktop ===== */
 @media (min-width: 1280px) {
   .header-container,
-  .main-layout,
+  .hero-container,
+  .bento-container,
   .footer-container {
-    padding-left: var(--spacing-xl);
-    padding-right: var(--spacing-xl);
+    padding-left: var(--spacing-2xl);
+    padding-right: var(--spacing-2xl);
+  }
+
+  .bento-grid {
+    grid-template-columns: 300px 1fr 320px;
   }
 }
 </style>

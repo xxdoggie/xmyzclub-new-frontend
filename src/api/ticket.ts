@@ -171,11 +171,11 @@ export function batchReviewTickets(data: BatchReviewRequest) {
 
 /**
  * 管理员 - 根据票码查询票据
- * GET /verify?ticketCode=xxx
+ * GET /verify?code=xxx
  */
-export function verifyTicket(ticketCode: string) {
+export function verifyTicket(code: string) {
   return api.get<ApiResponse<VerifyTicketResponse>>('/admin/ticket/verify', {
-    params: { ticketCode },
+    params: { code },
   })
 }
 

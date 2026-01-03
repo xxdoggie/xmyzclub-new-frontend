@@ -235,6 +235,15 @@ function goToBanner(index: number) {
         <!-- 设置区域 -->
         <div class="drawer-settings-section" v-if="userStore.isLoggedIn">
           <p class="drawer-section-title">账户</p>
+          <a class="drawer-nav-item" @click="navigateTo('/profile')">
+            <div class="drawer-nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <span>个人中心</span>
+          </a>
           <button class="drawer-settings-item" @click="openLogoutConfirm">
             <div class="drawer-nav-icon logout">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

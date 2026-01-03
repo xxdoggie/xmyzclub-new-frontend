@@ -21,6 +21,19 @@ const toast = useToast()
 // Tab 切换
 type TabType = 'login' | 'register' | 'campus'
 const activeTab = ref<TabType>('login')
+const prevTab = ref<TabType>('login')
+const tabDirection = ref<'left' | 'right'>('right')
+
+// Tab 顺序: login(0) < register(1) < campus(2)
+const tabOrder: Record<TabType, number> = { login: 0, register: 1, campus: 2 }
+
+function switchTab(newTab: TabType) {
+  const oldOrder = tabOrder[activeTab.value]
+  const newOrder = tabOrder[newTab]
+  tabDirection.value = newOrder > oldOrder ? 'right' : 'left'
+  prevTab.value = activeTab.value
+  activeTab.value = newTab
+}
 
 // 滑块动画
 const tabsRef = ref<HTMLElement | null>(null)
@@ -282,21 +295,21 @@ onMounted(() => {
             <button
               class="login-tab"
               :class="{ active: activeTab === 'login' }"
-              @click="activeTab = 'login'"
+              @click="switchTab('login')"
             >
               普通登录
             </button>
             <button
               class="login-tab"
               :class="{ active: activeTab === 'campus' }"
-              @click="activeTab = 'campus'"
+              @click="switchTab('campus')"
             >
               校园网登录
             </button>
           </div>
 
           <!-- 表单内容 - 带过渡动画 -->
-          <Transition name="tab-fade" mode="out-in">
+          <Transition :name="'tab-slide-' + tabDirection" mode="out-in">
           <!-- 普通登录表单 -->
           <div v-if="activeTab === 'login'" key="login" class="modal-body">
             <div class="form-group">
@@ -352,7 +365,7 @@ onMounted(() => {
               <button
                 class="btn btn-link"
                 :disabled="loading"
-                @click="activeTab = 'register'"
+                @click="switchTab('register')"
               >
                 立即注册
               </button>
@@ -461,7 +474,7 @@ onMounted(() => {
               <button
                 class="btn btn-link"
                 :disabled="loading"
-                @click="activeTab = 'login'"
+                @click="switchTab('login')"
               >
                 返回登录
               </button>
@@ -738,6 +751,12 @@ onMounted(() => {
 .password-toggle svg {
   width: 18px;
   height: 18px;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.password-toggle:active svg {
+  transform: scale(0.85);
+  opacity: 0.7;
 }
 
 /* 验证码行 */
@@ -920,20 +939,36 @@ onMounted(() => {
   min-height: var(--spacing-md);
 }
 
-/* Tab 切换动画 */
-.tab-fade-enter-active,
-.tab-fade-leave-active {
+/* Tab 切换动画 - 向右滑动 (login -> campus) */
+.tab-slide-right-enter-active,
+.tab-slide-right-leave-active {
   transition: opacity 200ms ease, transform 200ms ease;
 }
 
-.tab-fade-enter-from {
+.tab-slide-right-enter-from {
   opacity: 0;
-  transform: translateX(10px);
+  transform: translateX(20px);
 }
 
-.tab-fade-leave-to {
+.tab-slide-right-leave-to {
   opacity: 0;
-  transform: translateX(-10px);
+  transform: translateX(-20px);
+}
+
+/* Tab 切换动画 - 向左滑动 (campus -> login) */
+.tab-slide-left-enter-active,
+.tab-slide-left-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.tab-slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.tab-slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
 }
 
 /* Modal 动画 */

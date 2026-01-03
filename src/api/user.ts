@@ -10,6 +10,15 @@ import type {
   CampusCaptchaResponse,
 } from '@/types/user'
 
+// ==================== 权限 ====================
+
+/**
+ * 获取我的权限列表
+ */
+export function getMyPermissions() {
+  return api.get<ApiResponse<{ permissions: string[] }>>('/permissions/my')
+}
+
 // ==================== 个人资料 ====================
 
 /**

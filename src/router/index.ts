@@ -127,6 +127,19 @@ const router = createRouter({
       },
     },
 
+    // ==================== 管理后台页面 ====================
+    {
+      path: '/admin/tickets',
+      name: 'admin-tickets',
+      component: () => import('../pages/admin/TicketManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '票务管理',
+        parent: 'home',
+      },
+    },
+
     // ==================== 404 ====================
     {
       path: '/:pathMatch(.*)*',

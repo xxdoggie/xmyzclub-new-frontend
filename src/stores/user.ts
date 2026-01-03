@@ -16,6 +16,7 @@ const TOKEN_KEY = 'token'
 const USER_KEY = 'user'
 const EXPIRES_KEY = 'expiresAt'
 const CAMPUS_INFO_KEY = 'campusInfo'
+const PERMISSIONS_KEY = 'permissions'
 
 export const useUserStore = defineStore('user', () => {
   // ==================== State ====================
@@ -31,6 +32,10 @@ export const useUserStore = defineStore('user', () => {
   const campusBinding = ref<CampusBindingInfo | null>(null)
   const qqBinding = ref<QQBindingInfo | null>(null)
 
+  // 用户权限
+  const permissions = ref<string[]>([])
+  const permissionsFetched = ref(false)
+
   // 登录 Modal 控制
   const showLoginModal = ref(false)
   const loginModalMessage = ref<string | null>(null)
@@ -45,6 +50,18 @@ export const useUserStore = defineStore('user', () => {
     return Date.now() < expiresAt.value
   })
 
+  /**
+   * 检查用户是否拥有指定权限
+   */
+  function hasPermission(permission: string): boolean {
+    return permissions.value.includes(permission)
+  }
+
+  /**
+   * 检查用户是否可以管理票务
+   */
+  const canManageTickets = computed(() => hasPermission('ticket.manage'))
+
   // ==================== Actions ====================
 
   /**
@@ -56,6 +73,7 @@ export const useUserStore = defineStore('user', () => {
     const savedUser = localStorage.getItem(USER_KEY)
     const savedExpires = localStorage.getItem(EXPIRES_KEY)
     const savedCampusInfo = localStorage.getItem(CAMPUS_INFO_KEY)
+    const savedPermissions = localStorage.getItem(PERMISSIONS_KEY)
 
     if (savedToken && savedUser && savedExpires) {
       const expires = Number(savedExpires)
@@ -66,6 +84,13 @@ export const useUserStore = defineStore('user', () => {
         expiresAt.value = expires
         if (savedCampusInfo) {
           campusInfo.value = JSON.parse(savedCampusInfo)
+        }
+        if (savedPermissions) {
+          permissions.value = JSON.parse(savedPermissions)
+          permissionsFetched.value = true
+        } else {
+          // 如果没有缓存的权限，异步获取
+          fetchPermissions()
         }
       } else {
         // Token 已过期，清除本地存储
@@ -90,6 +115,9 @@ export const useUserStore = defineStore('user', () => {
     if (campusInfo.value) {
       localStorage.setItem(CAMPUS_INFO_KEY, JSON.stringify(campusInfo.value))
     }
+    if (permissions.value.length > 0) {
+      localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(permissions.value))
+    }
   }
 
   /**
@@ -100,6 +128,7 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem(USER_KEY)
     localStorage.removeItem(EXPIRES_KEY)
     localStorage.removeItem(CAMPUS_INFO_KEY)
+    localStorage.removeItem(PERMISSIONS_KEY)
   }
 
   /**
@@ -117,6 +146,8 @@ export const useUserStore = defineStore('user', () => {
     expiresAt.value = data.expiresAt * 1000
     campusInfo.value = data.campusInfo ?? null
     saveToLocalStorage()
+    // 登录成功后获取权限
+    fetchPermissions()
   }
 
   /**
@@ -210,7 +241,31 @@ export const useUserStore = defineStore('user', () => {
     profile.value = null
     campusBinding.value = null
     qqBinding.value = null
+    permissions.value = []
+    permissionsFetched.value = false
     clearLocalStorage()
+  }
+
+  // ==================== 权限 ====================
+
+  /**
+   * 获取用户权限列表
+   * 只在首次访问时调用（登录后或刷新页面时）
+   */
+  async function fetchPermissions() {
+    if (permissionsFetched.value || !token.value) return
+
+    try {
+      const res = await userApi.getMyPermissions()
+      if (res.data.code === 200) {
+        permissions.value = res.data.data.permissions
+        permissionsFetched.value = true
+        // 保存到 localStorage
+        localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(permissions.value))
+      }
+    } catch (error) {
+      console.error('Failed to fetch permissions:', error)
+    }
   }
 
   // ==================== 个人资料 ====================
@@ -375,12 +430,14 @@ export const useUserStore = defineStore('user', () => {
     profile,
     campusBinding,
     qqBinding,
+    permissions,
     showLoginModal,
     loginModalMessage,
     redirectRoute,
 
     // Getters
     isLoggedIn,
+    canManageTickets,
 
     // Actions - 认证
     restoreSession,
@@ -391,6 +448,10 @@ export const useUserStore = defineStore('user', () => {
     qqBind,
     qqRegister,
     logout,
+
+    // Actions - 权限
+    hasPermission,
+    fetchPermissions,
 
     // Actions - 个人资料
     fetchProfile,

@@ -136,3 +136,85 @@ export interface GrabTicketResponse {
   ticketCode?: string
   ticketId?: number
 }
+
+// ==================== Admin Types ====================
+
+/**
+ * 创建活动请求
+ */
+export interface CreateActivityRequest {
+  name: string
+  description?: string
+  imageUrl?: string
+  config: ActivityConfig
+}
+
+/**
+ * 更新活动请求
+ */
+export interface UpdateActivityRequest {
+  name?: string
+  description?: string
+  imageUrl?: string
+  config?: Partial<ActivityConfig>
+}
+
+/**
+ * 创建档期请求
+ */
+export interface CreateSessionRequest {
+  activityId: number
+  name: string
+  description?: string
+  startTime: string
+  endTime: string
+  totalTickets: number
+}
+
+/**
+ * 更新档期请求
+ */
+export interface UpdateSessionRequest {
+  name?: string
+  description?: string
+  startTime?: string
+  endTime?: string
+  totalTickets?: number
+}
+
+/**
+ * 管理员票据信息（包含用户信息）
+ */
+export interface AdminTicket extends Ticket {
+  userId: number
+  username: string
+  nickname?: string
+}
+
+/**
+ * 管理员票据列表响应
+ */
+export interface AdminTicketsResponse {
+  tickets: AdminTicket[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+/**
+ * 更新票据状态请求
+ */
+export interface UpdateTicketStatusRequest {
+  status: TicketStatus
+  adminNote?: string
+}
+
+/**
+ * 管理员活动列表响应
+ */
+export interface AdminActivitiesResponse {
+  activities: TicketActivityListItem[]
+  total: number
+  page: number
+  pageSize: number
+}

@@ -28,16 +28,6 @@ const filteredTickets = computed(() => {
   return tickets.value.filter((t) => t.status === statusFilter.value)
 })
 
-// 状态统计
-const statusCounts = computed(() => {
-  return {
-    all: tickets.value.length,
-    pending: tickets.value.filter((t) => t.status === 'pending').length,
-    confirmed: tickets.value.filter((t) => t.status === 'confirmed').length,
-    used: tickets.value.filter((t) => t.status === 'used').length,
-  }
-})
-
 // 加载票据列表
 async function loadTickets() {
   try {
@@ -56,41 +46,13 @@ async function loadTickets() {
 
 // 获取状态信息
 function getStatusInfo(status: TicketStatus) {
-  const statusMap: Record<TicketStatus, { label: string; class: string; icon: string }> = {
-    pending: {
-      label: '待审核',
-      class: 'status-pending',
-      icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-    },
-    confirmed: {
-      label: '已确认',
-      class: 'status-confirmed',
-      icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-    },
-    used: {
-      label: '已使用',
-      class: 'status-used',
-      icon: 'M5 13l4 4L19 7',
-    },
-    cancelled: {
-      label: '已取消',
-      class: 'status-cancelled',
-      icon: 'M6 18L18 6M6 6l12 12',
-    },
+  const statusMap: Record<TicketStatus, { label: string; class: string }> = {
+    pending: { label: '待审核', class: 'status-pending' },
+    confirmed: { label: '已确认', class: 'status-confirmed' },
+    used: { label: '已使用', class: 'status-used' },
+    cancelled: { label: '已取消', class: 'status-cancelled' },
   }
-  return statusMap[status] || { label: status, class: '', icon: '' }
-}
-
-// 格式化时间
-function formatDateTime(dateStr: string) {
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return statusMap[status] || { label: status, class: '' }
 }
 
 // 跳转到活动详情
@@ -99,7 +61,8 @@ function goToActivity(activityId: number) {
 }
 
 // 复制票据码
-async function copyTicketCode(code: string) {
+async function copyTicketCode(code: string, event: Event) {
+  event.stopPropagation()
   try {
     await navigator.clipboard.writeText(code)
     toast.success('票据码已复制')
@@ -129,10 +92,8 @@ onMounted(() => {
           <PageBreadcrumb />
         </div>
 
-        <!-- 页面标题 -->
-        <div class="page-title-bar">
-          <h1 class="page-title">我的票据</h1>
-        </div>
+        <!-- 桌面端页面标题 -->
+        <h1 class="page-title desktop-only">我的票据</h1>
 
         <!-- 加载状态 -->
         <div v-if="isLoading" class="loading-container">
@@ -149,7 +110,6 @@ onMounted(() => {
               @click="statusFilter = 'all'"
             >
               全部
-              <span class="count">{{ statusCounts.all }}</span>
             </button>
             <button
               class="status-tab"
@@ -157,7 +117,6 @@ onMounted(() => {
               @click="statusFilter = 'pending'"
             >
               待审核
-              <span class="count">{{ statusCounts.pending }}</span>
             </button>
             <button
               class="status-tab"
@@ -165,7 +124,6 @@ onMounted(() => {
               @click="statusFilter = 'confirmed'"
             >
               已确认
-              <span class="count">{{ statusCounts.confirmed }}</span>
             </button>
             <button
               class="status-tab"
@@ -173,7 +131,6 @@ onMounted(() => {
               @click="statusFilter = 'used'"
             >
               已使用
-              <span class="count">{{ statusCounts.used }}</span>
             </button>
           </div>
 
@@ -198,54 +155,34 @@ onMounted(() => {
               :key="ticket.id"
               class="ticket-card"
               :class="getStatusInfo(ticket.status).class"
+              @click="goToActivity(ticket.activityId)"
             >
-              <!-- 票据头部 -->
-              <div class="ticket-header">
-                <div class="ticket-activity" @click="goToActivity(ticket.activityId)">
-                  <h3 class="activity-name">{{ ticket.activityName }}</h3>
-                  <span class="session-name">{{ ticket.sessionName }}</span>
-                </div>
-                <span class="ticket-status" :class="getStatusInfo(ticket.status).class">
-                  {{ getStatusInfo(ticket.status).label }}
-                </span>
-              </div>
+              <!-- 左侧状态指示条 -->
+              <div class="ticket-indicator"></div>
 
-              <!-- 票据码 -->
-              <div class="ticket-code-section">
-                <div class="code-label">票据码</div>
-                <div class="code-value" @click="copyTicketCode(ticket.ticketCode)">
-                  {{ ticket.ticketCode }}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-                  </svg>
+              <!-- 票据主体内容 -->
+              <div class="ticket-main">
+                <div class="ticket-info">
+                  <div class="ticket-title">{{ ticket.activityName }}</div>
+                  <div class="ticket-subtitle">{{ ticket.sessionName }}</div>
                 </div>
-                <div class="code-hint">点击复制</div>
-              </div>
-
-              <!-- 票据信息 -->
-              <div class="ticket-info">
-                <div class="info-row">
-                  <span class="info-label">抢票时间</span>
-                  <span class="info-value">{{ formatDateTime(ticket.createdAt) }}</span>
-                </div>
-                <div v-if="ticket.confirmedAt" class="info-row">
-                  <span class="info-label">确认时间</span>
-                  <span class="info-value">{{ formatDateTime(ticket.confirmedAt) }}</span>
-                </div>
-                <div v-if="ticket.usedAt" class="info-row">
-                  <span class="info-label">使用时间</span>
-                  <span class="info-value">{{ formatDateTime(ticket.usedAt) }}</span>
-                </div>
-                <div v-if="ticket.adminNote" class="info-row">
-                  <span class="info-label">备注</span>
-                  <span class="info-value note">{{ ticket.adminNote }}</span>
+                <div class="ticket-right">
+                  <div class="ticket-code" @click="copyTicketCode(ticket.ticketCode, $event)">
+                    {{ ticket.ticketCode }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                    </svg>
+                  </div>
+                  <div class="ticket-status" :class="getStatusInfo(ticket.status).class">
+                    {{ getStatusInfo(ticket.status).label }}
+                  </div>
                 </div>
               </div>
 
               <!-- 装饰性切口 -->
-              <div class="ticket-cutout left"></div>
-              <div class="ticket-cutout right"></div>
+              <div class="ticket-notch top"></div>
+              <div class="ticket-notch bottom"></div>
             </div>
           </div>
         </template>
@@ -269,7 +206,7 @@ onMounted(() => {
 
 .page-content {
   flex: 1;
-  padding: var(--spacing-md) 10px;
+  padding: var(--spacing-sm);
 }
 
 .content-container {
@@ -284,14 +221,14 @@ onMounted(() => {
 }
 
 /* ===== Page Title ===== */
-.page-title-bar {
+.page-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
   margin-bottom: var(--spacing-lg);
-  padding: 0 var(--spacing-xs);
 }
 
-.page-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
+.desktop-only {
+  display: none;
 }
 
 /* ===== Loading ===== */
@@ -323,22 +260,17 @@ onMounted(() => {
 /* ===== Status Tabs ===== */
 .status-tabs {
   display: flex;
-  gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-xs);
+  gap: 2px;
+  margin-bottom: var(--spacing-md);
+  padding: 3px;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  overflow-x: auto;
 }
 
 .status-tab {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) 0;
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
@@ -347,29 +279,16 @@ onMounted(() => {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
-  white-space: nowrap;
+  text-align: center;
 }
 
 .status-tab:hover {
   color: var(--color-text);
-  background: var(--color-bg);
 }
 
 .status-tab.active {
   color: var(--color-primary);
   background: var(--color-primary-bg);
-}
-
-.status-tab .count {
-  font-size: var(--text-xs);
-  padding: 0 6px;
-  background: var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.status-tab.active .count {
-  background: var(--color-primary);
-  color: white;
 }
 
 /* ===== Empty ===== */
@@ -379,36 +298,36 @@ onMounted(() => {
 }
 
 .empty-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto var(--spacing-lg);
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--spacing-md);
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-border);
   color: var(--color-text-secondary);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
 }
 
 .empty-icon svg {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
 }
 
 .empty-container h2 {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-sm);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-xs);
 }
 
 .empty-container p {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .browse-btn {
-  padding: var(--spacing-sm) var(--spacing-xl);
+  padding: var(--spacing-xs) var(--spacing-lg);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: white;
@@ -427,102 +346,129 @@ onMounted(() => {
 .tickets-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
-/* ===== Ticket Card ===== */
+/* ===== Ticket Card - Compact Horizontal Style ===== */
 .ticket-card {
   position: relative;
+  display: flex;
+  align-items: stretch;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: visible;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.ticket-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
+.ticket-card:hover {
+  border-color: var(--color-primary);
+}
+
+.ticket-card:active {
+  background: var(--color-bg);
+}
+
+/* Status indicator bar on the left */
+.ticket-indicator {
   width: 4px;
-  height: 100%;
+  flex-shrink: 0;
   border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 
-.ticket-card.status-pending::before {
+.ticket-card.status-pending .ticket-indicator {
   background: var(--color-warning);
 }
 
-.ticket-card.status-confirmed::before {
+.ticket-card.status-confirmed .ticket-indicator {
   background: var(--color-success);
 }
 
-.ticket-card.status-used::before {
+.ticket-card.status-used .ticket-indicator {
   background: var(--color-text-secondary);
 }
 
-.ticket-card.status-cancelled::before {
+.ticket-card.status-cancelled .ticket-indicator {
   background: var(--color-error);
 }
 
-/* Ticket Cutout */
-.ticket-cutout {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  background: var(--color-bg);
-  border-radius: 50%;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.ticket-cutout.left {
-  left: -8px;
-  border-right: 1px solid var(--color-border);
-}
-
-.ticket-cutout.right {
-  right: -8px;
-  border-left: 1px solid var(--color-border);
-}
-
-/* Ticket Header */
-.ticket-header {
+/* Main content area */
+.ticket-main {
+  flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md);
-  padding-left: calc(var(--spacing-md) + 4px);
-  border-bottom: 1px dashed var(--color-border);
+  padding: var(--spacing-sm) var(--spacing-md);
+  gap: var(--spacing-md);
+  min-width: 0;
 }
 
-.ticket-activity {
+.ticket-info {
   flex: 1;
   min-width: 0;
-  cursor: pointer;
 }
 
-.ticket-activity:hover .activity-name {
+.ticket-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+.ticket-subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ticket-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  font-family: var(--font-family-mono);
+  color: var(--color-primary);
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ticket-code:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.ticket-code:hover svg {
+  color: white;
+}
+
+.ticket-code svg {
+  width: 12px;
+  height: 12px;
   color: var(--color-primary);
 }
 
-.activity-name {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  margin-bottom: 2px;
-  transition: color var(--transition-fast);
-}
-
-.session-name {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
 .ticket-status {
-  flex-shrink: 0;
-  padding: 4px 8px;
-  font-size: var(--text-xs);
+  font-size: 10px;
   font-weight: var(--font-medium);
+  padding: 2px 6px;
   border-radius: var(--radius-sm);
 }
 
@@ -546,88 +492,32 @@ onMounted(() => {
   color: var(--color-error);
 }
 
-/* Ticket Code Section */
-.ticket-code-section {
-  padding: var(--spacing-lg) var(--spacing-md);
-  padding-left: calc(var(--spacing-md) + 4px);
-  text-align: center;
-  border-bottom: 1px dashed var(--color-border);
+/* Decorative notches */
+.ticket-notch {
+  position: absolute;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--color-bg);
+  border-radius: 50%;
+  border-left: 1px solid var(--color-border);
 }
 
-.code-label {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-xs);
+.ticket-notch.top {
+  top: 8px;
 }
 
-.code-value {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
-  font-family: var(--font-family-mono);
-  color: var(--color-primary);
-  letter-spacing: 3px;
-  cursor: pointer;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-}
-
-.code-value:hover {
-  background: var(--color-primary-bg);
-}
-
-.code-value svg {
-  width: 18px;
-  height: 18px;
-  color: var(--color-text-placeholder);
-}
-
-.code-hint {
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
-  margin-top: var(--spacing-xs);
-}
-
-/* Ticket Info */
-.ticket-info {
-  padding: var(--spacing-md);
-  padding-left: calc(var(--spacing-md) + 4px);
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: var(--spacing-xs) 0;
-}
-
-.info-row:not(:last-child) {
-  border-bottom: 1px solid var(--color-border);
-}
-
-.info-label {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
-
-.info-value {
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  text-align: right;
-}
-
-.info-value.note {
-  color: var(--color-text-secondary);
-  font-style: italic;
+.ticket-notch.bottom {
+  bottom: 8px;
 }
 
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
   .breadcrumb-wrapper {
+    display: block;
+  }
+
+  .desktop-only {
     display: block;
   }
 
@@ -639,31 +529,44 @@ onMounted(() => {
     max-width: 900px;
   }
 
-  .page-title {
-    font-size: var(--text-2xl);
-  }
-
   .status-tabs {
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs);
   }
 
-  .ticket-header {
-    padding: var(--spacing-lg);
-    padding-left: calc(var(--spacing-lg) + 4px);
+  .status-tab {
+    padding: var(--spacing-sm) var(--spacing-md);
   }
 
-  .ticket-code-section {
-    padding: var(--spacing-xl) var(--spacing-lg);
-    padding-left: calc(var(--spacing-lg) + 4px);
+  .tickets-list {
+    gap: var(--spacing-md);
   }
 
-  .code-value {
-    font-size: var(--text-3xl);
+  .ticket-main {
+    padding: var(--spacing-md) var(--spacing-lg);
   }
 
-  .ticket-info {
-    padding: var(--spacing-lg);
-    padding-left: calc(var(--spacing-lg) + 4px);
+  .ticket-title {
+    font-size: var(--text-base);
+  }
+
+  .ticket-subtitle {
+    font-size: var(--text-sm);
+  }
+
+  .ticket-code {
+    font-size: var(--text-base);
+    padding: 4px 10px;
+  }
+
+  .ticket-code svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .ticket-status {
+    font-size: var(--text-xs);
+    padding: 3px 8px;
   }
 }
 </style>

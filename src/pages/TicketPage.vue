@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -19,6 +19,11 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
 const isLoadingMore = ref(false)
+
+// 过滤后的活动列表（排除 draft 状态）
+const displayActivities = computed(() => {
+  return activities.value.filter((a) => a.status !== 'draft')
+})
 
 // 加载活动列表
 async function loadActivities(isLoadMore = false) {
@@ -87,7 +92,6 @@ function getStatusLabel(status: string) {
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
   return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
@@ -104,15 +108,22 @@ onMounted(() => {
 
     <main class="page-content">
       <div class="content-container">
-        <!-- 页面标题和操作栏 -->
-        <div class="page-title-bar">
-          <h1 class="page-title">活动抢票</h1>
-          <button v-if="userStore.isLoggedIn" class="my-tickets-btn" @click="goToMyTickets">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-            </svg>
-            我的票据
-          </button>
+        <!-- 桌面端标题 -->
+        <h1 class="page-title desktop-only">活动抢票</h1>
+
+        <!-- 我的票据入口 -->
+        <div v-if="userStore.isLoggedIn" class="my-tickets-entry" @click="goToMyTickets">
+          <div class="entry-left">
+            <div class="entry-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              </svg>
+            </div>
+            <span class="entry-text">我的票据</span>
+          </div>
+          <svg class="entry-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
         </div>
 
         <!-- 未登录提示 -->
@@ -136,7 +147,7 @@ onMounted(() => {
         </div>
 
         <!-- 空状态 -->
-        <div v-else-if="activities.length === 0" class="empty-container">
+        <div v-else-if="displayActivities.length === 0" class="empty-container">
           <div class="empty-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -152,7 +163,7 @@ onMounted(() => {
         <!-- 活动列表 -->
         <div v-else class="activities-list">
           <div
-            v-for="activity in activities"
+            v-for="activity in displayActivities"
             :key="activity.id"
             class="activity-card"
             @click="goToDetail(activity.id)"
@@ -184,22 +195,9 @@ onMounted(() => {
               <h3 class="activity-name">{{ activity.name }}</h3>
               <p v-if="activity.description" class="activity-desc">{{ activity.description }}</p>
               <div class="activity-meta">
-                <span class="meta-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                  {{ activity.sessionCount }} 场次
-                </span>
-                <span class="meta-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  {{ formatDate(activity.createdAt) }}
-                </span>
+                <span class="meta-item">{{ activity.sessionCount }} 场次</span>
+                <span class="meta-divider">·</span>
+                <span class="meta-item">{{ formatDate(activity.createdAt) }}</span>
               </div>
             </div>
 
@@ -223,7 +221,7 @@ onMounted(() => {
           </div>
 
           <!-- 没有更多 -->
-          <div v-else-if="activities.length > 0" class="no-more">
+          <div v-else-if="displayActivities.length > 0" class="no-more">
             已经到底啦
           </div>
         </div>
@@ -247,7 +245,7 @@ onMounted(() => {
 
 .page-content {
   flex: 1;
-  padding: var(--spacing-md) 10px;
+  padding: var(--spacing-sm) var(--spacing-sm);
 }
 
 .content-container {
@@ -255,43 +253,70 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* ===== Page Title Bar ===== */
-.page-title-bar {
+/* ===== Desktop Only Title ===== */
+.page-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--spacing-lg);
+}
+
+.desktop-only {
+  display: none;
+}
+
+/* ===== My Tickets Entry ===== */
+.my-tickets-entry {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-lg);
-  padding: 0 var(--spacing-xs);
-}
-
-.page-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-}
-
-.my-tickets-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border: none;
-  border-radius: var(--radius-full);
+  padding: var(--spacing-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.my-tickets-btn:hover {
-  background: var(--color-primary);
-  color: white;
+.my-tickets-entry:hover {
+  border-color: var(--color-primary);
 }
 
-.my-tickets-btn svg {
-  width: 16px;
-  height: 16px;
+.my-tickets-entry:active {
+  background: var(--color-bg);
+}
+
+.entry-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.entry-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+}
+
+.entry-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.entry-text {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+}
+
+.entry-arrow {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-placeholder);
 }
 
 /* ===== Login Prompt ===== */
@@ -409,7 +434,7 @@ onMounted(() => {
 .activities-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .activity-card {
@@ -424,13 +449,16 @@ onMounted(() => {
 
 .activity-card:hover {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-md);
+}
+
+.activity-card:active {
+  background: var(--color-bg);
 }
 
 .activity-cover {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   flex-shrink: 0;
 }
 
@@ -451,8 +479,8 @@ onMounted(() => {
 }
 
 .cover-placeholder svg {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
 }
 
 .status-badge {
@@ -484,7 +512,7 @@ onMounted(() => {
 
 .activity-info {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-sm);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -492,18 +520,18 @@ onMounted(() => {
 }
 
 .activity-name {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .activity-desc {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -511,20 +539,14 @@ onMounted(() => {
 
 .activity-meta {
   display: flex;
-  gap: var(--spacing-md);
-}
-
-.meta-item {
-  display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
   font-size: var(--text-xs);
   color: var(--color-text-placeholder);
 }
 
-.meta-item svg {
-  width: 12px;
-  height: 12px;
+.meta-divider {
+  color: var(--color-border);
 }
 
 .activity-arrow {
@@ -577,6 +599,10 @@ onMounted(() => {
 
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
+  .desktop-only {
+    display: block;
+  }
+
   .page-content {
     padding: var(--spacing-xl);
   }
@@ -585,13 +611,17 @@ onMounted(() => {
     max-width: 900px;
   }
 
-  .page-title {
-    font-size: var(--text-2xl);
+  .my-tickets-entry {
+    padding: var(--spacing-lg);
+  }
+
+  .activities-list {
+    gap: var(--spacing-md);
   }
 
   .activity-cover {
-    width: 140px;
-    height: 120px;
+    width: 120px;
+    height: 100px;
   }
 
   .activity-info {
@@ -599,7 +629,11 @@ onMounted(() => {
   }
 
   .activity-name {
-    font-size: var(--text-lg);
+    font-size: var(--text-base);
+  }
+
+  .activity-desc {
+    font-size: var(--text-sm);
   }
 }
 </style>

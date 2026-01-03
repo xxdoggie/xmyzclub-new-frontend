@@ -646,30 +646,22 @@ function goToBanner(index: number) {
   backdrop-filter: blur(2px);
 }
 
-/* ===== Modern Floating Drawer ===== */
+/* ===== Modern Drawer ===== */
 .mobile-menu {
   position: fixed;
-  top: 12px;
-  left: 12px;
-  bottom: 12px;
+  top: 0;
+  left: 0;
+  bottom: 0;
   width: 280px;
-  max-width: calc(80vw - 24px);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  max-width: 80vw;
+  background: var(--color-card);
   z-index: 201;
   display: flex;
   flex-direction: column;
-  border-radius: var(--radius-xl);
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-xl);
   overflow: hidden;
 }
 
-:root.dark .mobile-menu {
-  background: rgba(30, 30, 30, 0.95);
-}
 
 /* 用户区域 */
 .drawer-user-section {
@@ -1577,25 +1569,15 @@ function goToBanner(index: number) {
   opacity: 0;
 }
 
-/* Menu Slide - Modern floating animation */
-.menu-slide-enter-active {
-  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 300ms ease;
-}
-
+/* Menu Slide */
+.menu-slide-enter-active,
 .menu-slide-leave-active {
-  transition: transform 200ms cubic-bezier(0.4, 0, 1, 1),
-              opacity 200ms ease;
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.menu-slide-enter-from {
-  transform: translateX(-100%) scale(0.95);
-  opacity: 0;
-}
-
+.menu-slide-enter-from,
 .menu-slide-leave-to {
   transform: translateX(-100%);
-  opacity: 0;
 }
 
 .fade-enter-active,

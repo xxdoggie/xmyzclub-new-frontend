@@ -660,6 +660,7 @@ function goToBanner(index: number) {
   flex-direction: column;
   box-shadow: var(--shadow-xl);
   overflow: hidden;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
 }
 
 

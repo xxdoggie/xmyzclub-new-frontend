@@ -111,21 +111,6 @@ onMounted(() => {
         <!-- 桌面端标题 -->
         <h1 class="page-title desktop-only">活动抢票</h1>
 
-        <!-- 我的票据入口 -->
-        <div v-if="userStore.isLoggedIn" class="my-tickets-entry" @click="goToMyTickets">
-          <div class="entry-left">
-            <div class="entry-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-              </svg>
-            </div>
-            <span class="entry-text">我的票据</span>
-          </div>
-          <svg class="entry-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </div>
-
         <!-- 未登录提示 -->
         <div v-if="!userStore.isLoggedIn" class="login-prompt">
           <div class="prompt-icon">
@@ -161,51 +146,64 @@ onMounted(() => {
         </div>
 
         <!-- 活动列表 -->
-        <div v-else class="activities-list">
-          <div
-            v-for="activity in displayActivities"
-            :key="activity.id"
-            class="activity-card"
-            @click="goToDetail(activity.id)"
-          >
-            <!-- 活动封面 -->
-            <div class="activity-cover">
-              <img
-                v-if="activity.imageUrl"
-                :src="activity.imageUrl"
-                :alt="activity.name"
-                class="cover-image"
-              />
-              <div v-else class="cover-placeholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
+        <div v-else class="activities-section">
+          <!-- 列表头部：标题 + 我的票据入口 -->
+          <div class="section-header">
+            <span class="section-title">全部活动</span>
+            <button class="my-tickets-btn" @click="goToMyTickets">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              </svg>
+              我的票据
+            </button>
+          </div>
+
+          <div class="activities-list">
+            <div
+              v-for="activity in displayActivities"
+              :key="activity.id"
+              class="activity-card"
+              @click="goToDetail(activity.id)"
+            >
+              <!-- 活动封面 -->
+              <div class="activity-cover">
+                <img
+                  v-if="activity.imageUrl"
+                  :src="activity.imageUrl"
+                  :alt="activity.name"
+                  class="cover-image"
+                />
+                <div v-else class="cover-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <!-- 状态标签 -->
+                <span class="status-badge" :class="getStatusLabel(activity.status).class">
+                  {{ getStatusLabel(activity.status).label }}
+                </span>
+              </div>
+
+              <!-- 活动信息 -->
+              <div class="activity-info">
+                <h3 class="activity-name">{{ activity.name }}</h3>
+                <p v-if="activity.description" class="activity-desc">{{ activity.description }}</p>
+                <div class="activity-meta">
+                  <span class="meta-item">{{ activity.sessionCount }} 场次</span>
+                  <span class="meta-divider">·</span>
+                  <span class="meta-item">{{ formatDate(activity.createdAt) }}</span>
+                </div>
+              </div>
+
+              <!-- 箭头 -->
+              <div class="activity-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
               </div>
-              <!-- 状态标签 -->
-              <span class="status-badge" :class="getStatusLabel(activity.status).class">
-                {{ getStatusLabel(activity.status).label }}
-              </span>
-            </div>
-
-            <!-- 活动信息 -->
-            <div class="activity-info">
-              <h3 class="activity-name">{{ activity.name }}</h3>
-              <p v-if="activity.description" class="activity-desc">{{ activity.description }}</p>
-              <div class="activity-meta">
-                <span class="meta-item">{{ activity.sessionCount }} 场次</span>
-                <span class="meta-divider">·</span>
-                <span class="meta-item">{{ formatDate(activity.createdAt) }}</span>
-              </div>
-            </div>
-
-            <!-- 箭头 -->
-            <div class="activity-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
             </div>
           </div>
 
@@ -264,59 +262,47 @@ onMounted(() => {
   display: none;
 }
 
-/* ===== My Tickets Entry ===== */
-.my-tickets-entry {
+/* ===== Section Header ===== */
+.section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.section-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
+.my-tickets-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: none;
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.my-tickets-entry:hover {
-  border-color: var(--color-primary);
+.my-tickets-btn:hover {
+  background: var(--color-primary);
+  color: white;
 }
 
-.my-tickets-entry:active {
-  background: var(--color-bg);
+.my-tickets-btn:active {
+  transform: scale(0.96);
 }
 
-.entry-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.entry-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-md);
-}
-
-.entry-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.entry-text {
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-}
-
-.entry-arrow {
-  width: 20px;
-  height: 20px;
-  color: var(--color-text-placeholder);
+.my-tickets-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* ===== Login Prompt ===== */
@@ -611,8 +597,22 @@ onMounted(() => {
     max-width: 900px;
   }
 
-  .my-tickets-entry {
-    padding: var(--spacing-lg);
+  .section-header {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .section-title {
+    font-size: var(--text-base);
+  }
+
+  .my-tickets-btn {
+    padding: 8px 16px;
+    font-size: var(--text-sm);
+  }
+
+  .my-tickets-btn svg {
+    width: 16px;
+    height: 16px;
   }
 
   .activities-list {

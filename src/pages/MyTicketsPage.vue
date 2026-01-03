@@ -157,32 +157,38 @@ onMounted(() => {
               :class="getStatusInfo(ticket.status).class"
               @click="goToActivity(ticket.activityId)"
             >
-              <!-- 左侧状态指示条 -->
-              <div class="ticket-indicator"></div>
+              <!-- 左侧圆形切口 -->
+              <div class="ticket-punch left"></div>
 
-              <!-- 票据主体内容 -->
-              <div class="ticket-main">
-                <div class="ticket-info">
-                  <div class="ticket-title">{{ ticket.activityName }}</div>
-                  <div class="ticket-subtitle">{{ ticket.sessionName }}</div>
+              <!-- 左侧信息区域 -->
+              <div class="ticket-left">
+                <div class="ticket-status-badge" :class="getStatusInfo(ticket.status).class">
+                  {{ getStatusInfo(ticket.status).label }}
                 </div>
-                <div class="ticket-right">
-                  <div class="ticket-code" @click="copyTicketCode(ticket.ticketCode, $event)">
-                    {{ ticket.ticketCode }}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-                    </svg>
-                  </div>
-                  <div class="ticket-status" :class="getStatusInfo(ticket.status).class">
-                    {{ getStatusInfo(ticket.status).label }}
-                  </div>
+                <div class="ticket-title">{{ ticket.activityName }}</div>
+                <div class="ticket-subtitle">{{ ticket.sessionName }}</div>
+              </div>
+
+              <!-- 虚线分隔 -->
+              <div class="ticket-divider">
+                <div class="divider-line"></div>
+              </div>
+
+              <!-- 右侧票码区域 -->
+              <div class="ticket-right" @click="copyTicketCode(ticket.ticketCode, $event)">
+                <div class="ticket-code-label">票码</div>
+                <div class="ticket-code">{{ ticket.ticketCode }}</div>
+                <div class="ticket-copy-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                  </svg>
+                  点击复制
                 </div>
               </div>
 
-              <!-- 装饰性切口 -->
-              <div class="ticket-notch top"></div>
-              <div class="ticket-notch bottom"></div>
+              <!-- 右侧圆形切口 -->
+              <div class="ticket-punch right"></div>
             </div>
           </div>
         </template>
@@ -346,76 +352,128 @@ onMounted(() => {
 .tickets-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 
-/* ===== Ticket Card - Compact Horizontal Style ===== */
+/* ===== Ticket Card - Cinema Style ===== */
 .ticket-card {
   position: relative;
   display: flex;
   align-items: stretch;
   background: var(--color-card);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: visible;
   cursor: pointer;
   transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-height: 88px;
 }
 
-.ticket-card:hover {
-  border-color: var(--color-primary);
+.ticket-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-.ticket-card:active {
-  background: var(--color-bg);
-}
-
-/* Status indicator bar on the left */
-.ticket-indicator {
-  width: 4px;
-  flex-shrink: 0;
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
-}
-
-.ticket-card.status-pending .ticket-indicator {
+.ticket-card.status-pending::before {
   background: var(--color-warning);
 }
 
-.ticket-card.status-confirmed .ticket-indicator {
+.ticket-card.status-confirmed::before {
   background: var(--color-success);
 }
 
-.ticket-card.status-used .ticket-indicator {
+.ticket-card.status-used::before {
   background: var(--color-text-secondary);
 }
 
-.ticket-card.status-cancelled .ticket-indicator {
+.ticket-card.status-cancelled::before {
   background: var(--color-error);
 }
 
-/* Main content area */
-.ticket-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-sm) var(--spacing-md);
-  gap: var(--spacing-md);
-  min-width: 0;
+.ticket-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
-.ticket-info {
+.ticket-card:active {
+  transform: translateY(0);
+}
+
+/* Circular punch holes */
+.ticket-punch {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--color-bg);
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.ticket-punch.left {
+  left: -8px;
+  box-shadow: inset -2px 0 4px rgba(0, 0, 0, 0.08);
+}
+
+.ticket-punch.right {
+  right: -8px;
+  box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Left info section */
+.ticket-left {
   flex: 1;
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ticket-status-badge {
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ticket-status-badge.status-pending {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.ticket-status-badge.status-confirmed {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.ticket-status-badge.status-used {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.ticket-status-badge.status-cancelled {
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .ticket-title {
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 2px;
 }
 
 .ticket-subtitle {
@@ -426,89 +484,79 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+/* Dashed divider */
+.ticket-divider {
+  width: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.divider-line {
+  width: 1px;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--color-border) 0,
+    var(--color-border) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+/* Right code section */
 .ticket-right {
+  width: 90px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--spacing-sm);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+.ticket-right:hover {
+  background: var(--color-primary-bg);
+}
+
+.ticket-right:hover .ticket-code {
+  color: var(--color-primary);
+}
+
+.ticket-code-label {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
 }
 
 .ticket-code {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-bold);
   font-family: var(--font-family-mono);
-  color: var(--color-primary);
+  color: var(--color-text);
   letter-spacing: 1px;
-  padding: 2px 6px;
-  background: var(--color-primary-bg);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
-.ticket-code:hover {
-  background: var(--color-primary);
-  color: white;
+.ticket-copy-hint {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  color: var(--color-text-tertiary);
+  margin-top: 4px;
 }
 
-.ticket-code:hover svg {
-  color: white;
-}
-
-.ticket-code svg {
-  width: 12px;
-  height: 12px;
-  color: var(--color-primary);
-}
-
-.ticket-status {
-  font-size: 10px;
-  font-weight: var(--font-medium);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-}
-
-.ticket-status.status-pending {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.ticket-status.status-confirmed {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.ticket-status.status-used {
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-}
-
-.ticket-status.status-cancelled {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
-
-/* Decorative notches */
-.ticket-notch {
-  position: absolute;
-  right: -6px;
-  width: 12px;
-  height: 12px;
-  background: var(--color-bg);
-  border-radius: 50%;
-  border-left: 1px solid var(--color-border);
-}
-
-.ticket-notch.top {
-  top: 8px;
-}
-
-.ticket-notch.bottom {
-  bottom: 8px;
+.ticket-copy-hint svg {
+  width: 10px;
+  height: 10px;
 }
 
 /* ===== Desktop ===== */
@@ -539,11 +587,34 @@ onMounted(() => {
   }
 
   .tickets-list {
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
   }
 
-  .ticket-main {
-    padding: var(--spacing-md) var(--spacing-lg);
+  .ticket-card {
+    min-height: 100px;
+  }
+
+  .ticket-punch {
+    width: 20px;
+    height: 20px;
+  }
+
+  .ticket-punch.left {
+    left: -10px;
+  }
+
+  .ticket-punch.right {
+    right: -10px;
+  }
+
+  .ticket-left {
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+    gap: 6px;
+  }
+
+  .ticket-status-badge {
+    font-size: var(--text-xs);
+    padding: 3px 10px;
   }
 
   .ticket-title {
@@ -554,19 +625,26 @@ onMounted(() => {
     font-size: var(--text-sm);
   }
 
-  .ticket-code {
-    font-size: var(--text-base);
-    padding: 4px 10px;
+  .ticket-right {
+    width: 120px;
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-md) var(--spacing-md);
   }
 
-  .ticket-code svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .ticket-status {
+  .ticket-code-label {
     font-size: var(--text-xs);
-    padding: 3px 8px;
+  }
+
+  .ticket-code {
+    font-size: var(--text-lg);
+  }
+
+  .ticket-copy-hint {
+    font-size: 10px;
+  }
+
+  .ticket-copy-hint svg {
+    width: 12px;
+    height: 12px;
   }
 }
 </style>

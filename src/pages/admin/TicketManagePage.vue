@@ -178,10 +178,10 @@ onMounted(() => {
           <PageBreadcrumb />
         </div>
 
-        <!-- 页面标题 -->
+        <!-- 页面标题（仅桌面端显示） -->
         <div class="page-header-section">
           <div class="header-main">
-            <div>
+            <div class="header-text">
               <h1 class="page-title">票务管理</h1>
               <p class="page-subtitle">管理活动、档期和票据</p>
             </div>
@@ -397,13 +397,17 @@ onMounted(() => {
 
 /* ===== Page Header ===== */
 .page-header-section {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .header-main {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+}
+
+.header-text {
+  display: none;
 }
 
 .page-title {
@@ -487,6 +491,7 @@ onMounted(() => {
 
 /* ===== Status Tabs ===== */
 .status-tabs {
+  position: relative;
   display: flex;
   gap: 2px;
   margin-bottom: var(--spacing-md);
@@ -495,6 +500,12 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.status-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .status-tab {
@@ -508,13 +519,17 @@ onMounted(() => {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color 0.2s ease, background-color 0.3s ease, transform 0.2s ease;
   text-align: center;
   white-space: nowrap;
 }
 
 .status-tab:hover {
   color: var(--color-text);
+}
+
+.status-tab:active {
+  transform: scale(0.95);
 }
 
 .status-tab.active {
@@ -838,10 +853,18 @@ onMounted(() => {
     padding: var(--spacing-xl);
   }
 
+  .page-header-section {
+    margin-bottom: var(--spacing-lg);
+  }
+
   .header-main {
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
+  }
+
+  .header-text {
+    display: block;
   }
 
   .page-title {

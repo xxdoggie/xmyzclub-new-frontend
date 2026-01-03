@@ -242,15 +242,12 @@ export interface SessionStats {
  */
 export interface ActivityStats {
   activityId: number
-  activityName: string
   totalSessions: number
   totalTickets: number
-  soldTickets: number
-  availableTickets: number
+  grabbedTickets: number
   pendingTickets: number
   confirmedTickets: number
   usedTickets: number
-  sessionStats: SessionStats[]
 }
 
 // ==================== 审票相关类型 ====================

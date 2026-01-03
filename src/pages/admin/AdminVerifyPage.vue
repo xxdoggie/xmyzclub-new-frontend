@@ -356,6 +356,7 @@ onMounted(() => {
 
 /* ===== Page Header ===== */
 .page-header-section {
+  display: none;
   text-align: center;
   margin-bottom: var(--spacing-xl);
 }
@@ -378,6 +379,7 @@ onMounted(() => {
 
 .search-box {
   display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
 }
 
@@ -417,6 +419,7 @@ onMounted(() => {
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
+  width: 100%;
 }
 
 .search-btn:disabled {
@@ -737,12 +740,24 @@ onMounted(() => {
     display: block;
   }
 
+  .page-header-section {
+    display: block;
+  }
+
   .page-content {
     padding: var(--spacing-xl);
   }
 
   .page-title {
     font-size: var(--text-2xl);
+  }
+
+  .search-box {
+    flex-direction: row;
+  }
+
+  .search-btn {
+    width: auto;
   }
 }
 </style>

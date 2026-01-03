@@ -32,7 +32,7 @@ const userStore = useUserStore()
 const toast = useToast()
 
 // 判断是创建还是编辑模式
-const isCreateMode = computed(() => route.params.id === 'new')
+const isCreateMode = computed(() => !route.params.id || route.params.id === 'new' || route.name === 'admin-tickets-new')
 const activityId = computed(() => (isCreateMode.value ? null : Number(route.params.id)))
 
 // 加载状态
@@ -313,6 +313,10 @@ async function confirmDelete() {
 
 // 添加额外信息字段
 function addExtraField() {
+  // 确保 extra_info_fields 数组已初始化
+  if (!form.value.config.extra_info_fields) {
+    form.value.config.extra_info_fields = []
+  }
   form.value.config.extra_info_fields.push({
     name: `field_${Date.now()}`,
     label: '',
@@ -373,6 +377,19 @@ watch(() => route.params.id, () => {
     loadActivity()
   }
 })
+
+// 监听审核和自动确认互斥
+watch(() => form.value.config.require_approval, (newVal) => {
+  if (newVal) {
+    form.value.config.auto_confirm_tickets = false
+  }
+})
+
+watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
+  if (newVal) {
+    form.value.config.require_approval = false
+  }
+})
 </script>
 
 <template>
@@ -416,8 +433,8 @@ watch(() => route.params.id, () => {
                 <div class="stat-label">总票数</div>
               </div>
               <div class="stat-card">
-                <div class="stat-value">{{ stats.soldTickets }}</div>
-                <div class="stat-label">已售出</div>
+                <div class="stat-value">{{ stats.grabbedTickets }}</div>
+                <div class="stat-label">已抢票</div>
               </div>
               <div class="stat-card">
                 <div class="stat-value">{{ stats.pendingTickets }}</div>
@@ -784,6 +801,7 @@ watch(() => route.params.id, () => {
 
 /* ===== Page Header ===== */
 .page-header-section {
+  display: none;
   margin-bottom: var(--spacing-lg);
 }
 
@@ -918,6 +936,11 @@ watch(() => route.params.id, () => {
 
 .form-input.small {
   width: 120px;
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
 }
 
 .form-row {
@@ -1242,6 +1265,16 @@ watch(() => route.params.id, () => {
   justify-content: center;
   z-index: 1000;
   padding: var(--spacing-md);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -1252,6 +1285,18 @@ watch(() => route.params.id, () => {
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal-title {
@@ -1308,6 +1353,10 @@ watch(() => route.params.id, () => {
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
   .breadcrumb-wrapper {
+    display: block;
+  }
+
+  .page-header-section {
     display: block;
   }
 

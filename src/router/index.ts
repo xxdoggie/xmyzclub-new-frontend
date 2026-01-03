@@ -168,7 +168,7 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         level: 3,
-        title: '活动详情',
+        title: '编辑活动',
         parent: 'admin-tickets',
       },
     },

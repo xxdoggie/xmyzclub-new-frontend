@@ -45,17 +45,16 @@ api.interceptors.request.use(
 )
 
 /**
- * 响应拦截器：处理 401 等错误
+ * 响应拦截器：处理错误
  */
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiResponse>) => {
     // 401 未授权 - token 过期或无效
+    // 不自动清除 token，只是通知用户，让用户自己决定是否重新登录
     if (error.response?.status === 401) {
-      // 清除本地 token
-      localStorage.removeItem('token')
-
-      // 触发全局事件，让 App.vue 弹出登录 Modal
+      // 仅触发事件提示用户，不强制退出
+      // 用户可以选择重新登录或继续操作
       window.dispatchEvent(new CustomEvent('auth:token-expired'))
     }
 

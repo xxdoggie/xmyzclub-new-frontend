@@ -44,6 +44,27 @@ const router = createRouter({
       },
     },
     {
+      path: '/ticket/my',
+      name: 'my-tickets',
+      component: () => import('../pages/MyTicketsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '我的票据',
+        parent: 'ticket',
+      },
+    },
+    {
+      path: '/ticket/:id',
+      name: 'ticket-detail',
+      component: () => import('../pages/TicketDetailPage.vue'),
+      meta: {
+        level: 2,
+        title: '活动详情',
+        parent: 'ticket',
+      },
+    },
+    {
       path: '/ringtone',
       name: 'ringtone',
       component: () => import('../pages/RingtonePage.vue'),
@@ -102,6 +123,19 @@ const router = createRouter({
       meta: {
         level: 2,
         title: 'QQ 绑定',
+        parent: 'home',
+      },
+    },
+
+    // ==================== 管理后台页面 ====================
+    {
+      path: '/admin/tickets',
+      name: 'admin-tickets',
+      component: () => import('../pages/admin/TicketManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '票务管理',
         parent: 'home',
       },
     },

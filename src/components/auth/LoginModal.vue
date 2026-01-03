@@ -289,8 +289,10 @@ onMounted(() => {
             </button>
           </div>
 
+          <!-- 表单内容 - 带过渡动画 -->
+          <Transition name="tab-fade" mode="out-in">
           <!-- 普通登录表单 -->
-          <div v-if="activeTab === 'login'" class="modal-body">
+          <div v-if="activeTab === 'login'" key="login" class="modal-body">
             <div class="form-group">
               <label class="form-label">用户名</label>
               <input
@@ -356,7 +358,7 @@ onMounted(() => {
           </div>
 
           <!-- 注册表单 -->
-          <div v-else-if="activeTab === 'register'" class="modal-body">
+          <div v-else-if="activeTab === 'register'" key="register" class="modal-body">
             <div class="form-group">
               <label class="form-label">用户名</label>
               <input
@@ -410,7 +412,7 @@ onMounted(() => {
           </div>
 
           <!-- 校园网登录表单 -->
-          <div v-else-if="activeTab === 'campus'" class="modal-body">
+          <div v-else-if="activeTab === 'campus'" key="campus" class="modal-body">
             <div class="form-group">
               <label class="form-label">学号</label>
               <input
@@ -473,6 +475,7 @@ onMounted(() => {
 
             <p class="campus-hint">首次使用校园网登录将自动创建账号</p>
           </div>
+          </Transition>
         </div>
       </div>
     </Transition>
@@ -803,6 +806,22 @@ onMounted(() => {
 .form-spacer {
   flex: 1;
   min-height: var(--spacing-md);
+}
+
+/* Tab 切换动画 */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.tab-fade-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.tab-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
 }
 
 /* Modal 动画 */

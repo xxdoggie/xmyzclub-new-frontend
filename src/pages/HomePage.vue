@@ -89,8 +89,21 @@ function goToBanner(index: number) {
     <!-- Header -->
     <header class="header">
       <div class="header-container">
-        <!-- Logo -->
-        <div class="header-left">
+        <!-- Mobile Menu Button (Left) -->
+        <button class="mobile-menu-btn" @click="toggleMobileMenu">
+          <svg v-if="!isMobileMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <!-- Logo (Desktop only or Mobile center) -->
+        <div class="header-center">
           <div class="logo">
             <span class="logo-icon">X</span>
           </div>
@@ -141,45 +154,44 @@ function goToBanner(index: number) {
             <button class="btn btn-ghost btn-sm desktop-only" @click="handleLogin">登录</button>
             <button class="btn btn-primary btn-sm desktop-only" @click="goToAuth">注册</button>
           </template>
-
-          <!-- Mobile Menu Button -->
-          <button class="mobile-menu-btn" @click="toggleMobileMenu">
-            <svg v-if="!isMobileMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
         </div>
       </div>
+    </header>
 
-      <!-- Mobile Menu -->
-      <Transition name="slide-down">
-        <div v-if="isMobileMenuOpen" class="mobile-menu">
-          <nav class="mobile-nav">
-            <a href="#" class="mobile-nav-link active">首页</a>
-            <a href="#" class="mobile-nav-link">动态</a>
-            <a href="#" class="mobile-nav-link">社团</a>
-            <a href="#" class="mobile-nav-link">失物招领</a>
-          </nav>
-          <div class="mobile-menu-footer" v-if="!userStore.isLoggedIn">
-            <button class="btn btn-ghost btn-block" @click="handleLogin">登录</button>
-            <button class="btn btn-primary btn-block" @click="goToAuth">注册</button>
+    <!-- Mobile Menu Overlay -->
+    <Transition name="menu-fade">
+      <div v-if="isMobileMenuOpen" class="mobile-menu-overlay" @click="toggleMobileMenu"></div>
+    </Transition>
+    <Transition name="menu-slide">
+      <div v-if="isMobileMenuOpen" class="mobile-menu">
+        <div class="mobile-menu-header">
+          <div class="logo">
+            <span class="logo-icon">X</span>
           </div>
-          <div class="mobile-menu-footer" v-else>
-            <div class="mobile-user-info">
-              <div class="user-avatar">{{ userStore.user?.nickname?.charAt(0) || 'U' }}</div>
-              <span>{{ userStore.user?.nickname }}</span>
-            </div>
-            <button class="btn btn-ghost btn-block" @click="handleLogout">退出登录</button>
+          <div class="mobile-menu-title">
+            <h2>XMYZ Club</h2>
+            <p>厦门一中学生社区</p>
           </div>
         </div>
-      </Transition>
-    </header>
+        <nav class="mobile-nav">
+          <a href="#" class="mobile-nav-link active">首页</a>
+          <a href="#" class="mobile-nav-link">动态</a>
+          <a href="#" class="mobile-nav-link">社团</a>
+          <a href="#" class="mobile-nav-link">失物招领</a>
+        </nav>
+        <div class="mobile-menu-footer" v-if="!userStore.isLoggedIn">
+          <button class="btn btn-primary btn-block" @click="goToAuth">注册账号</button>
+          <button class="btn btn-ghost btn-block" @click="handleLogin">登录</button>
+        </div>
+        <div class="mobile-menu-footer" v-else>
+          <div class="mobile-user-info">
+            <div class="user-avatar">{{ userStore.user?.nickname?.charAt(0) || 'U' }}</div>
+            <span>{{ userStore.user?.nickname }}</span>
+          </div>
+          <button class="btn btn-ghost btn-block" @click="handleLogout">退出登录</button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Main Content -->
     <main class="main">
@@ -481,16 +493,19 @@ function goToBanner(index: number) {
 .header-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) 10px; /* 移动端更小边距 */
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  justify-content: space-between;
 }
 
-.header-left {
+.header-center {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .logo {
@@ -628,17 +643,59 @@ function goToBanner(index: number) {
   height: 24px;
 }
 
-/* Mobile Menu */
+/* Mobile Menu - Overlay Drawer */
+.mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
 .mobile-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 80vw;
   background: var(--color-card);
-  border-top: 1px solid var(--color-border);
-  padding: var(--spacing-md);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xl);
+}
+
+.mobile-menu-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+}
+
+.mobile-menu-header .logo {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.mobile-menu-title h2 {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+}
+
+.mobile-menu-title p {
+  font-size: var(--text-xs);
+  opacity: 0.9;
 }
 
 .mobile-nav {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  overflow-y: auto;
 }
 
 .mobile-nav-link {
@@ -657,8 +714,7 @@ function goToBanner(index: number) {
 }
 
 .mobile-menu-footer {
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
+  padding: var(--spacing-md);
   border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -778,7 +834,7 @@ function goToBanner(index: number) {
 
 /* Hero Section */
 .hero-section {
-  padding: var(--spacing-md);
+  padding: 10px;
   padding-bottom: 0;
 }
 
@@ -789,10 +845,10 @@ function goToBanner(index: number) {
 
 .hero-banner {
   position: relative;
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-md);
   overflow: hidden;
-  min-height: 180px;
+  min-height: 160px;
   display: flex;
   align-items: center;
 }
@@ -928,7 +984,7 @@ function goToBanner(index: number) {
 
 /* Bento Section */
 .bento-section {
-  padding: var(--spacing-lg) var(--spacing-md);
+  padding: var(--spacing-md) 10px;
 }
 
 .bento-container {
@@ -1293,8 +1349,8 @@ function goToBanner(index: number) {
 /* ===== Footer ===== */
 .footer {
   border-top: 1px solid var(--color-border);
-  padding: var(--spacing-lg) var(--spacing-md);
-  padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
+  padding: var(--spacing-md) 10px;
+  padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
   margin-top: auto;
   background: var(--color-card);
 }
@@ -1344,15 +1400,26 @@ function goToBanner(index: number) {
 }
 
 /* ===== Animations ===== */
-.slide-down-enter-active,
-.slide-down-leave-active {
-  transition: all var(--transition-normal);
+/* Menu Fade */
+.menu-fade-enter-active,
+.menu-fade-leave-active {
+  transition: opacity var(--transition-normal);
 }
 
-.slide-down-enter-from,
-.slide-down-leave-to {
+.menu-fade-enter-from,
+.menu-fade-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
+}
+
+/* Menu Slide */
+.menu-slide-enter-active,
+.menu-slide-leave-active {
+  transition: transform var(--transition-normal);
+}
+
+.menu-slide-enter-from,
+.menu-slide-leave-to {
+  transform: translateX(-100%);
 }
 
 .fade-enter-active,
@@ -1422,10 +1489,17 @@ function goToBanner(index: number) {
 @media (min-width: 1024px) {
   .header-container {
     padding: var(--spacing-sm) var(--spacing-xl);
+    gap: var(--spacing-lg);
+  }
+
+  .header-center {
+    position: static;
+    transform: none;
   }
 
   .nav-links {
     display: flex;
+    flex: 1;
   }
 
   .mobile-menu-btn {

@@ -139,6 +139,50 @@ const router = createRouter({
         parent: 'home',
       },
     },
+    {
+      path: '/admin/tickets/new',
+      name: 'admin-tickets-new',
+      component: () => import('../pages/admin/AdminActivityDetailPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '创建活动',
+        parent: 'admin-tickets',
+      },
+    },
+    {
+      path: '/admin/tickets/verify',
+      name: 'admin-tickets-verify',
+      component: () => import('../pages/admin/AdminVerifyPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '验票核销',
+        parent: 'admin-tickets',
+      },
+    },
+    {
+      path: '/admin/tickets/:id',
+      name: 'admin-tickets-detail',
+      component: () => import('../pages/admin/AdminActivityDetailPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '编辑活动',
+        parent: 'admin-tickets',
+      },
+    },
+    {
+      path: '/admin/tickets/:id/review',
+      name: 'admin-tickets-review',
+      component: () => import('../pages/admin/AdminTicketReviewPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '审票管理',
+        parent: 'admin-tickets-detail',
+      },
+    },
 
     // ==================== 404 ====================
     {

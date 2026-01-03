@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
-import { getAdminActivities, updateActivityStatus } from '@/api/ticket'
+import { getAdminActivities, updateActivity, deleteActivity } from '@/api/ticket'
 import type { TicketActivityListItem, ActivityStatus } from '@/types/ticket'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
@@ -22,6 +22,32 @@ const pageSize = ref(20)
 
 // 筛选状态
 const statusFilter = ref<ActivityStatus | 'all'>('all')
+
+// Tab 切换动画
+const tabOrder = ['all', 'draft', 'published', 'active', 'ended'] as const
+const slideDirection = ref<'left' | 'right' | ''>('')
+const isAnimating = ref(false)
+
+// 监听 Tab 切换
+watch(statusFilter, (newVal, oldVal) => {
+  if (!oldVal) return
+  const oldIndex = tabOrder.indexOf(oldVal as typeof tabOrder[number])
+  const newIndex = tabOrder.indexOf(newVal as typeof tabOrder[number])
+  slideDirection.value = newIndex > oldIndex ? 'left' : 'right'
+  isAnimating.value = true
+
+  nextTick(() => {
+    setTimeout(() => {
+      isAnimating.value = false
+      slideDirection.value = ''
+    }, 300)
+  })
+})
+
+// 删除确认
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref<TicketActivityListItem | null>(null)
+const isDeleting = ref(false)
 
 // 筛选后的活动列表
 const filteredActivities = computed(() => {
@@ -64,7 +90,7 @@ function getStatusInfo(status: ActivityStatus) {
 async function publishActivity(id: number, event: Event) {
   event.stopPropagation()
   try {
-    const res = await updateActivityStatus(id, 'published')
+    const res = await updateActivity(id, { status: 'published' })
     if (res.data.code === 200) {
       toast.success('活动已发布')
       loadActivities()
@@ -80,7 +106,7 @@ async function publishActivity(id: number, event: Event) {
 async function activateActivity(id: number, event: Event) {
   event.stopPropagation()
   try {
-    const res = await updateActivityStatus(id, 'active')
+    const res = await updateActivity(id, { status: 'active' })
     if (res.data.code === 200) {
       toast.success('活动已激活')
       loadActivities()
@@ -92,9 +118,54 @@ async function activateActivity(id: number, event: Event) {
   }
 }
 
+// 打开删除确认
+function openDeleteConfirm(activity: TicketActivityListItem, event: Event) {
+  event.stopPropagation()
+  deleteTarget.value = activity
+  showDeleteConfirm.value = true
+}
+
+// 确认删除
+async function confirmDelete() {
+  if (!deleteTarget.value) return
+
+  isDeleting.value = true
+  try {
+    const res = await deleteActivity(deleteTarget.value.id)
+    if (res.data.code === 200) {
+      toast.success('活动已删除')
+      showDeleteConfirm.value = false
+      deleteTarget.value = null
+      loadActivities()
+    } else {
+      toast.error(res.data.message || '删除失败')
+    }
+  } catch (error) {
+    toast.error('删除失败')
+  } finally {
+    isDeleting.value = false
+  }
+}
+
+// 取消删除
+function cancelDelete() {
+  showDeleteConfirm.value = false
+  deleteTarget.value = null
+}
+
 // 跳转到活动详情
 function goToActivity(id: number) {
   router.push(`/admin/tickets/${id}`)
+}
+
+// 跳转到创建活动页面
+function goToCreateActivity() {
+  router.push('/admin/tickets/new')
+}
+
+// 跳转到验票页面
+function goToVerify() {
+  router.push('/admin/tickets/verify')
 }
 
 // 格式化日期
@@ -128,10 +199,30 @@ onMounted(() => {
           <PageBreadcrumb />
         </div>
 
-        <!-- 页面标题 -->
+        <!-- 页面标题（仅桌面端显示） -->
         <div class="page-header-section">
-          <h1 class="page-title">票务管理</h1>
-          <p class="page-subtitle">管理活动、档期和票据</p>
+          <div class="header-main">
+            <div class="header-text">
+              <h1 class="page-title">票务管理</h1>
+              <p class="page-subtitle">管理活动、档期和票据</p>
+            </div>
+            <div class="header-actions">
+              <button class="action-button secondary" @click="goToVerify">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 12l2 2 4-4"></path>
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                </svg>
+                验票
+              </button>
+              <button class="action-button primary" @click="goToCreateActivity">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                创建活动
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 加载状态 -->
@@ -180,22 +271,33 @@ onMounted(() => {
             </button>
           </div>
 
-          <!-- 空状态 -->
-          <div v-if="filteredActivities.length === 0" class="empty-container">
-            <div class="empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
+          <!-- 内容区域（带动画） -->
+          <div
+            class="content-slide-wrapper"
+            :class="{
+              'slide-left': isAnimating && slideDirection === 'left',
+              'slide-right': isAnimating && slideDirection === 'right'
+            }"
+          >
+            <!-- 空状态 -->
+            <div v-if="filteredActivities.length === 0" class="empty-container">
+              <div class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <h2>{{ statusFilter === 'all' ? '暂无活动' : '暂无相关活动' }}</h2>
+              <p>{{ statusFilter === 'all' ? '还没有创建任何活动' : '没有找到该状态的活动' }}</p>
+              <button v-if="statusFilter === 'all'" class="empty-action-btn" @click="goToCreateActivity">
+                创建第一个活动
+              </button>
             </div>
-            <h2>{{ statusFilter === 'all' ? '暂无活动' : '暂无相关活动' }}</h2>
-            <p>{{ statusFilter === 'all' ? '还没有创建任何活动' : '没有找到该状态的活动' }}</p>
-          </div>
 
-          <!-- 活动列表 -->
-          <div v-else class="activities-list">
+            <!-- 活动列表 -->
+            <div v-else class="activities-list">
             <div
               v-for="activity in filteredActivities"
               :key="activity.id"
@@ -232,6 +334,8 @@ onMounted(() => {
                 <div class="activity-meta">
                   <span class="meta-item">{{ activity.sessionCount }} 场次</span>
                   <span class="meta-divider">·</span>
+                  <span class="meta-item">{{ activity.soldTickets }}/{{ activity.totalTickets }} 票</span>
+                  <span class="meta-divider">·</span>
                   <span class="meta-item">{{ formatDate(activity.createdAt) }}</span>
                 </div>
               </div>
@@ -252,6 +356,13 @@ onMounted(() => {
                 >
                   激活
                 </button>
+                <button
+                  v-if="activity.status === 'draft' || activity.status === 'ended'"
+                  class="action-btn delete"
+                  @click="openDeleteConfirm(activity, $event)"
+                >
+                  删除
+                </button>
                 <div class="arrow-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 18 15 12 9 6"></polyline>
@@ -259,12 +370,31 @@ onMounted(() => {
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </template>
       </div>
     </main>
 
     <PageFooter />
+
+    <!-- 删除确认弹窗 -->
+    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
+      <div class="modal-content">
+        <h3 class="modal-title">确认删除</h3>
+        <p class="modal-desc">
+          确定要删除活动"{{ deleteTarget?.name }}"吗？此操作不可撤销。
+        </p>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" @click="cancelDelete" :disabled="isDeleting">
+            取消
+          </button>
+          <button class="modal-btn confirm" @click="confirmDelete" :disabled="isDeleting">
+            {{ isDeleting ? '删除中...' : '确认删除' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -297,7 +427,17 @@ onMounted(() => {
 
 /* ===== Page Header ===== */
 .page-header-section {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.header-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.header-text {
+  display: none;
 }
 
 .page-title {
@@ -309,6 +449,48 @@ onMounted(() => {
 .page-subtitle {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.action-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.action-button.primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.action-button.primary:hover {
+  background: var(--color-primary-dark);
+}
+
+.action-button.secondary {
+  background: var(--color-card);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.action-button.secondary:hover {
+  background: var(--color-border);
 }
 
 /* ===== Loading ===== */
@@ -339,6 +521,7 @@ onMounted(() => {
 
 /* ===== Status Tabs ===== */
 .status-tabs {
+  position: relative;
   display: flex;
   gap: 2px;
   margin-bottom: var(--spacing-md);
@@ -347,6 +530,12 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.status-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .status-tab {
@@ -360,7 +549,7 @@ onMounted(() => {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color 0.2s ease, background-color 0.3s ease, transform 0.2s ease;
   text-align: center;
   white-space: nowrap;
 }
@@ -369,9 +558,48 @@ onMounted(() => {
   color: var(--color-text);
 }
 
+.status-tab:active {
+  transform: scale(0.95);
+}
+
 .status-tab.active {
   color: var(--color-primary);
   background: var(--color-primary-bg);
+}
+
+/* ===== Content Slide Animation ===== */
+.content-slide-wrapper {
+  animation-fill-mode: both;
+}
+
+.content-slide-wrapper.slide-left {
+  animation: slideInFromRight 0.3s ease;
+}
+
+.content-slide-wrapper.slide-right {
+  animation: slideInFromLeft 0.3s ease;
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* ===== Empty ===== */
@@ -406,6 +634,23 @@ onMounted(() => {
 .empty-container p {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-action-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.empty-action-btn:hover {
+  background: var(--color-primary-dark);
 }
 
 /* ===== Activity List ===== */
@@ -573,6 +818,16 @@ onMounted(() => {
   color: white;
 }
 
+.action-btn.delete {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.action-btn.delete:hover {
+  background: var(--color-error);
+  color: white;
+}
+
 .arrow-icon {
   color: var(--color-text-placeholder);
 }
@@ -580,6 +835,77 @@ onMounted(() => {
 .arrow-icon svg {
   width: 16px;
   height: 16px;
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+}
+
+.modal-content {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  max-width: 400px;
+  width: 100%;
+}
+
+.modal-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.modal-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-btn.cancel {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.modal-btn.cancel:hover:not(:disabled) {
+  background: var(--color-text-placeholder);
+}
+
+.modal-btn.confirm {
+  background: var(--color-error);
+  color: white;
+}
+
+.modal-btn.confirm:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 /* ===== Desktop ===== */
@@ -590,6 +916,20 @@ onMounted(() => {
 
   .page-content {
     padding: var(--spacing-xl);
+  }
+
+  .page-header-section {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .header-main {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .header-text {
+    display: block;
   }
 
   .page-title {

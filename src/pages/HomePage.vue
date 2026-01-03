@@ -102,23 +102,17 @@ function goToBanner(index: number) {
           </svg>
         </button>
 
-        <!-- Logo (Desktop only or Mobile center) -->
+        <!-- Title (Center) -->
         <div class="header-center">
-          <div class="logo">
-            <span class="logo-icon">X</span>
-          </div>
-          <div class="logo-text">
-            <h1 class="logo-title">XMYZ Club</h1>
-            <p class="logo-subtitle">厦门一中学生社区</p>
-          </div>
+          <h1 class="header-title">XMYZ Club</h1>
         </div>
 
         <!-- Desktop Navigation -->
         <nav class="nav-links">
           <a href="#" class="nav-link active">首页</a>
-          <a href="#" class="nav-link">动态</a>
-          <a href="#" class="nav-link">社团</a>
-          <a href="#" class="nav-link">失物招领</a>
+          <a href="#" class="nav-link">活动抢票</a>
+          <a href="#" class="nav-link">宿舍铃声</a>
+          <a href="#" class="nav-link">评分社区</a>
         </nav>
 
         <!-- Right Actions -->
@@ -164,21 +158,51 @@ function goToBanner(index: number) {
     </Transition>
     <Transition name="menu-slide">
       <div v-if="isMobileMenuOpen" class="mobile-menu">
+        <!-- 简洁的菜单头部 -->
         <div class="mobile-menu-header">
-          <div class="logo">
-            <span class="logo-icon">X</span>
-          </div>
-          <div class="mobile-menu-title">
-            <h2>XMYZ Club</h2>
-            <p>厦门一中学生社区</p>
-          </div>
+          <h2 class="mobile-menu-title">XMYZ Club</h2>
+          <button class="mobile-menu-close" @click="toggleMobileMenu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
+
+        <!-- 导航链接 -->
         <nav class="mobile-nav">
-          <a href="#" class="mobile-nav-link active">首页</a>
-          <a href="#" class="mobile-nav-link">动态</a>
-          <a href="#" class="mobile-nav-link">社团</a>
-          <a href="#" class="mobile-nav-link">失物招领</a>
+          <a href="#" class="mobile-nav-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>首页</span>
+          </a>
+          <a href="#" class="mobile-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span>活动抢票</span>
+          </a>
+          <a href="#" class="mobile-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span>宿舍铃声</span>
+          </a>
+          <a href="#" class="mobile-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>评分社区</span>
+          </a>
         </nav>
+
+        <!-- 用户区域 -->
         <div class="mobile-menu-footer" v-if="!userStore.isLoggedIn">
           <button class="btn btn-primary btn-block" @click="goToAuth">注册账号</button>
           <button class="btn btn-ghost btn-block" @click="handleLogin">登录</button>
@@ -236,8 +260,8 @@ function goToBanner(index: number) {
           <!-- Quick Actions - Mobile First -->
           <div class="bento-quick-actions">
             <h3 class="section-label">快捷入口</h3>
-            <div class="quick-grid">
-              <button class="quick-card" @click="handleProtectedAction('课程表')">
+            <div class="quick-grid three-cols">
+              <button class="quick-card" @click="handleProtectedAction('活动抢票')">
                 <div class="quick-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -246,36 +270,24 @@ function goToBanner(index: number) {
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                   </svg>
                 </div>
-                <span class="quick-label">课程表</span>
+                <span class="quick-label">活动抢票</span>
               </button>
-              <button class="quick-card" @click="handleProtectedAction('公告')">
+              <button class="quick-card" @click="handleProtectedAction('宿舍铃声')">
                 <div class="quick-icon secondary">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   </svg>
                 </div>
-                <span class="quick-label">公告</span>
+                <span class="quick-label">宿舍铃声</span>
               </button>
-              <button class="quick-card" @click="handleProtectedAction('社团')">
+              <button class="quick-card" @click="handleProtectedAction('评分社区')">
                 <div class="quick-icon accent">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </div>
-                <span class="quick-label">社团</span>
-              </button>
-              <button class="quick-card" @click="handleProtectedAction('失物招领')">
-                <div class="quick-icon info">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                </div>
-                <span class="quick-label">失物招领</span>
+                <span class="quick-label">评分社区</span>
               </button>
             </div>
           </div>
@@ -342,37 +354,27 @@ function goToBanner(index: number) {
             <div class="bento-card bento-functions desktop-only">
               <h3 class="card-title">快捷功能</h3>
               <div class="function-list">
-                <button class="function-item" @click="handleProtectedAction('课程表')">
+                <button class="function-item" @click="handleProtectedAction('活动抢票')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                     <line x1="16" y1="2" x2="16" y2="6"></line>
                     <line x1="8" y1="2" x2="8" y2="6"></line>
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                   </svg>
-                  <span>课程表</span>
+                  <span>活动抢票</span>
                 </button>
-                <button class="function-item" @click="handleProtectedAction('公告')">
+                <button class="function-item" @click="handleProtectedAction('宿舍铃声')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   </svg>
-                  <span>公告</span>
+                  <span>宿舍铃声</span>
                 </button>
-                <button class="function-item" @click="handleProtectedAction('社团')">
+                <button class="function-item" @click="handleProtectedAction('评分社区')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
-                  <span>社团</span>
-                </button>
-                <button class="function-item" @click="handleProtectedAction('失物招领')">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                  <span>失物招领</span>
+                  <span>评分社区</span>
                 </button>
               </div>
             </div>
@@ -452,12 +454,7 @@ function goToBanner(index: number) {
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-container">
-        <div class="footer-brand">
-          <div class="logo small">
-            <span class="logo-icon">X</span>
-          </div>
-          <span class="footer-brand-text">XMYZ Club</span>
-        </div>
+        <span class="footer-brand-text">XMYZ Club</span>
         <div class="footer-links">
           <a href="#">关于我们</a>
           <a href="#">使用条款</a>
@@ -508,46 +505,10 @@ function goToBanner(index: number) {
   transform: translateX(-50%);
 }
 
-.logo {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
-}
-
-.logo.small {
-  width: 32px;
-  height: 32px;
-}
-
-.logo.small .logo-icon {
-  font-size: var(--text-base);
-}
-
-.logo-icon {
-  font-size: var(--text-xl);
+.header-title {
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
-}
-
-.logo-text {
-  display: none;
-}
-
-.logo-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-  line-height: 1.2;
-}
-
-.logo-subtitle {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
 }
 
 /* Navigation */
@@ -669,26 +630,41 @@ function goToBanner(index: number) {
 .mobile-menu-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  justify-content: space-between;
   padding: var(--spacing-lg) var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
 }
 
-.mobile-menu-header .logo {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.mobile-menu-title h2 {
-  font-size: var(--text-base);
+.mobile-menu-title {
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
+  color: var(--color-text);
 }
 
-.mobile-menu-title p {
-  font-size: var(--text-xs);
-  opacity: 0.9;
+.mobile-menu-close {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
+
+.mobile-menu-close:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.mobile-menu-close svg {
+  width: 20px;
+  height: 20px;
+}
+
 
 .mobile-nav {
   flex: 1;
@@ -699,12 +675,21 @@ function goToBanner(index: number) {
 }
 
 .mobile-nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   padding: var(--spacing-md);
   font-size: var(--text-base);
   color: var(--color-text);
   text-decoration: none;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+}
+
+.mobile-nav-link svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .mobile-nav-link:hover,
@@ -1010,6 +995,10 @@ function goToBanner(index: number) {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--spacing-sm);
+}
+
+.quick-grid.three-cols {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .quick-card {
@@ -1361,18 +1350,12 @@ function goToBanner(index: number) {
   text-align: center;
 }
 
-.footer-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-}
-
 .footer-brand-text {
   font-size: var(--text-base);
   font-weight: var(--font-bold);
   color: var(--color-text);
+  display: block;
+  margin-bottom: var(--spacing-md);
 }
 
 .footer-links {
@@ -1434,10 +1417,6 @@ function goToBanner(index: number) {
 
 /* ===== Responsive - Tablet ===== */
 @media (min-width: 640px) {
-  .logo-text {
-    display: block;
-  }
-
   .user-name {
     display: block;
   }
@@ -1580,7 +1559,7 @@ function goToBanner(index: number) {
     text-align: left;
   }
 
-  .footer-brand {
+  .footer-brand-text {
     margin-bottom: 0;
   }
 

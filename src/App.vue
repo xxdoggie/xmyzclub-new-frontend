@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import LoginModal from '@/components/auth/LoginModal.vue'
+import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 const userStore = useUserStore()
 
@@ -35,4 +36,7 @@ function handleCloseModal() {
     :message="userStore.loginModalMessage"
     @close="handleCloseModal"
   />
+
+  <!-- 全局 Toast 提示 -->
+  <ToastContainer />
 </template>

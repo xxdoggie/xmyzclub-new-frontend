@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
+import { useToast } from '@/composables/useToast'
 import { getCampusCaptcha, getQQAuthorizeUrl } from '@/api/auth'
 
 const props = defineProps<{
@@ -15,10 +16,28 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const userStore = useUserStore()
+const toast = useToast()
 
 // Tab 切换
 type TabType = 'login' | 'register' | 'campus'
 const activeTab = ref<TabType>('login')
+
+// 滑块动画
+const tabsRef = ref<HTMLElement | null>(null)
+const sliderStyle = ref({ left: '0px', width: '0px' })
+
+function updateSliderPosition() {
+  nextTick(() => {
+    if (!tabsRef.value) return
+    const activeBtn = tabsRef.value.querySelector('.login-tab.active') as HTMLElement
+    if (activeBtn) {
+      sliderStyle.value = {
+        left: `${activeBtn.offsetLeft}px`,
+        width: `${activeBtn.offsetWidth}px`,
+      }
+    }
+  })
+}
 
 // 表单数据
 const loginForm = ref({
@@ -41,17 +60,15 @@ const campusForm = ref({
 
 // 状态
 const loading = ref(false)
-const errorMessage = ref('')
 const campusCaptchaImage = ref('')
 const captchaLoading = ref(false)
 
-// 监听 show 变化，重置表单
+// 监听 show 变化
 watch(
   () => props.show,
   (show) => {
     if (show) {
-      errorMessage.value = ''
-      // 如果是校园网 tab，加载验证码
+      updateSliderPosition()
       if (activeTab.value === 'campus') {
         loadCampusCaptcha()
       }
@@ -61,7 +78,7 @@ watch(
 
 // 监听 tab 变化
 watch(activeTab, (tab) => {
-  errorMessage.value = ''
+  updateSliderPosition()
   if (tab === 'campus' && props.show) {
     loadCampusCaptcha()
   }
@@ -77,10 +94,10 @@ async function loadCampusCaptcha() {
       campusForm.value.jsessionId = res.data.data.jsessionId
       campusForm.value.captchaCode = ''
     } else {
-      errorMessage.value = res.data.message || '获取验证码失败'
+      toast.error(res.data.message || '获取验证码失败')
     }
   } catch {
-    errorMessage.value = '网络错误，请稍后重试'
+    toast.error('网络错误，请稍后重试')
   } finally {
     captchaLoading.value = false
   }
@@ -90,22 +107,22 @@ async function loadCampusCaptcha() {
 async function handleLogin() {
   const { username, password } = loginForm.value
   if (!username || !password) {
-    errorMessage.value = '请填写用户名和密码'
+    toast.warning('请填写用户名和密码')
     return
   }
 
   loading.value = true
-  errorMessage.value = ''
 
   try {
     const result = await userStore.login(username, password)
     if (result.code === 200) {
+      toast.success('登录成功')
       handleLoginSuccess()
     } else {
-      errorMessage.value = result.message || '登录失败'
+      toast.error(result.message || '登录失败')
     }
   } catch {
-    errorMessage.value = '网络错误，请稍后重试'
+    toast.error('网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -115,34 +132,34 @@ async function handleLogin() {
 async function handleRegister() {
   const { username, password, confirmPassword } = registerForm.value
   if (!username || !password) {
-    errorMessage.value = '请填写用户名和密码'
+    toast.warning('请填写用户名和密码')
     return
   }
   if (password !== confirmPassword) {
-    errorMessage.value = '两次密码输入不一致'
+    toast.warning('两次密码输入不一致')
     return
   }
   if (password.length < 6) {
-    errorMessage.value = '密码至少 6 位'
+    toast.warning('密码至少 6 位')
     return
   }
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    errorMessage.value = '用户名只能包含英文字母、数字和下划线'
+    toast.warning('用户名只能包含英文字母、数字和下划线')
     return
   }
 
   loading.value = true
-  errorMessage.value = ''
 
   try {
     const result = await userStore.register(username, password)
     if (result.code === 200) {
+      toast.success('注册成功')
       handleLoginSuccess()
     } else {
-      errorMessage.value = result.message || '注册失败'
+      toast.error(result.message || '注册失败')
     }
   } catch {
-    errorMessage.value = '网络错误，请稍后重试'
+    toast.error('网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -152,16 +169,15 @@ async function handleRegister() {
 async function handleCampusLogin() {
   const { studentId, password, captchaCode, jsessionId } = campusForm.value
   if (!studentId || !password) {
-    errorMessage.value = '请填写学号和密码'
+    toast.warning('请填写学号和密码')
     return
   }
   if (!captchaCode) {
-    errorMessage.value = '请输入验证码'
+    toast.warning('请输入验证码')
     return
   }
 
   loading.value = true
-  errorMessage.value = ''
 
   try {
     const result = await userStore.loginByCampus(
@@ -171,14 +187,14 @@ async function handleCampusLogin() {
       jsessionId
     )
     if (result.code === 200) {
+      toast.success('登录成功')
       handleLoginSuccess()
     } else {
-      errorMessage.value = result.message || '登录失败'
-      // 刷新验证码
+      toast.error(result.message || '登录失败')
       loadCampusCaptcha()
     }
   } catch {
-    errorMessage.value = '网络错误，请稍后重试'
+    toast.error('网络错误，请稍后重试')
     loadCampusCaptcha()
   } finally {
     loading.value = false
@@ -188,18 +204,16 @@ async function handleCampusLogin() {
 // QQ 登录
 async function handleQQLogin() {
   loading.value = true
-  errorMessage.value = ''
 
   try {
     const res = await getQQAuthorizeUrl()
     if (res.data.code === 200) {
-      // 跳转到 QQ 授权页
       window.location.href = res.data.data.authorizeUrl
     } else {
-      errorMessage.value = res.data.message || '获取授权链接失败'
+      toast.error(res.data.message || '获取授权链接失败')
     }
   } catch {
-    errorMessage.value = '网络错误，请稍后重试'
+    toast.error('网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -208,7 +222,6 @@ async function handleQQLogin() {
 // 登录成功处理
 function handleLoginSuccess() {
   emit('close')
-  // 跳转到目标路由
   const redirect = userStore.consumeRedirectRoute()
   if (redirect) {
     router.push(redirect)
@@ -222,13 +235,19 @@ function handleClose() {
   }
 }
 
-// 计算显示的提示信息
-const displayMessage = computed(() => {
-  return props.message || errorMessage.value
-})
+// 显示消息提示
+watch(
+  () => props.message,
+  (msg) => {
+    if (msg) {
+      toast.info(msg)
+    }
+  },
+  { immediate: true }
+)
 
-const isError = computed(() => {
-  return !!errorMessage.value
+onMounted(() => {
+  updateSliderPosition()
 })
 </script>
 
@@ -251,8 +270,9 @@ const isError = computed(() => {
             </button>
           </div>
 
-          <!-- Tab 切换 (只在登录/校园网之间) -->
-          <div v-if="activeTab !== 'register'" class="login-tabs">
+          <!-- Tab 切换 (带滑块动画) -->
+          <div v-if="activeTab !== 'register'" ref="tabsRef" class="login-tabs">
+            <div class="login-tabs-slider" :style="sliderStyle"></div>
             <button
               class="login-tab"
               :class="{ active: activeTab === 'login' }"
@@ -267,15 +287,6 @@ const isError = computed(() => {
             >
               校园网登录
             </button>
-          </div>
-
-          <!-- 提示信息 -->
-          <div
-            v-if="displayMessage"
-            class="login-message"
-            :class="{ 'is-error': isError }"
-          >
-            {{ displayMessage }}
           </div>
 
           <!-- 普通登录表单 -->
@@ -526,10 +537,25 @@ const isError = computed(() => {
   cursor: not-allowed;
 }
 
-/* Tab 切换 */
+/* Tab 切换 - 带滑块动画 */
 .login-tabs {
   display: flex;
-  border-bottom: 1px solid var(--color-border);
+  position: relative;
+  background: var(--color-bg);
+  padding: var(--spacing-xs);
+  margin: var(--spacing-md);
+  margin-bottom: 0;
+  border-radius: var(--radius-md);
+}
+
+.login-tabs-slider {
+  position: absolute;
+  top: var(--spacing-xs);
+  bottom: var(--spacing-xs);
+  background: var(--color-card);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
 }
 
 .login-tab {
@@ -540,37 +566,14 @@ const isError = computed(() => {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
   position: relative;
+  z-index: 1;
 }
 
 .login-tab.active {
   color: var(--color-primary);
   font-weight: var(--font-medium);
-}
-
-.login-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--color-primary);
-}
-
-/* 消息提示 */
-.login-message {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-info-bg);
-  color: var(--color-info);
-  font-size: var(--text-sm);
-  text-align: center;
-}
-
-.login-message.is-error {
-  background: var(--color-error-bg);
-  color: var(--color-error);
 }
 
 /* 表单 */
@@ -635,6 +638,7 @@ const isError = computed(() => {
   align-items: center;
   justify-content: center;
   background: var(--color-bg);
+  flex-shrink: 0;
 }
 
 .captcha-image img {

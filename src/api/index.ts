@@ -11,10 +11,19 @@ export interface ApiResponse<T = unknown> {
 }
 
 /**
+ * API 基础地址
+ * 开发环境：通过 vite proxy 代理到 localhost:6666
+ * 生产环境：直接访问 api.xmyzstudent.com
+ */
+const baseURL = import.meta.env.PROD
+  ? 'https://api.xmyzstudent.com/api/v2'
+  : '/api/v2'
+
+/**
  * 创建 axios 实例
  */
 const api = axios.create({
-  baseURL: '/api/v2',
+  baseURL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

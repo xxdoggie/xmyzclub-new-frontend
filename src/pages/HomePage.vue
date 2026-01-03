@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 
+const router = useRouter()
 const userStore = useUserStore()
 const toast = useToast()
 
 const isDark = ref(false)
 const isMobileMenuOpen = ref(false)
 const currentBannerIndex = ref(0)
+
+// 退出确认弹窗
+const showLogoutConfirm = ref(false)
 
 // Banner 轮播数据
 const banners: Array<{
@@ -55,18 +60,37 @@ function handleLogin() {
   userStore.openLoginModal()
 }
 
-function handleLogout() {
+// 打开退出确认弹窗
+function openLogoutConfirm() {
+  showLogoutConfirm.value = true
+  isMobileMenuOpen.value = false
+}
+
+// 确认退出
+function confirmLogout() {
   userStore.logout()
+  showLogoutConfirm.value = false
   toast.success('已退出登录')
 }
 
-// 需要登录的功能点击
-function handleProtectedAction(name: string) {
+// 取消退出
+function cancelLogout() {
+  showLogoutConfirm.value = false
+}
+
+// 跳转到个人中心
+function goToProfile() {
   if (userStore.isLoggedIn) {
-    toast.info(`功能 "${name}" 开发中...`)
+    router.push('/profile')
   } else {
     userStore.openLoginModal()
   }
+}
+
+// 导航跳转
+function navigateTo(path: string) {
+  isMobileMenuOpen.value = false
+  router.push(path)
 }
 
 function toggleMobileMenu() {
@@ -103,10 +127,10 @@ function goToBanner(index: number) {
 
         <!-- Desktop Navigation -->
         <nav class="nav-links">
-          <a href="#" class="nav-link active">首页</a>
-          <a href="#" class="nav-link">活动抢票</a>
-          <a href="#" class="nav-link">宿舍铃声</a>
-          <a href="#" class="nav-link">评分社区</a>
+          <router-link to="/" class="nav-link active">首页</router-link>
+          <router-link to="/ticket" class="nav-link">活动抢票</router-link>
+          <router-link to="/ringtone" class="nav-link">宿舍铃声</router-link>
+          <router-link to="/community" class="nav-link">评分社区</router-link>
         </nav>
 
         <!-- Right Actions -->
@@ -130,13 +154,9 @@ function goToBanner(index: number) {
 
           <!-- Desktop Auth Buttons -->
           <template v-if="userStore.isLoggedIn">
-            <div class="user-menu">
-              <div class="user-avatar">
-                {{ userStore.user?.nickname?.charAt(0) || 'U' }}
-              </div>
-              <span class="user-name">{{ userStore.user?.nickname }}</span>
-              <button class="btn-text" @click="handleLogout">退出</button>
-            </div>
+            <button class="user-name-btn" @click="goToProfile">
+              {{ userStore.user?.nickname }}
+            </button>
           </template>
           <template v-else>
             <button class="btn btn-primary btn-sm desktop-only" @click="handleLogin">登录</button>
@@ -152,42 +172,27 @@ function goToBanner(index: number) {
     <Transition name="menu-slide">
       <div v-if="isMobileMenuOpen" class="mobile-menu">
         <!-- 用户区域 -->
-        <div class="drawer-user-section">
+        <div class="drawer-user-section" @click="goToProfile">
           <template v-if="userStore.isLoggedIn">
-            <div class="drawer-user-avatar">
-              {{ userStore.user?.nickname?.charAt(0) || 'U' }}
-            </div>
             <div class="drawer-user-info">
               <span class="drawer-user-name">{{ userStore.user?.nickname }}</span>
               <span class="drawer-user-signature" v-if="userStore.user?.signature">{{ userStore.user.signature }}</span>
-              <span class="drawer-user-status" v-else>已登录</span>
+              <span class="drawer-user-status" v-else>点击查看个人中心</span>
             </div>
           </template>
           <template v-else>
-            <div class="drawer-user-avatar guest">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </div>
             <div class="drawer-user-info">
               <span class="drawer-user-name">游客</span>
-              <button class="drawer-login-btn" @click="handleLogin">点击登录</button>
+              <button class="drawer-login-btn" @click.stop="handleLogin">点击登录</button>
             </div>
           </template>
-          <button class="drawer-close-btn" @click="toggleMobileMenu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
         </div>
 
         <!-- 导航区域 -->
         <div class="drawer-nav-section">
           <p class="drawer-section-title">导航</p>
           <nav class="drawer-nav">
-            <a href="#" class="drawer-nav-item active">
+            <a class="drawer-nav-item active" @click="navigateTo('/')">
               <div class="drawer-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -196,7 +201,7 @@ function goToBanner(index: number) {
               </div>
               <span>首页</span>
             </a>
-            <a href="#" class="drawer-nav-item">
+            <a class="drawer-nav-item" @click="navigateTo('/ticket')">
               <div class="drawer-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -207,7 +212,7 @@ function goToBanner(index: number) {
               </div>
               <span>活动抢票</span>
             </a>
-            <a href="#" class="drawer-nav-item">
+            <a class="drawer-nav-item" @click="navigateTo('/ringtone')">
               <div class="drawer-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -216,7 +221,7 @@ function goToBanner(index: number) {
               </div>
               <span>宿舍铃声</span>
             </a>
-            <a href="#" class="drawer-nav-item">
+            <a class="drawer-nav-item" @click="navigateTo('/community')">
               <div class="drawer-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -230,7 +235,7 @@ function goToBanner(index: number) {
         <!-- 设置区域 -->
         <div class="drawer-settings-section" v-if="userStore.isLoggedIn">
           <p class="drawer-section-title">账户</p>
-          <button class="drawer-settings-item" @click="handleLogout">
+          <button class="drawer-settings-item" @click="openLogoutConfirm">
             <div class="drawer-nav-icon logout">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -290,7 +295,7 @@ function goToBanner(index: number) {
           <div class="bento-quick-actions">
             <h3 class="section-label">快捷入口</h3>
             <div class="quick-grid three-cols">
-              <button class="quick-card" @click="handleProtectedAction('活动抢票')">
+              <router-link to="/ticket" class="quick-card">
                 <div class="quick-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -300,8 +305,8 @@ function goToBanner(index: number) {
                   </svg>
                 </div>
                 <span class="quick-label">活动抢票</span>
-              </button>
-              <button class="quick-card" @click="handleProtectedAction('宿舍铃声')">
+              </router-link>
+              <router-link to="/ringtone" class="quick-card">
                 <div class="quick-icon secondary">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -309,44 +314,20 @@ function goToBanner(index: number) {
                   </svg>
                 </div>
                 <span class="quick-label">宿舍铃声</span>
-              </button>
-              <button class="quick-card" @click="handleProtectedAction('评分社区')">
+              </router-link>
+              <router-link to="/community" class="quick-card">
                 <div class="quick-icon accent">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </div>
                 <span class="quick-label">评分社区</span>
-              </button>
+              </router-link>
             </div>
           </div>
 
           <!-- Main Content Grid - Desktop -->
           <div class="bento-grid">
-            <!-- User Card -->
-            <div class="bento-card bento-user">
-              <div class="user-card-content" v-if="userStore.isLoggedIn">
-                <div class="user-card-avatar large">
-                  {{ userStore.user?.nickname?.charAt(0) || 'U' }}
-                </div>
-                <div class="user-card-info">
-                  <h4 class="user-card-name">{{ userStore.user?.nickname }}</h4>
-                  <p class="user-card-signature" v-if="userStore.user?.signature">{{ userStore.user.signature }}</p>
-                  <p class="user-card-meta" v-else>欢迎回来</p>
-                </div>
-              </div>
-              <div class="user-card-content guest" v-else>
-                <div class="user-card-avatar large guest">?</div>
-                <div class="user-card-info">
-                  <h4 class="user-card-name">游客</h4>
-                  <p class="user-card-meta">
-                    <button class="link-btn" @click="handleLogin">登录</button>
-                    加入社区
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <!-- Feed Card - Large -->
             <div class="bento-card bento-feed">
               <div class="card-header">
@@ -384,7 +365,7 @@ function goToBanner(index: number) {
             <div class="bento-card bento-functions desktop-only">
               <h3 class="card-title">快捷功能</h3>
               <div class="function-list">
-                <button class="function-item" @click="handleProtectedAction('活动抢票')">
+                <router-link to="/ticket" class="function-item">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                     <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -392,20 +373,20 @@ function goToBanner(index: number) {
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                   </svg>
                   <span>活动抢票</span>
-                </button>
-                <button class="function-item" @click="handleProtectedAction('宿舍铃声')">
+                </router-link>
+                <router-link to="/ringtone" class="function-item">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   </svg>
                   <span>宿舍铃声</span>
-                </button>
-                <button class="function-item" @click="handleProtectedAction('评分社区')">
+                </router-link>
+                <router-link to="/community" class="function-item">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                   <span>评分社区</span>
-                </button>
+                </router-link>
               </div>
             </div>
 
@@ -494,6 +475,22 @@ function goToBanner(index: number) {
         <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="icp-link">闽ICP备2024074144号-4</a>
       </div>
     </footer>
+
+    <!-- 退出确认弹窗 -->
+    <Transition name="modal-fade">
+      <div v-if="showLogoutConfirm" class="modal-overlay" @click="cancelLogout">
+        <Transition name="modal-scale">
+          <div v-if="showLogoutConfirm" class="modal-content" @click.stop>
+            <h3 class="modal-title">确认退出</h3>
+            <p class="modal-message">确定要退出登录吗？</p>
+            <div class="modal-actions">
+              <button class="modal-btn cancel" @click="cancelLogout">取消</button>
+              <button class="modal-btn confirm" @click="confirmLogout">确定</button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -666,11 +663,15 @@ function goToBanner(index: number) {
 .drawer-user-section {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
   padding: var(--spacing-lg);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
-  position: relative;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.drawer-user-section:hover {
+  opacity: 0.95;
 }
 
 .drawer-user-avatar {
@@ -916,6 +917,25 @@ function goToBanner(index: number) {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   display: none;
+}
+
+.user-name-btn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: none;
+}
+
+.user-name-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 /* Buttons */
@@ -1683,6 +1703,10 @@ function goToBanner(index: number) {
     display: inline-flex;
   }
 
+  .user-name-btn {
+    display: inline-flex;
+  }
+
   .hero-section {
     padding: var(--spacing-lg) var(--spacing-xl);
     padding-bottom: 0;
@@ -1775,5 +1799,97 @@ function goToBanner(index: number) {
   .bento-grid {
     grid-template-columns: 300px 1fr 320px;
   }
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+}
+
+.modal-content {
+  background: var(--color-card);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-xl);
+}
+
+.modal-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.modal-message {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.modal-btn {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modal-btn.cancel {
+  background: var(--color-border);
+  border: none;
+  color: var(--color-text);
+}
+
+.modal-btn.cancel:hover {
+  background: var(--color-text-placeholder);
+}
+
+.modal-btn.confirm {
+  background: var(--color-error);
+  border: none;
+  color: white;
+}
+
+.modal-btn.confirm:hover {
+  background: #dc2626;
+}
+
+/* Modal Animations */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-scale-enter-active,
+.modal-scale-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.modal-scale-enter-from,
+.modal-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
 }
 </style>

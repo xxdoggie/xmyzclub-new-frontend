@@ -23,7 +23,31 @@ const router = createRouter({
       name: 'design-system',
       component: () => import('../pages/DesignSystemPage.vue'),
     },
-    // 注册页面已移除，统一使用登录弹窗
+
+    // ==================== 功能页面 ====================
+    {
+      path: '/ticket',
+      name: 'ticket',
+      component: () => import('../pages/TicketPage.vue'),
+    },
+    {
+      path: '/ringtone',
+      name: 'ringtone',
+      component: () => import('../pages/RingtonePage.vue'),
+    },
+    {
+      path: '/community',
+      name: 'community',
+      component: () => import('../pages/CommunityPage.vue'),
+    },
+
+    // ==================== 需要登录的页面 ====================
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../pages/ProfilePage.vue'),
+      meta: { requiresAuth: true },
+    },
 
     // ==================== QQ OAuth 回调页面 ====================
     {
@@ -36,15 +60,6 @@ const router = createRouter({
       name: 'qq-bindOrRegister',
       component: () => import('../pages/auth/QQBindPage.vue'),
     },
-
-    // ==================== 需要登录的页面 (占位) ====================
-    // TODO: 后续添加
-    // {
-    //   path: '/profile',
-    //   name: 'profile',
-    //   component: () => import('../pages/ProfilePage.vue'),
-    //   meta: { requiresAuth: true },
-    // },
 
     // ==================== 404 ====================
     {

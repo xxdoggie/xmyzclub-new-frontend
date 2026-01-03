@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 
-const router = useRouter()
 const userStore = useUserStore()
 const toast = useToast()
 
@@ -62,10 +60,6 @@ function handleLogout() {
   toast.success('已退出登录')
 }
 
-function goToAuth() {
-  router.push('/auth')
-}
-
 // 需要登录的功能点击
 function handleProtectedAction(name: string) {
   if (userStore.isLoggedIn) {
@@ -104,7 +98,7 @@ function goToBanner(index: number) {
 
         <!-- Title (Center) -->
         <div class="header-center">
-          <h1 class="header-title">XMYZ Club</h1>
+          <h1 class="header-title">厦门一中学生社区</h1>
         </div>
 
         <!-- Desktop Navigation -->
@@ -145,8 +139,7 @@ function goToBanner(index: number) {
             </div>
           </template>
           <template v-else>
-            <button class="btn btn-ghost btn-sm desktop-only" @click="handleLogin">登录</button>
-            <button class="btn btn-primary btn-sm desktop-only" @click="goToAuth">注册</button>
+            <button class="btn btn-primary btn-sm desktop-only" @click="handleLogin">登录</button>
           </template>
         </div>
       </div>
@@ -160,7 +153,7 @@ function goToBanner(index: number) {
       <div v-if="isMobileMenuOpen" class="mobile-menu">
         <!-- 简洁的菜单头部 -->
         <div class="mobile-menu-header">
-          <h2 class="mobile-menu-title">XMYZ Club</h2>
+          <h2 class="mobile-menu-title">厦门一中学生社区</h2>
           <button class="mobile-menu-close" @click="toggleMobileMenu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -202,17 +195,16 @@ function goToBanner(index: number) {
           </a>
         </nav>
 
-        <!-- 用户区域 -->
-        <div class="mobile-menu-footer" v-if="!userStore.isLoggedIn">
-          <button class="btn btn-primary btn-block" @click="goToAuth">注册账号</button>
-          <button class="btn btn-ghost btn-block" @click="handleLogin">登录</button>
-        </div>
-        <div class="mobile-menu-footer" v-else>
-          <div class="mobile-user-info">
-            <div class="user-avatar">{{ userStore.user?.nickname?.charAt(0) || 'U' }}</div>
-            <span>{{ userStore.user?.nickname }}</span>
-          </div>
-          <button class="btn btn-ghost btn-block" @click="handleLogout">退出登录</button>
+        <!-- 底部信息 -->
+        <div class="mobile-menu-footer">
+          <template v-if="userStore.isLoggedIn">
+            <div class="mobile-user-info">
+              <div class="user-avatar">{{ userStore.user?.nickname?.charAt(0) || 'U' }}</div>
+              <span>{{ userStore.user?.nickname }}</span>
+            </div>
+            <button class="btn btn-ghost btn-block" @click="handleLogout">退出登录</button>
+          </template>
+          <p class="mobile-menu-credit">designed by 23届玄学狗狗</p>
         </div>
       </div>
     </Transition>
@@ -231,8 +223,7 @@ function goToBanner(index: number) {
                 </div>
               </Transition>
               <div class="hero-actions" v-if="!userStore.isLoggedIn">
-                <button class="btn btn-hero-primary" @click="goToAuth">立即加入</button>
-                <button class="btn btn-hero-ghost" @click="handleLogin">已有账号</button>
+                <button class="btn btn-hero-primary" @click="handleLogin">立即登录</button>
               </div>
             </div>
             <div class="hero-decoration">
@@ -454,14 +445,14 @@ function goToBanner(index: number) {
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-container">
-        <span class="footer-brand-text">XMYZ Club</span>
+        <span class="footer-brand-text">厦门一中学生社区</span>
         <div class="footer-links">
           <a href="#">关于我们</a>
           <a href="#">使用条款</a>
           <a href="#">隐私政策</a>
           <a href="#">帮助中心</a>
         </div>
-        <p class="copyright">&copy; 2024 厦门一中学生社区</p>
+        <p class="copyright">&copy; 2024 厦门一中学生社区 · designed by 23届玄学狗狗</p>
       </div>
     </footer>
   </div>
@@ -506,9 +497,10 @@ function goToBanner(index: number) {
 }
 
 .header-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
   font-weight: var(--font-bold);
   color: var(--color-text);
+  white-space: nowrap;
 }
 
 /* Navigation */
@@ -636,7 +628,7 @@ function goToBanner(index: number) {
 }
 
 .mobile-menu-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: var(--font-bold);
   color: var(--color-text);
 }
@@ -678,8 +670,8 @@ function goToBanner(index: number) {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  font-size: var(--text-base);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
   color: var(--color-text);
   text-decoration: none;
   border-radius: var(--radius-md);
@@ -687,8 +679,8 @@ function goToBanner(index: number) {
 }
 
 .mobile-nav-link svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 
@@ -704,6 +696,14 @@ function goToBanner(index: number) {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  margin-top: auto;
+}
+
+.mobile-menu-credit {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  text-align: center;
+  padding: var(--spacing-xs) 0;
 }
 
 .mobile-user-info {

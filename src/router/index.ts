@@ -23,11 +23,7 @@ const router = createRouter({
       name: 'design-system',
       component: () => import('../pages/DesignSystemPage.vue'),
     },
-    {
-      path: '/auth',
-      name: 'auth',
-      component: () => import('../pages/auth/AuthPage.vue'),
-    },
+    // 注册页面已移除，统一使用登录弹窗
 
     // ==================== QQ OAuth 回调页面 ====================
     {

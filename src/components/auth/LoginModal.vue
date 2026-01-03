@@ -460,6 +460,9 @@ onMounted(() => {
               </div>
             </div>
 
+            <!-- 填充空间保持高度一致 -->
+            <div class="form-spacer"></div>
+
             <button
               class="btn btn-primary btn-block btn-touch"
               :disabled="loading"
@@ -497,6 +500,8 @@ onMounted(() => {
   max-height: 90vh;
   overflow: hidden;
   box-shadow: var(--shadow-xl);
+  /* 添加高度过渡动画 */
+  transition: height var(--transition-normal);
 }
 
 .modal-header {
@@ -579,6 +584,10 @@ onMounted(() => {
 /* 表单 */
 .modal-body {
   padding: var(--spacing-md);
+  /* 固定最小高度防止切换时模态框跳变 */
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group {
@@ -788,6 +797,12 @@ onMounted(() => {
   text-align: center;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+/* 表单内容填充 - 确保按钮位置一致 */
+.form-spacer {
+  flex: 1;
+  min-height: var(--spacing-md);
 }
 
 /* Modal 动画 */

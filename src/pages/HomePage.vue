@@ -194,7 +194,6 @@ function goToBanner(index: number) {
                 </svg>
               </div>
               <span>首页</span>
-              <div class="drawer-nav-indicator"></div>
             </a>
             <a href="#" class="drawer-nav-item">
               <div class="drawer-nav-icon">
@@ -263,9 +262,6 @@ function goToBanner(index: number) {
                   <p class="hero-subtitle">{{ currentBanner.subtitle }}</p>
                 </div>
               </Transition>
-              <div class="hero-actions" v-if="!userStore.isLoggedIn">
-                <button class="btn btn-hero-primary" @click="handleLogin">立即登录</button>
-              </div>
             </div>
             <div class="hero-decoration">
               <div class="decoration-circle decoration-circle-1"></div>
@@ -486,14 +482,14 @@ function goToBanner(index: number) {
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-container">
-        <span class="footer-brand-text">厦门一中学生社区</span>
         <div class="footer-links">
           <a href="#">关于我们</a>
           <a href="#">使用条款</a>
           <a href="#">隐私政策</a>
           <a href="#">帮助中心</a>
         </div>
-        <p class="copyright">&copy; 2024 厦门一中学生社区 · designed by 23届玄学狗狗</p>
+        <p class="copyright">&copy; 2026 厦门一中学生社区 · designed by 23届玄学狗狗</p>
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="icp-link">闽ICP备2024074144号-4</a>
       </div>
     </footer>
   </div>
@@ -836,14 +832,6 @@ function goToBanner(index: number) {
   color: #EF4444;
 }
 
-.drawer-nav-indicator {
-  position: absolute;
-  right: var(--spacing-sm);
-  width: 6px;
-  height: 6px;
-  background: var(--color-primary);
-  border-radius: 50%;
-}
 
 /* 设置区域 */
 .drawer-settings-section {
@@ -1526,12 +1514,17 @@ function goToBanner(index: number) {
   text-align: center;
 }
 
-.footer-brand-text {
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-  color: var(--color-text);
+.icp-link {
   display: block;
-  margin-bottom: var(--spacing-md);
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  text-decoration: none;
+  margin-top: var(--spacing-sm);
+  transition: color var(--transition-fast);
+}
+
+.icp-link:hover {
+  color: var(--color-text-secondary);
 }
 
 .footer-links {
@@ -1733,10 +1726,6 @@ function goToBanner(index: number) {
     align-items: center;
     justify-content: space-between;
     text-align: left;
-  }
-
-  .footer-brand-text {
-    margin-bottom: 0;
   }
 
   .footer-links {

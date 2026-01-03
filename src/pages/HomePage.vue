@@ -151,10 +151,30 @@ function goToBanner(index: number) {
     </Transition>
     <Transition name="menu-slide">
       <div v-if="isMobileMenuOpen" class="mobile-menu">
-        <!-- 简洁的菜单头部 -->
-        <div class="mobile-menu-header">
-          <h2 class="mobile-menu-title">厦门一中学生社区</h2>
-          <button class="mobile-menu-close" @click="toggleMobileMenu">
+        <!-- 用户区域 -->
+        <div class="drawer-user-section">
+          <template v-if="userStore.isLoggedIn">
+            <div class="drawer-user-avatar">
+              {{ userStore.user?.nickname?.charAt(0) || 'U' }}
+            </div>
+            <div class="drawer-user-info">
+              <span class="drawer-user-name">{{ userStore.user?.nickname }}</span>
+              <span class="drawer-user-status">已登录</span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="drawer-user-avatar guest">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="drawer-user-info">
+              <span class="drawer-user-name">游客</span>
+              <button class="drawer-login-btn" @click="handleLogin">点击登录</button>
+            </div>
+          </template>
+          <button class="drawer-close-btn" @click="toggleMobileMenu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -162,49 +182,70 @@ function goToBanner(index: number) {
           </button>
         </div>
 
-        <!-- 导航链接 -->
-        <nav class="mobile-nav">
-          <a href="#" class="mobile-nav-link active">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
-            </svg>
-            <span>首页</span>
-          </a>
-          <a href="#" class="mobile-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span>活动抢票</span>
-          </a>
-          <a href="#" class="mobile-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <span>宿舍铃声</span>
-          </a>
-          <a href="#" class="mobile-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            <span>评分社区</span>
-          </a>
-        </nav>
+        <!-- 导航区域 -->
+        <div class="drawer-nav-section">
+          <p class="drawer-section-title">导航</p>
+          <nav class="drawer-nav">
+            <a href="#" class="drawer-nav-item active">
+              <div class="drawer-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+              </div>
+              <span>首页</span>
+              <div class="drawer-nav-indicator"></div>
+            </a>
+            <a href="#" class="drawer-nav-item">
+              <div class="drawer-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <span>活动抢票</span>
+            </a>
+            <a href="#" class="drawer-nav-item">
+              <div class="drawer-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+              </div>
+              <span>宿舍铃声</span>
+            </a>
+            <a href="#" class="drawer-nav-item">
+              <div class="drawer-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+              <span>评分社区</span>
+            </a>
+          </nav>
+        </div>
+
+        <!-- 设置区域 -->
+        <div class="drawer-settings-section" v-if="userStore.isLoggedIn">
+          <p class="drawer-section-title">账户</p>
+          <button class="drawer-settings-item" @click="handleLogout">
+            <div class="drawer-nav-icon logout">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </div>
+            <span>退出登录</span>
+          </button>
+        </div>
 
         <!-- 底部信息 -->
-        <div class="mobile-menu-footer">
-          <template v-if="userStore.isLoggedIn">
-            <div class="mobile-user-info">
-              <div class="user-avatar">{{ userStore.user?.nickname?.charAt(0) || 'U' }}</div>
-              <span>{{ userStore.user?.nickname }}</span>
-            </div>
-            <button class="btn btn-ghost btn-block" @click="handleLogout">退出登录</button>
-          </template>
-          <p class="mobile-menu-credit">designed by 23届玄学狗狗</p>
+        <div class="drawer-footer">
+          <p class="drawer-brand">厦门一中学生社区</p>
+          <p class="drawer-credit">designed by 23届玄学狗狗</p>
         </div>
       </div>
     </Transition>
@@ -605,113 +646,255 @@ function goToBanner(index: number) {
   backdrop-filter: blur(2px);
 }
 
+/* ===== Modern Floating Drawer ===== */
 .mobile-menu {
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
+  top: 12px;
+  left: 12px;
+  bottom: 12px;
   width: 280px;
-  max-width: 80vw;
-  background: var(--color-card);
+  max-width: calc(80vw - 24px);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 201;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-xl);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
-.mobile-menu-header {
+:root.dark .mobile-menu {
+  background: rgba(30, 30, 30, 0.95);
+}
+
+/* 用户区域 */
+.drawer-user-section {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  position: relative;
 }
 
-.mobile-menu-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-  color: var(--color-text);
-}
-
-.mobile-menu-close {
-  width: 36px;
-  height: 36px;
+.drawer-user-avatar {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+
+.drawer-user-avatar.guest {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.drawer-user-avatar.guest svg {
+  width: 24px;
+  height: 24px;
+  opacity: 0.9;
+}
+
+.drawer-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.drawer-user-name {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-user-status {
+  display: block;
+  font-size: var(--text-xs);
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.drawer-login-btn {
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+  color: white;
+  font-size: var(--text-xs);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all var(--transition-fast);
+}
+
+.drawer-login-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.drawer-close-btn {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  color: white;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.mobile-menu-close:hover {
-  background: var(--color-border);
-  color: var(--color-text);
+.drawer-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(90deg);
 }
 
-.mobile-menu-close svg {
-  width: 20px;
-  height: 20px;
+.drawer-close-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
-
-.mobile-nav {
+/* 导航区域 */
+.drawer-nav-section {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-md);
   overflow-y: auto;
 }
 
-.mobile-nav-link {
+.drawer-section-title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-sm);
+  padding-left: var(--spacing-sm);
+}
+
+.drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drawer-nav-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   color: var(--color-text);
   text-decoration: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   transition: all var(--transition-fast);
+  position: relative;
 }
 
-.mobile-nav-link svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+.drawer-nav-item:hover {
+  background: var(--color-border);
 }
 
-.mobile-nav-link:hover,
-.mobile-nav-link.active {
+.drawer-nav-item.active {
   background: var(--color-primary-bg);
   color: var(--color-primary);
 }
 
-.mobile-menu-footer {
-  padding: var(--spacing-md);
-  border-top: 1px solid var(--color-border);
+.drawer-nav-item.active .drawer-nav-icon {
+  background: var(--color-primary);
+  color: white;
+}
+
+.drawer-nav-icon {
+  width: 36px;
+  height: 36px;
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  margin-top: auto;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
 }
 
-.mobile-menu-credit {
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
-  text-align: center;
-  padding: var(--spacing-xs) 0;
+.drawer-nav-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
-.mobile-user-info {
+.drawer-nav-icon.logout {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+}
+
+.drawer-nav-indicator {
+  position: absolute;
+  right: var(--spacing-sm);
+  width: 6px;
+  height: 6px;
+  background: var(--color-primary);
+  border-radius: 50%;
+}
+
+/* 设置区域 */
+.drawer-settings-section {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+}
+
+.drawer-settings-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
+  color: #EF4444;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.drawer-settings-item:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 底部信息 */
+.drawer-footer {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.drawer-brand {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.drawer-credit {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
 }
 
 /* User Menu */
@@ -1394,15 +1577,25 @@ function goToBanner(index: number) {
   opacity: 0;
 }
 
-/* Menu Slide */
-.menu-slide-enter-active,
-.menu-slide-leave-active {
-  transition: transform var(--transition-normal);
+/* Menu Slide - Modern floating animation */
+.menu-slide-enter-active {
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 300ms ease;
 }
 
-.menu-slide-enter-from,
+.menu-slide-leave-active {
+  transition: transform 200ms cubic-bezier(0.4, 0, 1, 1),
+              opacity 200ms ease;
+}
+
+.menu-slide-enter-from {
+  transform: translateX(-100%) scale(0.95);
+  opacity: 0;
+}
+
 .menu-slide-leave-to {
   transform: translateX(-100%);
+  opacity: 0;
 }
 
 .fade-enter-active,

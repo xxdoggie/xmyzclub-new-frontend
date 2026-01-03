@@ -87,7 +87,7 @@ onMounted(() => {
           <div class="header-main">
             <div class="header-text">
               <h1 class="page-title">投票结果</h1>
-              <p class="page-subtitle" v-if="resultData">{{ resultData.campaign.name }}</p>
+              <p class="page-subtitle" v-if="resultData">{{ resultData.campaign.title }}</p>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import api from './index'
 import type { ApiResponse } from './index'
 import type {
   Campaign,
+  CampaignStage,
   SubmissionGroup,
   VotingResultResponse,
   CreateCampaignRequest,

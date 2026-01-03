@@ -266,7 +266,7 @@ onMounted(() => {
           <div class="header-main">
             <div class="header-text">
               <h1 class="page-title">审核投稿</h1>
-              <p class="page-subtitle" v-if="campaign">{{ campaign.name }}</p>
+              <p class="page-subtitle" v-if="campaign">{{ campaign.title }}</p>
             </div>
           </div>
         </div>

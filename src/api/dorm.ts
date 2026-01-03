@@ -12,6 +12,7 @@ import type {
   CreateTimePeriodRequest,
   UpdateTimePeriodRequest,
 } from '@/types/dorm'
+import type { Campaign } from '@/types/campaign'
 
 // ==================== 用户端 API ====================
 
@@ -36,6 +37,13 @@ export function getCampusDetail(id: number) {
  */
 export function getCampusBuildings(id: number) {
   return api.get<ApiResponse<Building[]>>(`/campuses/${id}/buildings`)
+}
+
+/**
+ * 获取校区的活动
+ */
+export function getCampusCampaigns(id: number) {
+  return api.get<ApiResponse<Campaign[]>>(`/campuses/${id}/campaigns`)
 }
 
 // ----- 宿舍楼 -----

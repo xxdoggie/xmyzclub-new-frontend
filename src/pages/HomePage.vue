@@ -159,7 +159,8 @@ function goToBanner(index: number) {
             </div>
             <div class="drawer-user-info">
               <span class="drawer-user-name">{{ userStore.user?.nickname }}</span>
-              <span class="drawer-user-status">已登录</span>
+              <span class="drawer-user-signature" v-if="userStore.user?.signature">{{ userStore.user.signature }}</span>
+              <span class="drawer-user-status" v-else>已登录</span>
             </div>
           </template>
           <template v-else>
@@ -330,7 +331,8 @@ function goToBanner(index: number) {
                 </div>
                 <div class="user-card-info">
                   <h4 class="user-card-name">{{ userStore.user?.nickname }}</h4>
-                  <p class="user-card-meta">欢迎回来</p>
+                  <p class="user-card-signature" v-if="userStore.user?.signature">{{ userStore.user.signature }}</p>
+                  <p class="user-card-meta" v-else>欢迎回来</p>
                 </div>
               </div>
               <div class="user-card-content guest" v-else>
@@ -714,6 +716,18 @@ function goToBanner(index: number) {
   font-size: var(--text-xs);
   opacity: 0.8;
   margin-top: 2px;
+}
+
+.drawer-user-signature {
+  display: block;
+  font-size: var(--text-xs);
+  opacity: 0.85;
+  margin-top: 2px;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 150px;
 }
 
 .drawer-login-btn {
@@ -1291,6 +1305,17 @@ function goToBanner(index: number) {
 .user-card-meta {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+}
+
+.user-card-signature {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
 }
 
 /* Feed */

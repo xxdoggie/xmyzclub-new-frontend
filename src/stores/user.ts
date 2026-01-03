@@ -97,7 +97,8 @@ export const useUserStore = defineStore('user', () => {
   }) {
     token.value = data.token
     user.value = data.user
-    expiresAt.value = data.expiresAt
+    // API 返回的 expiresAt 是秒级时间戳，转换为毫秒
+    expiresAt.value = data.expiresAt * 1000
     campusInfo.value = data.campusInfo ?? null
     saveToLocalStorage()
   }

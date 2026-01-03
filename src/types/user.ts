@@ -7,6 +7,9 @@ export interface UserInfo {
   nickname: string
   gender: number
   signature: string
+  birthdate?: string
+  createdAt?: string
+  status: number
   avatar?: string
 }
 

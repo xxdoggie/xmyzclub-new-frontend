@@ -348,3 +348,119 @@ export interface ProgressResponse {
   /** 各时段进度 */
   timePeriodProgress: TimePeriodProgressItem[]
 }
+
+// ==================== 用户端投稿相关类型 ====================
+
+/**
+ * 音乐搜索结果项
+ */
+export interface MusicSearchItem {
+  /** 音乐服务ID */
+  musicServiceId: string
+  /** 音乐MID */
+  mid: string
+  /** 歌曲名称 */
+  song: string
+  /** 副标题 */
+  subtitle: string
+  /** 歌手 */
+  singer: string
+  /** 专辑 */
+  album: string
+  /** 时长（如 "3分54秒"） */
+  interval: string
+  /** 封面图URL */
+  cover: string
+  /** 播放链接 */
+  link: string
+}
+
+/**
+ * 用户投稿记录
+ */
+export interface UserSubmission {
+  /** 投稿ID */
+  id: number
+  /** 活动ID */
+  campaignId: number
+  /** 铃声时段 */
+  timePeriod: {
+    id: number
+    name: string
+  }
+  /** 音乐信息 */
+  music: MusicInfo
+  /** 审核状态: pending=待审核, approved=已通过, rejected=已拒绝 */
+  status: 'pending' | 'approved' | 'rejected'
+  /** 审核备注 */
+  reviewNote?: string
+  /** 创建时间 */
+  createdAt: string
+}
+
+/**
+ * 提交投稿请求
+ */
+export interface CreateSubmissionRequest {
+  /** 活动ID */
+  campaignId: number
+  /** 铃声时段ID */
+  timePeriodId: number
+  /** 音乐MID */
+  musicMid: string
+  /** 用户信息（可选） */
+  userInfo?: {
+    dormitory?: string
+    bed?: string
+    studentId?: string
+  }
+}
+
+// ==================== 用户端投票相关类型 ====================
+
+/**
+ * 投票选项（用户端）
+ */
+export interface UserVotingOption {
+  /** 选项ID */
+  id: number
+  /** 音乐信息 */
+  music: MusicInfo
+  /** 得票数 */
+  voteCount: number
+  /** 当前用户是否已投票 */
+  hasVoted: boolean
+}
+
+/**
+ * 时段投票选项列表
+ */
+export interface TimePeriodVotingOptions {
+  /** 铃声时段 */
+  timePeriod: {
+    id: number
+    name: string
+  }
+  /** 投票选项列表 */
+  options: UserVotingOption[]
+}
+
+/**
+ * 提交投票请求
+ */
+export interface CreateVoteRequest {
+  /** 活动ID */
+  campaignId: number
+  /** 投票选项ID列表 */
+  optionIds: number[]
+}
+
+/**
+ * 取消投票请求
+ */
+export interface CancelVoteRequest {
+  /** 活动ID */
+  campaignId: number
+  /** 投票选项ID */
+  optionId: number
+}

@@ -10,6 +10,12 @@ import type {
   ReviewSubmissionRequest,
   DeleteSubmissionRequest,
   ProgressResponse,
+  MusicSearchItem,
+  UserSubmission,
+  CreateSubmissionRequest,
+  TimePeriodVotingOptions,
+  CreateVoteRequest,
+  CancelVoteRequest,
 } from '@/types/campaign'
 
 // ==================== 用户端 API ====================
@@ -120,4 +126,57 @@ export function getSubmissionProgress(campaignId: number) {
  */
 export function getVotingProgress(campaignId: number) {
   return api.get<ApiResponse<ProgressResponse>>(`/voting/campaigns/${campaignId}/progress`)
+}
+
+// ==================== 用户端投稿 API ====================
+
+/**
+ * 搜索音乐
+ */
+export function searchMusic(keyword: string) {
+  return api.get<ApiResponse<MusicSearchItem[]>>('/music/search', { params: { keyword } })
+}
+
+/**
+ * 获取用户在某活动的投稿列表
+ */
+export function getUserSubmissions(campaignId: number) {
+  return api.get<ApiResponse<UserSubmission[]>>(`/submissions/campaigns/${campaignId}`)
+}
+
+/**
+ * 提交投稿
+ */
+export function createSubmission(data: CreateSubmissionRequest) {
+  return api.post<ApiResponse<UserSubmission>>('/submissions', data)
+}
+
+/**
+ * 删除用户自己的投稿
+ */
+export function deleteUserSubmission(submissionId: number) {
+  return api.delete<ApiResponse<null>>(`/submissions/${submissionId}`)
+}
+
+// ==================== 用户端投票 API ====================
+
+/**
+ * 获取投票选项列表（按时段分组）
+ */
+export function getVotingOptions(campaignId: number) {
+  return api.get<ApiResponse<TimePeriodVotingOptions[]>>(`/voting/campaigns/${campaignId}/options`)
+}
+
+/**
+ * 提交投票
+ */
+export function createVote(data: CreateVoteRequest) {
+  return api.post<ApiResponse<null>>('/voting', data)
+}
+
+/**
+ * 取消投票
+ */
+export function cancelVote(data: CancelVoteRequest) {
+  return api.delete<ApiResponse<null>>('/voting', { data })
 }

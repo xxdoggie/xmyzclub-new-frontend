@@ -348,3 +348,155 @@ export interface ProgressResponse {
   /** 各时段进度 */
   timePeriodProgress: TimePeriodProgressItem[]
 }
+
+// ==================== 用户端音乐搜索相关类型 ====================
+
+/**
+ * 音乐搜索结果项
+ */
+export interface MusicSearchItem {
+  /** 歌曲ID */
+  id: string
+  /** 歌曲MID */
+  mid: string
+  /** 歌曲名称 */
+  title: string
+  /** 副标题 */
+  subtitle: string
+  /** 歌手 */
+  singer: string
+  /** 专辑 */
+  album: string
+  /** 类型 */
+  type: number
+  /** 视频ID */
+  vid: string | null
+  /** 分组数量 */
+  grpCount: number | null
+}
+
+/**
+ * 音乐搜索分页信息
+ */
+export interface MusicSearchMeta {
+  total: number
+  page: number
+  size: number
+  nextPage: number | null
+}
+
+/**
+ * 音乐搜索响应
+ */
+export interface MusicSearchResponse {
+  data: MusicSearchItem[]
+  meta: MusicSearchMeta
+}
+
+/**
+ * 音乐详情
+ */
+export interface MusicDetail {
+  /** 歌曲ID */
+  id: string
+  /** 歌曲MID */
+  mid: string
+  /** 歌曲名称 */
+  title: string
+  /** 副标题 */
+  subtitle: string
+  /** 歌手 */
+  singer: string
+  /** 专辑 */
+  album: string
+  /** 时长（如 "4分29秒"） */
+  interval: string
+  /** 封面图URL */
+  cover: string
+  /** 播放链接 */
+  link: string
+  /** 类型 */
+  type: number
+  /** 视频ID */
+  vid: string | null
+}
+
+/**
+ * 音乐播放链接响应
+ */
+export interface MusicUrlResponse {
+  url: string
+  quality: string
+}
+
+// ==================== 用户端投稿相关类型 ====================
+
+/**
+ * 投稿中的音乐信息
+ */
+export interface SubmissionMusic {
+  musicServiceId: string
+  song: string
+  singer: string
+  album: string
+  interval?: string
+  cover: string
+}
+
+/**
+ * 用户投稿记录
+ */
+export interface UserSubmission {
+  /** 投稿ID */
+  id: number
+  /** 活动ID */
+  campaignId: number
+  /** 铃声时段ID */
+  timePeriodId: number
+  /** 音乐信息 */
+  music: SubmissionMusic
+  /** 时段信息 */
+  timePeriod?: {
+    id: number
+    name: string
+  }
+  /** 创建时间 */
+  createdAt: string
+}
+
+/**
+ * 按时段分组的用户投稿
+ */
+export interface TimePeriodUserSubmissions {
+  timePeriod: {
+    id: number
+    name: string
+    startTime?: string
+    endTime?: string
+  }
+  submissions: UserSubmission[]
+}
+
+/**
+ * 创建投稿请求
+ */
+export interface CreateSubmissionRequest {
+  /** 活动ID */
+  campaignId: number
+  /** 音乐服务ID（格式：qq_{id} 或 qq_{mid}） */
+  musicServiceId: string
+  /** 时段ID列表 */
+  timePeriodIds: number[]
+  /** 用户附加信息（可选） */
+  userInfo?: {
+    dormitory?: string
+    phone?: string
+  }
+}
+
+/**
+ * 创建投稿响应
+ */
+export interface CreateSubmissionResponse {
+  submissions: UserSubmission[]
+}

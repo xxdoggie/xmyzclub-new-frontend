@@ -10,6 +10,12 @@ import type {
   ReviewSubmissionRequest,
   DeleteSubmissionRequest,
   ProgressResponse,
+  MusicSearchResponse,
+  MusicDetail,
+  MusicUrlResponse,
+  TimePeriodUserSubmissions,
+  CreateSubmissionRequest,
+  CreateSubmissionResponse,
 } from '@/types/campaign'
 
 // ==================== 用户端 API ====================
@@ -120,4 +126,49 @@ export function getSubmissionProgress(campaignId: number) {
  */
 export function getVotingProgress(campaignId: number) {
   return api.get<ApiResponse<ProgressResponse>>(`/voting/campaigns/${campaignId}/progress`)
+}
+
+// ==================== 音乐搜索 API ====================
+
+/**
+ * 搜索音乐
+ */
+export function searchMusic(keyword: string, page = 1, pageSize = 20) {
+  return api.get<ApiResponse<MusicSearchResponse>>('/music/search', {
+    params: { keyword, page, pageSize },
+  })
+}
+
+/**
+ * 获取音乐详情
+ */
+export function getMusicDetail(musicId: string) {
+  return api.get<ApiResponse<MusicDetail>>('/music/detail', {
+    params: { musicId },
+  })
+}
+
+/**
+ * 获取音乐播放链接
+ */
+export function getMusicUrl(musicId: string, quality = 8) {
+  return api.get<ApiResponse<MusicUrlResponse>>('/music/url', {
+    params: { musicId, quality },
+  })
+}
+
+// ==================== 用户端投稿 API ====================
+
+/**
+ * 获取用户在某活动的投稿列表（按时段分组）
+ */
+export function getUserSubmissions(campaignId: number) {
+  return api.get<ApiResponse<TimePeriodUserSubmissions[]>>(`/submissions/campaigns/${campaignId}`)
+}
+
+/**
+ * 创建投稿
+ */
+export function createSubmission(data: CreateSubmissionRequest) {
+  return api.post<ApiResponse<CreateSubmissionResponse>>('/submissions', data)
 }

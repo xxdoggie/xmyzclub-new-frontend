@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import { getCampaigns } from '@/api/campaign'
 import type { Campaign, StageType } from '@/types/campaign'
@@ -8,6 +9,7 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
 const router = useRouter()
+const userStore = useUserStore()
 const toast = useToast()
 
 // 状态
@@ -21,6 +23,11 @@ const displayCampaigns = computed(() => {
 
 // 加载活动列表
 async function loadCampaigns() {
+  if (!userStore.isLoggedIn) {
+    isLoading.value = false
+    return
+  }
+
   isLoading.value = true
   try {
     const res = await getCampaigns()
@@ -57,10 +64,10 @@ function getEnterLabel(stageType: StageType): string {
 // 获取阶段状态标签
 function getStageLabel(stageType: StageType): string {
   const labels: Record<StageType, string> = {
-    submission: '投稿进行中',
-    review: '审核阶段',
-    voting: '投票进行中',
-    result: '结果公示',
+    submission: '投稿中',
+    review: '审核中',
+    voting: '投票中',
+    result: '已结束',
   }
   return labels[stageType] || ''
 }
@@ -86,15 +93,6 @@ function goToCampaign(campaign: Campaign) {
   } else if (stageType === 'voting') {
     router.push(`/ringtone/${campaign.id}/vote`)
   }
-}
-
-// 格式化日期
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('zh-CN', {
-    month: 'long',
-    day: 'numeric',
-  })
 }
 
 // 格式化阶段结束时间
@@ -133,8 +131,24 @@ onMounted(() => {
         <!-- 桌面端标题 -->
         <h1 class="page-title desktop-only">宿舍铃声</h1>
 
+        <!-- 未登录提示 -->
+        <div v-if="!userStore.isLoggedIn" class="login-prompt">
+          <div class="prompt-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+          </div>
+          <h2>登录后查看活动</h2>
+          <p>登录账号即可参与铃声征集活动</p>
+          <button class="login-btn" @click="userStore.openLoginModal('请先登录以查看活动')">
+            立即登录
+          </button>
+        </div>
+
         <!-- 加载状态 -->
-        <div v-if="isLoading" class="loading-container">
+        <div v-else-if="isLoading" class="loading-container">
           <div class="loading-spinner"></div>
           <p>加载中...</p>
         </div>
@@ -143,13 +157,13 @@ onMounted(() => {
         <div v-else-if="displayCampaigns.length === 0" class="empty-container">
           <div class="empty-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
             </svg>
           </div>
           <h2>暂无活动</h2>
           <p>目前没有进行中的铃声征集活动</p>
-          <p class="empty-hint">请稍后再来查看</p>
         </div>
 
         <!-- 活动列表 -->
@@ -166,40 +180,48 @@ onMounted(() => {
               :class="{ clickable: canEnterCampaign(campaign) }"
               @click="canEnterCampaign(campaign) && goToCampaign(campaign)"
             >
-              <!-- 活动图标 -->
-              <div class="campaign-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M9 18V5l12-2v13"></path>
-                  <circle cx="6" cy="18" r="3"></circle>
-                  <circle cx="18" cy="16" r="3"></circle>
-                </svg>
+              <!-- 活动封面区域 -->
+              <div class="campaign-cover">
+                <div class="cover-content">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
+                </div>
+                <!-- 状态标签 -->
+                <span
+                  v-if="campaign.currentStage"
+                  class="stage-badge"
+                  :class="getStageClass(campaign.currentStage.stageType)"
+                >
+                  {{ getStageLabel(campaign.currentStage.stageType) }}
+                </span>
               </div>
 
               <!-- 活动信息 -->
               <div class="campaign-info">
-                <div class="campaign-header">
-                  <h3 class="campaign-name">{{ campaign.title }}</h3>
-                  <span
-                    v-if="campaign.currentStage"
-                    class="stage-badge"
-                    :class="getStageClass(campaign.currentStage.stageType)"
-                  >
-                    {{ getStageLabel(campaign.currentStage.stageType) }}
-                  </span>
-                </div>
-                <p class="campaign-desc">{{ campaign.description }}</p>
+                <h3 class="campaign-name">{{ campaign.title }}</h3>
+                <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
                 <div class="campaign-meta">
-                  <span class="meta-item">{{ campaign.campus?.name || '未知校区' }}</span>
-                  <span class="meta-divider">·</span>
-                  <span class="meta-item">{{ formatDate(campaign.createdAt) }}</span>
-                  <template v-if="campaign.currentStage?.endTime">
-                    <span class="meta-divider">·</span>
-                    <span class="meta-item countdown">{{ formatEndTime(campaign.currentStage.endTime) }}</span>
-                  </template>
+                  <span class="meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    {{ campaign.campus?.name || '未知校区' }}
+                  </span>
+                  <span v-if="campaign.currentStage?.endTime" class="meta-item countdown">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    {{ formatEndTime(campaign.currentStage.endTime) }}
+                  </span>
                 </div>
               </div>
 
-              <!-- 操作按钮 -->
+              <!-- 操作区域 -->
               <div class="campaign-action">
                 <button
                   v-if="canEnterCampaign(campaign)"
@@ -238,7 +260,7 @@ onMounted(() => {
 
 .page-content {
   flex: 1;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-sm);
 }
 
 .content-container {
@@ -269,6 +291,57 @@ onMounted(() => {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
+}
+
+/* ===== Login Prompt ===== */
+.login-prompt {
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-md);
+}
+
+.prompt-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-secondary);
+  border-radius: var(--radius-xl);
+}
+
+.prompt-icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.login-prompt h2 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.login-prompt p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.login-btn {
+  padding: var(--spacing-sm) var(--spacing-xl);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-secondary);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.login-btn:hover {
+  opacity: 0.9;
 }
 
 /* ===== Loading ===== */
@@ -310,8 +383,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--color-secondary);
+  background: var(--color-border);
+  color: var(--color-text-secondary);
   border-radius: var(--radius-xl);
 }
 
@@ -329,12 +402,6 @@ onMounted(() => {
 .empty-container p {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-xs);
-}
-
-.empty-hint {
-  font-size: var(--text-sm);
-  color: var(--color-text-placeholder);
 }
 
 /* ===== Campaign Card ===== */
@@ -347,10 +414,9 @@ onMounted(() => {
 .campaign-card {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
   background: var(--color-card);
   border-radius: var(--radius-xl);
+  overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all var(--transition-fast);
 }
@@ -368,75 +434,82 @@ onMounted(() => {
   transform: translateY(0);
 }
 
-.campaign-icon {
-  width: 48px;
-  height: 48px;
+/* ===== Campaign Cover ===== */
+.campaign-cover {
+  position: relative;
+  height: 100px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.1);
+}
+
+.cover-content {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 182, 212, 0.2);
   color: var(--color-secondary);
   border-radius: var(--radius-lg);
-  flex-shrink: 0;
 }
 
-.campaign-icon svg {
-  width: 24px;
-  height: 24px;
+.cover-content svg {
+  width: 28px;
+  height: 28px;
 }
 
+.stage-badge {
+  position: absolute;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  border-radius: var(--radius-full);
+  color: white;
+  backdrop-filter: blur(4px);
+}
+
+.stage-badge.stage-submission {
+  background: rgba(6, 182, 212, 0.9);
+}
+
+.stage-badge.stage-review {
+  background: rgba(245, 158, 11, 0.9);
+}
+
+.stage-badge.stage-voting {
+  background: rgba(168, 85, 247, 0.9);
+}
+
+.stage-badge.stage-result {
+  background: rgba(107, 114, 128, 0.9);
+}
+
+/* ===== Campaign Info ===== */
 .campaign-info {
   flex: 1;
-  min-width: 0;
-}
-
-.campaign-header {
+  padding: var(--spacing-md);
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xs);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--spacing-xs);
 }
 
 .campaign-name {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   line-height: 1.4;
-}
-
-.stage-badge {
-  font-size: 10px;
-  font-weight: var(--font-semibold);
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.stage-badge.stage-submission {
-  background: rgba(6, 182, 212, 0.15);
-  color: var(--color-secondary);
-}
-
-.stage-badge.stage-review {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.stage-badge.stage-voting {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
-}
-
-.stage-badge.stage-result {
-  background: var(--color-success-bg);
-  color: var(--color-success);
 }
 
 .campaign-desc {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
-  margin-bottom: var(--spacing-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -446,36 +519,44 @@ onMounted(() => {
 
 .campaign-meta {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
   flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xs);
 }
 
-.meta-divider {
-  color: var(--color-border);
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.meta-item svg {
+  width: 12px;
+  height: 12px;
 }
 
 .meta-item.countdown {
   color: var(--color-warning);
 }
 
+/* ===== Campaign Action ===== */
 .campaign-action {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  padding: 0 var(--spacing-md) var(--spacing-md);
 }
 
 .enter-btn {
+  width: 100%;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -506,22 +587,14 @@ onMounted(() => {
 }
 
 .status-text {
+  display: block;
+  text-align: center;
   font-size: var(--text-sm);
   color: var(--color-text-placeholder);
+  padding: var(--spacing-sm);
 }
 
 /* ===== Desktop ===== */
-@media (min-width: 768px) {
-  .campaign-card {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .campaign-action {
-    flex-shrink: 0;
-  }
-}
-
 @media (min-width: 1024px) {
   .desktop-only {
     display: block;
@@ -548,17 +621,18 @@ onMounted(() => {
   }
 
   .campaign-card {
+    flex-direction: row;
+  }
+
+  .campaign-cover {
+    width: 180px;
+    height: auto;
+    min-height: 140px;
+  }
+
+  .campaign-info {
     padding: var(--spacing-lg);
-  }
-
-  .campaign-icon {
-    width: 56px;
-    height: 56px;
-  }
-
-  .campaign-icon svg {
-    width: 28px;
-    height: 28px;
+    justify-content: center;
   }
 
   .campaign-name {
@@ -569,7 +643,28 @@ onMounted(() => {
     font-size: var(--text-base);
   }
 
+  .campaign-meta {
+    font-size: var(--text-sm);
+  }
+
+  .meta-item {
+    font-size: var(--text-sm);
+  }
+
+  .meta-item svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .campaign-action {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-lg);
+    padding-left: 0;
+  }
+
   .enter-btn {
+    width: auto;
     padding: var(--spacing-sm) var(--spacing-lg);
   }
 }

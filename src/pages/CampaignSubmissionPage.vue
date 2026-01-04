@@ -17,7 +17,6 @@ import type {
   MusicDetail,
   SubmissionStageConfig,
 } from '@/types/campaign'
-import type { TimePeriod } from '@/types/dorm'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -108,6 +107,11 @@ function canSubmitToPeriod(periodId: number): boolean {
 const selectablePeriods = computed(() => {
   if (!campaign.value?.timePeriods) return []
   return campaign.value.timePeriods.filter((p) => canSubmitToPeriod(p.id))
+})
+
+// 总投稿数量
+const totalSubmissions = computed(() => {
+  return userSubmissions.value.reduce((sum, p) => sum + (p.submissions?.length || 0), 0)
 })
 
 // 加载活动详情
@@ -383,47 +387,78 @@ onMounted(() => {
         </div>
 
         <template v-else-if="campaign">
-          <!-- 活动信息 -->
-          <div class="campaign-header">
-            <h1 class="campaign-title">{{ campaign.title }}</h1>
-            <p class="campaign-desc">{{ campaign.description }}</p>
-            <div class="campaign-meta">
-              <span class="meta-item">{{ campaign.campus?.name }}</span>
-              <span v-if="campaign.currentStage?.endTime" class="meta-divider">·</span>
-              <span v-if="campaign.currentStage?.endTime" class="meta-item">
-                截止：{{ formatEndTime(campaign.currentStage.endTime) }}
-              </span>
+          <!-- 活动信息卡片 -->
+          <div class="campaign-card">
+            <div class="campaign-cover">
+              <div class="cover-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+              </div>
             </div>
-            <div class="rules-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              {{ rulesDescription }}
+            <div class="campaign-info">
+              <h1 class="campaign-title">{{ campaign.title }}</h1>
+              <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
+              <div class="campaign-meta">
+                <span class="meta-tag location">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  {{ campaign.campus?.name }}
+                </span>
+                <span v-if="campaign.currentStage?.endTime" class="meta-tag deadline">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  截止 {{ formatEndTime(campaign.currentStage.endTime) }}
+                </span>
+              </div>
             </div>
+          </div>
+
+          <!-- 规则提示 -->
+          <div class="rules-notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>{{ rulesDescription }}</span>
           </div>
 
           <!-- 投稿按钮 -->
-          <div class="action-section">
-            <button class="submit-btn" @click="openSearchModal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              投稿歌曲
-            </button>
-          </div>
+          <button class="submit-action-btn" @click="openSearchModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            投稿歌曲
+          </button>
 
           <!-- 我的投稿 -->
-          <div class="submissions-section">
-            <h2 class="section-title">我的投稿</h2>
+          <section class="submissions-section">
+            <div class="section-header">
+              <h2 class="section-title">我的投稿</h2>
+              <span class="section-count">{{ totalSubmissions }} 首</span>
+            </div>
 
             <div
-              v-if="userSubmissions.every((p) => !p.submissions?.length)"
+              v-if="totalSubmissions === 0"
               class="empty-submissions"
             >
-              <p>暂无投稿，快去搜索喜欢的歌曲投稿吧</p>
+              <div class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+              </div>
+              <p>暂无投稿</p>
+              <span>快去搜索喜欢的歌曲投稿吧</span>
             </div>
 
             <div v-else class="submissions-by-period">
@@ -434,19 +469,14 @@ onMounted(() => {
               >
                 <div class="period-header">
                   <span class="period-name">{{ periodData.timePeriod.name }}</span>
-                  <span class="period-count">
-                    {{ periodData.submissions?.length || 0 }} 首
-                  </span>
+                  <span class="period-count">{{ periodData.submissions?.length || 0 }} 首</span>
                 </div>
 
-                <div
-                  v-if="periodData.submissions?.length"
-                  class="submissions-list"
-                >
+                <div v-if="periodData.submissions?.length" class="submissions-list">
                   <div
                     v-for="submission in periodData.submissions"
                     :key="submission.id"
-                    class="submission-card"
+                    class="submission-item"
                   >
                     <img
                       :src="submission.music.cover"
@@ -454,17 +484,19 @@ onMounted(() => {
                       class="music-cover"
                     />
                     <div class="music-info">
-                      <h3 class="music-name">{{ submission.music.song }}</h3>
+                      <h4 class="music-name">{{ submission.music.song }}</h4>
                       <p class="music-singer">{{ submission.music.singer }}</p>
                     </div>
                     <span class="submit-time">{{ formatDate(submission.createdAt) }}</span>
                   </div>
                 </div>
 
-                <div v-else class="period-empty">暂无投稿</div>
+                <div v-else class="period-empty">
+                  <span>暂无投稿</span>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
         </template>
       </div>
     </main>
@@ -477,8 +509,11 @@ onMounted(() => {
     <!-- 搜索投稿弹窗 -->
     <Transition name="modal-fade">
       <div v-if="showSearchModal" class="modal-overlay" @click.self="closeSearchModal">
-        <Transition name="modal-scale" appear>
-          <div v-if="showSearchModal" class="modal-content modal-lg" @click.stop>
+        <Transition name="modal-slide" appear>
+          <div v-if="showSearchModal" class="modal-content" @click.stop>
+            <!-- 拖拽指示器 -->
+            <div class="modal-handle"></div>
+
             <div class="modal-header">
               <h3 class="modal-title">投稿歌曲</h3>
               <button class="modal-close" @click="closeSearchModal">
@@ -512,11 +547,20 @@ onMounted(() => {
                   <span>搜索中...</span>
                 </div>
 
+                <div v-else-if="!searchKeyword" class="search-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <p>输入歌曲名或歌手搜索</p>
+                </div>
+
                 <div
-                  v-else-if="searchResults.length === 0 && searchKeyword"
+                  v-else-if="searchResults.length === 0 && !isSearching"
                   class="search-empty"
                 >
                   <p>未找到相关歌曲</p>
+                  <span>换个关键词试试</span>
                 </div>
 
                 <div v-else class="results-list">
@@ -536,19 +580,11 @@ onMounted(() => {
                     <div class="music-details">
                       <h4 class="music-title">
                         {{ music.title }}
-                        <span v-if="music.subtitle" class="music-subtitle">
-                          {{ music.subtitle }}
-                        </span>
+                        <span v-if="music.subtitle" class="music-subtitle">{{ music.subtitle }}</span>
                       </h4>
                       <p class="music-artist">{{ music.singer }} · {{ music.album }}</p>
                     </div>
-                    <svg
-                      class="select-arrow"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
+                    <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                   </div>
@@ -583,7 +619,7 @@ onMounted(() => {
                 <span>加载中...</span>
               </div>
 
-              <div v-else-if="selectedMusicDetail" class="music-detail">
+              <div v-else-if="selectedMusicDetail" class="music-detail-card">
                 <img
                   :src="selectedMusicDetail.cover"
                   :alt="selectedMusicDetail.title"
@@ -592,14 +628,16 @@ onMounted(() => {
                 <div class="detail-info">
                   <h3 class="detail-title">{{ selectedMusicDetail.title }}</h3>
                   <p class="detail-singer">{{ selectedMusicDetail.singer }}</p>
-                  <p class="detail-album">{{ selectedMusicDetail.album }}</p>
-                  <p class="detail-duration">时长：{{ selectedMusicDetail.interval }}</p>
+                  <div class="detail-meta">
+                    <span>{{ selectedMusicDetail.album }}</span>
+                    <span>·</span>
+                    <span>{{ selectedMusicDetail.interval }}</span>
+                  </div>
                 </div>
                 <button class="play-btn" @click="playMusic">
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
                   </svg>
-                  试听
                 </button>
               </div>
 
@@ -607,16 +645,16 @@ onMounted(() => {
               <div class="period-selection">
                 <div class="selection-header">
                   <h4 class="selection-title">选择投稿时段</h4>
-                  <button class="select-all-btn" @click="toggleAllPeriods">
-                    {{
-                      selectedPeriodIds.length === selectablePeriods.length
-                        ? '取消全选'
-                        : '全选'
-                    }}
+                  <button
+                    v-if="selectablePeriods.length > 1"
+                    class="select-all-btn"
+                    @click="toggleAllPeriods"
+                  >
+                    {{ selectedPeriodIds.length === selectablePeriods.length ? '取消全选' : '全选' }}
                   </button>
                 </div>
 
-                <div class="periods-list">
+                <div class="periods-grid">
                   <label
                     v-for="period in campaign?.timePeriods"
                     :key="period.id"
@@ -632,20 +670,27 @@ onMounted(() => {
                       :disabled="!canSubmitToPeriod(period.id)"
                       @change="togglePeriod(period.id)"
                     />
-                    <span class="period-label">{{ period.name }}</span>
-                    <span class="period-status">
-                      {{ getSubmissionCount(period.id) }} 首
-                      <template v-if="!canSubmitToPeriod(period.id)">（已满）</template>
-                    </span>
+                    <div class="period-content">
+                      <span class="period-label">{{ period.name }}</span>
+                      <span class="period-status">
+                        {{ getSubmissionCount(period.id) }} 首
+                        <template v-if="!canSubmitToPeriod(period.id)">（已满）</template>
+                      </span>
+                    </div>
+                    <div class="period-check">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
                   </label>
                 </div>
               </div>
 
               <!-- 提交按钮 -->
               <div class="modal-actions">
-                <button class="modal-btn cancel" @click="closeSearchModal">取消</button>
+                <button class="action-btn cancel" @click="closeSearchModal">取消</button>
                 <button
-                  class="modal-btn confirm"
+                  class="action-btn confirm"
                   :disabled="selectedPeriodIds.length === 0 || isSubmitting"
                   @click="submitSubmission"
                 >
@@ -673,7 +718,7 @@ onMounted(() => {
 
 .page-content {
   flex: 1;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-md) 10px;
   padding-bottom: var(--spacing-md);
 }
 
@@ -718,13 +763,45 @@ onMounted(() => {
   }
 }
 
-/* ===== Campaign Header ===== */
-.campaign-header {
-  margin-bottom: var(--spacing-lg);
+/* ===== Campaign Card ===== */
+.campaign-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+}
+
+.campaign-cover {
+  height: 120px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cover-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 182, 212, 0.2);
+  color: var(--color-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.cover-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.campaign-info {
+  padding: var(--spacing-md);
 }
 
 .campaign-title {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   margin-bottom: var(--spacing-xs);
 }
@@ -732,53 +809,61 @@ onMounted(() => {
 .campaign-desc {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
   margin-bottom: var(--spacing-sm);
 }
 
 .campaign-meta {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.meta-tag {
+  display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 4px;
+  padding: 4px 8px;
   font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  margin-bottom: var(--spacing-sm);
+  border-radius: var(--radius-sm);
 }
 
-.meta-divider {
-  color: var(--color-border);
+.meta-tag svg {
+  width: 12px;
+  height: 12px;
 }
 
-.rules-hint {
+.meta-tag.location {
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-secondary);
+}
+
+.meta-tag.deadline {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+/* ===== Rules Notice ===== */
+.rules-notice {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-info-bg);
+  color: var(--color-info);
   font-size: var(--text-sm);
-  color: var(--color-secondary);
-  background: rgba(6, 182, 212, 0.1);
   border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
 }
 
-.rules-hint svg {
-  width: 16px;
-  height: 16px;
+.rules-notice svg {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 
-/* ===== Section ===== */
-.section-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-sm);
-}
-
-/* ===== Action Section ===== */
-.action-section {
-  margin-bottom: var(--spacing-lg);
-}
-
-.submit-btn {
+/* ===== Submit Action Button ===== */
+.submit-action-btn {
   width: 100%;
   display: flex;
   align-items: center;
@@ -793,30 +878,83 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
+  margin-bottom: var(--spacing-lg);
 }
 
-.submit-btn:hover {
+.submit-action-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
 }
 
-.submit-btn svg {
+.submit-action-btn:active {
+  transform: translateY(0);
+}
+
+.submit-action-btn svg {
   width: 20px;
   height: 20px;
 }
 
-/* ===== Submissions ===== */
+/* ===== Submissions Section ===== */
 .submissions-section {
   margin-bottom: var(--spacing-lg);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.section-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+}
+
+.section-count {
+  font-size: var(--text-sm);
+  color: var(--color-secondary);
+  font-weight: var(--font-medium);
 }
 
 .empty-submissions {
   text-align: center;
   padding: var(--spacing-xl);
-  color: var(--color-text-placeholder);
-  font-size: var(--text-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
+.empty-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border);
+  color: var(--color-text-placeholder);
+  border-radius: var(--radius-lg);
+}
+
+.empty-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.empty-submissions p {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  margin-bottom: var(--spacing-xs);
+}
+
+.empty-submissions span {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+}
+
+/* ===== Submissions by Period ===== */
 .submissions-by-period {
   display: flex;
   flex-direction: column;
@@ -825,6 +963,7 @@ onMounted(() => {
 
 .period-group {
   background: var(--color-card);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -835,6 +974,7 @@ onMounted(() => {
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .period-name {
@@ -845,6 +985,7 @@ onMounted(() => {
 .period-count {
   font-size: var(--text-xs);
   color: var(--color-secondary);
+  font-weight: var(--font-medium);
 }
 
 .period-empty {
@@ -859,22 +1000,22 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.submission-card {
+.submission-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
-  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.submission-card:first-child {
-  border-top: none;
+.submission-item:last-child {
+  border-bottom: none;
 }
 
 .music-cover {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -911,6 +1052,7 @@ onMounted(() => {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -921,7 +1063,7 @@ onMounted(() => {
 .modal-content {
   background: var(--color-card);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-lg);
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -929,8 +1071,12 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.modal-content.modal-lg {
-  max-height: 85vh;
+.modal-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  margin: 0 auto var(--spacing-md);
 }
 
 .modal-header {
@@ -952,49 +1098,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-border);
+  background: var(--color-bg);
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
   color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.modal-close:hover {
+  background: var(--color-border);
 }
 
 .modal-close svg {
   width: 18px;
   height: 18px;
-}
-
-.modal-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-  justify-content: flex-end;
-  margin-top: var(--spacing-lg);
-  flex-shrink: 0;
-}
-
-.modal-btn {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.modal-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.modal-btn.cancel {
-  background: var(--color-border);
-  color: var(--color-text);
-}
-
-.modal-btn.confirm {
-  background: var(--color-secondary);
-  color: white;
 }
 
 /* ===== Search Box ===== */
@@ -1008,6 +1126,12 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   margin-bottom: var(--spacing-md);
   flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.search-box:focus-within {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
 }
 
 .search-box svg {
@@ -1034,19 +1158,38 @@ onMounted(() => {
 .search-results {
   flex: 1;
   min-height: 200px;
-  max-height: 400px;
+  max-height: 50vh;
   overflow-y: auto;
 }
 
 .search-loading,
-.search-empty {
+.search-empty,
+.search-hint {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: var(--spacing-xl);
   color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.search-hint svg {
+  width: 48px;
+  height: 48px;
+  color: var(--color-border);
+  margin-bottom: var(--spacing-sm);
+}
+
+.search-hint p,
+.search-empty p {
   font-size: var(--text-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.search-empty span {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
 }
 
 .loading-spinner-sm {
@@ -1078,21 +1221,25 @@ onMounted(() => {
   background: var(--color-bg);
 }
 
+.music-item:active {
+  transform: scale(0.98);
+}
+
 .music-icon {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(6, 182, 212, 0.1);
   color: var(--color-secondary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   flex-shrink: 0;
 }
 
 .music-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .music-details {
@@ -1142,6 +1289,12 @@ onMounted(() => {
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: var(--color-secondary);
+  color: white;
 }
 
 .load-more-btn:disabled {
@@ -1151,7 +1304,7 @@ onMounted(() => {
 
 /* ===== Back Button ===== */
 .back-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: var(--spacing-xs) 0;
@@ -1161,6 +1314,11 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   margin-bottom: var(--spacing-md);
+  transition: color var(--transition-fast);
+}
+
+.back-btn:hover {
+  color: var(--color-text);
 }
 
 .back-btn svg {
@@ -1168,7 +1326,7 @@ onMounted(() => {
   height: 16px;
 }
 
-/* ===== Music Detail ===== */
+/* ===== Music Detail Card ===== */
 .detail-loading {
   display: flex;
   flex-direction: column;
@@ -1178,19 +1336,20 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-.music-detail {
+.music-detail-card {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
   background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   margin-bottom: var(--spacing-md);
 }
 
 .detail-cover {
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
@@ -1214,32 +1373,46 @@ onMounted(() => {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.detail-album,
-.detail-duration {
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   font-size: var(--text-xs);
   color: var(--color-text-placeholder);
 }
 
 .play-btn {
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  justify-content: center;
   color: white;
   background: var(--color-secondary);
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
   flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.play-btn:hover {
+  transform: scale(1.05);
+}
+
+.play-btn:active {
+  transform: scale(0.95);
 }
 
 .play-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
 }
 
 /* ===== Period Selection ===== */
@@ -1267,9 +1440,15 @@ onMounted(() => {
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.periods-list {
+.select-all-btn:hover {
+  background: var(--color-secondary);
+  color: white;
+}
+
+.periods-grid {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
@@ -1287,6 +1466,10 @@ onMounted(() => {
   transition: all var(--transition-fast);
 }
 
+.period-item input {
+  display: none;
+}
+
 .period-item:hover:not(.disabled) {
   border-color: var(--color-secondary);
 }
@@ -1301,12 +1484,14 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.period-item input {
-  accent-color: var(--color-secondary);
+.period-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .period-label {
-  flex: 1;
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
 }
@@ -1316,35 +1501,71 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* ===== Desktop ===== */
-@media (min-width: 768px) {
-  .modal-overlay {
-    align-items: center;
-    padding: var(--spacing-md);
-  }
-
-  .modal-content {
-    border-radius: var(--radius-xl);
-    max-width: 500px;
-  }
+.period-check {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: transparent;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
-@media (min-width: 1024px) {
-  .breadcrumb-wrapper {
-    display: block;
-  }
+.period-item.selected .period-check {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+  color: white;
+}
 
-  .page-content {
-    padding: var(--spacing-xl);
-  }
+.period-check svg {
+  width: 12px;
+  height: 12px;
+}
 
-  .campaign-title {
-    font-size: var(--text-2xl);
-  }
+/* ===== Modal Actions ===== */
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  flex-shrink: 0;
+}
 
-  .campaign-desc {
-    font-size: var(--text-base);
-  }
+.action-btn {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.action-btn.cancel {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.action-btn.cancel:hover:not(:disabled) {
+  background: var(--color-border);
+}
+
+.action-btn.confirm {
+  background: var(--color-secondary);
+  color: white;
+}
+
+.action-btn.confirm:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 /* ===== Modal Animations ===== */
@@ -1358,21 +1579,88 @@ onMounted(() => {
   opacity: 0;
 }
 
-.modal-scale-enter-active,
-.modal-scale-leave-active {
-  transition: all 0.2s ease;
+.modal-slide-enter-active,
+.modal-slide-leave-active {
+  transition: all 0.3s ease;
 }
 
-.modal-scale-enter-from,
-.modal-scale-leave-to {
+.modal-slide-enter-from,
+.modal-slide-leave-to {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(100%);
 }
 
+/* ===== Desktop ===== */
 @media (min-width: 768px) {
-  .modal-scale-enter-from,
-  .modal-scale-leave-to {
-    transform: scale(0.9);
+  .modal-overlay {
+    align-items: center;
+    padding: var(--spacing-md);
+  }
+
+  .modal-content {
+    border-radius: var(--radius-xl);
+    max-width: 480px;
+    max-height: 80vh;
+  }
+
+  .modal-handle {
+    display: none;
+  }
+
+  .modal-slide-enter-from,
+  .modal-slide-leave-to {
+    transform: scale(0.95);
+  }
+}
+
+@media (min-width: 1024px) {
+  .breadcrumb-wrapper {
+    display: block;
+  }
+
+  .page-content {
+    padding: var(--spacing-xl);
+  }
+
+  .content-container {
+    max-width: 900px;
+  }
+
+  .campaign-card {
+    display: flex;
+    flex-direction: row;
+  }
+
+  .campaign-cover {
+    width: 200px;
+    height: auto;
+    min-height: 160px;
+  }
+
+  .cover-icon {
+    width: 80px;
+    height: 80px;
+  }
+
+  .cover-icon svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .campaign-info {
+    flex: 1;
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .campaign-title {
+    font-size: var(--text-xl);
+  }
+
+  .campaign-desc {
+    font-size: var(--text-base);
   }
 }
 </style>

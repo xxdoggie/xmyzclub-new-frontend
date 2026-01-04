@@ -711,9 +711,15 @@ function canEditCampaign(campaign: Campaign): boolean {
   return campaign.status === 'pending' || campaign.status === 'draft'
 }
 
-// 判断是否显示审核按钮（只在审核阶段）
-function canShowReviewButton(campaign: Campaign): boolean {
-  return campaign.currentStage?.stageType === 'review'
+// 判断是否显示投稿/审核按钮（投稿阶段和审核阶段）
+function canShowSubmissionsButton(campaign: Campaign): boolean {
+  const stageType = campaign.currentStage?.stageType
+  return stageType === 'submission' || stageType === 'review'
+}
+
+// 获取投稿/审核按钮的文案
+function getSubmissionsButtonLabel(campaign: Campaign): string {
+  return campaign.currentStage?.stageType === 'submission' ? '投稿' : '审核'
 }
 
 // 判断是否显示结果按钮（投票阶段和结果阶段）
@@ -842,12 +848,12 @@ onMounted(async () => {
                 <!-- 管理操作 -->
                 <div class="manage-actions">
                   <button
-                    v-if="canShowReviewButton(campaign)"
+                    v-if="canShowSubmissionsButton(campaign)"
                     class="action-btn review"
                     :disabled="isOperating"
                     @click="goToReview(campaign)"
                   >
-                    审核
+                    {{ getSubmissionsButtonLabel(campaign) }}
                   </button>
                   <button
                     v-if="canShowResultsButton(campaign)"

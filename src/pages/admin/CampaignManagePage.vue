@@ -170,6 +170,7 @@ const isOperating = ref(false)
 
 // 活动状态标签
 const campaignStatusLabels: Record<CampaignStatus, string> = {
+  pending: '待开始',
   active: '进行中',
   completed: '已完成',
   draft: '草稿',
@@ -180,6 +181,7 @@ const campaignStatusLabels: Record<CampaignStatus, string> = {
 
 // 活动状态样式
 const campaignStatusClasses: Record<CampaignStatus, string> = {
+  pending: 'status-pending',
   active: 'status-active',
   completed: 'status-completed',
   draft: 'status-draft',
@@ -661,8 +663,8 @@ function getAvailableOperations(campaign: Campaign): Array<{
     return ops
   }
 
-  // 活动还未开始（草稿状态）
-  if (campaign.status === 'draft' || !campaign.currentStage) {
+  // 活动还未开始（待开始状态）
+  if (campaign.status === 'pending' || campaign.status === 'draft') {
     ops.push({ label: '开始活动', operationType: 'activate', btnType: 'primary' })
     return ops
   }
@@ -690,7 +692,7 @@ function getAvailableOperations(campaign: Campaign): Array<{
 
 // 判断是否可以编辑活动（只有未开始的活动可以编辑）
 function canEditCampaign(campaign: Campaign): boolean {
-  return campaign.status === 'draft' || !campaign.currentStage
+  return campaign.status === 'pending' || campaign.status === 'draft'
 }
 
 // 判断是否显示审核按钮（只在审核阶段）
@@ -782,7 +784,11 @@ onMounted(async () => {
                 <div class="campaign-header">
                   <h3 class="campaign-name">{{ campaign.title }}</h3>
                   <div class="badges">
-                    <span class="stage-badge" :class="getCurrentStageDisplay(campaign).class">
+                    <span
+                      v-if="campaign.currentStage"
+                      class="stage-badge"
+                      :class="getCurrentStageDisplay(campaign).class"
+                    >
                       {{ getCurrentStageDisplay(campaign).label }}
                     </span>
                     <span class="status-badge" :class="getCampaignStatusClass(campaign.status)">
@@ -1441,6 +1447,11 @@ onMounted(async () => {
 .status-badge.status-completed {
   background: #f3e8ff;
   color: #9333ea;
+}
+
+.status-badge.status-pending {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .status-badge.status-draft {

@@ -15,7 +15,7 @@ export type StageType = 'submission' | 'review' | 'voting' | 'result'
 /**
  * 活动状态
  */
-export type CampaignStatus = 'active' | 'completed' | 'draft' | 'cancelled' | 'closed'
+export type CampaignStatus = 'active' | 'completed' | 'draft' | 'cancelled' | 'closed' | 'archived'
 
 /**
  * 活动阶段（详细版本，用于活动详情）

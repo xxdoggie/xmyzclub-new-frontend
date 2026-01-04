@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
-  getCampaigns,
+  getAdminCampaigns,
   createCampaign,
   updateCampaign,
   activateCampaign,
@@ -175,6 +175,7 @@ const campaignStatusLabels: Record<CampaignStatus, string> = {
   draft: '草稿',
   cancelled: '已取消',
   closed: '已关闭',
+  archived: '已归档',
 }
 
 // 活动状态样式
@@ -184,6 +185,7 @@ const campaignStatusClasses: Record<CampaignStatus, string> = {
   draft: 'status-draft',
   cancelled: 'status-cancelled',
   closed: 'status-closed',
+  archived: 'status-archived',
 }
 
 // 阶段状态样式
@@ -267,7 +269,7 @@ async function loadTimePeriods() {
 async function loadCampaigns() {
   isLoading.value = true
   try {
-    const res = await getCampaigns()
+    const res = await getAdminCampaigns()
     if (res.data.code === 200) {
       campaigns.value = res.data.data
     } else {
@@ -654,8 +656,8 @@ function getAvailableOperations(campaign: Campaign): Array<{
     btnType: string
   }> = []
 
-  // 如果活动已关闭，不显示操作
-  if (campaign.status === 'closed' || campaign.status === 'completed' || campaign.status === 'cancelled') {
+  // 如果活动已关闭/归档，不显示操作
+  if (campaign.status === 'closed' || campaign.status === 'completed' || campaign.status === 'cancelled' || campaign.status === 'archived') {
     return ops
   }
 
@@ -1454,6 +1456,11 @@ onMounted(async () => {
 .status-badge.status-closed {
   background: var(--color-text-placeholder);
   color: white;
+}
+
+.status-badge.status-archived {
+  background: var(--color-border);
+  color: var(--color-text-tertiary);
 }
 
 .campaign-desc {

@@ -674,8 +674,8 @@ onMounted(async () => {
                     v-model="campaignForm.globalConfig.votingMode"
                     class="form-select"
                   >
-                    <option value="unified">统一投票</option>
-                    <option value="per_period">按时段投票</option>
+                    <option value="unified">统一投票（海沧校区）</option>
+                    <option value="per_building">分宿舍投票（思明校区）</option>
                   </select>
                 </div>
               </div>
@@ -1378,12 +1378,18 @@ onMounted(async () => {
 
 .stage-times {
   display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
 }
 
 .stage-times .form-group {
   flex: 1;
   margin-bottom: 0;
+}
+
+.stage-times .form-input {
+  width: 100%;
+  min-width: 0;
 }
 
 /* ===== Desktop ===== */
@@ -1407,6 +1413,7 @@ onMounted(async () => {
 
   .stage-times {
     flex: 1;
+    flex-direction: row;
     max-width: 400px;
   }
 }

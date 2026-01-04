@@ -69,8 +69,8 @@ export interface GlobalConfig {
   allowMultipleSubmissions: boolean
   /** 每时段最多投稿数 */
   maxSubmissionsPerPeriod: number
-  /** 投票模式: unified=统一投票, per_period=按时段投票 */
-  votingMode: 'unified' | 'per_period'
+  /** 投票模式: unified=统一投票（海沧校区）, per_building=分宿舍投票（思明校区） */
+  votingMode: 'unified' | 'per_building'
 }
 
 /**

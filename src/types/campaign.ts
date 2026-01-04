@@ -1,29 +1,76 @@
+import type { Campus, TimePeriod, Building } from './dorm'
+
 // ==================== 活动基本信息 ====================
 
 /**
- * 活动阶段
+ * 活动阶段状态
+ */
+export type StageStatus = 'pending' | 'active' | 'completed'
+
+/**
+ * 活动阶段类型
+ */
+export type StageType = 'submission' | 'review' | 'voting' | 'result'
+
+/**
+ * 活动状态
+ */
+export type CampaignStatus = 'active' | 'completed' | 'draft' | 'cancelled'
+
+/**
+ * 活动阶段（详细版本，用于活动详情）
  */
 export interface CampaignStage {
+  /** 阶段ID */
+  id: number
   /** 阶段类型: submission=投稿, review=审核, voting=投票, result=公示 */
-  type: 'submission' | 'review' | 'voting' | 'result'
+  stageType: StageType
+  /** 阶段名称 */
+  stageName: string
+  /** 阶段顺序 */
+  stageOrder: number
   /** 阶段开始时间 */
   startTime: string
   /** 阶段结束时间 */
-  endTime: string
+  endTime: string | null
+  /** 阶段状态: pending=未开始, active=进行中, completed=已完成 */
+  status: StageStatus
+  /** 阶段配置（如投票阶段的每时段投票数等） */
+  config: Record<string, unknown> | null
+  /** 阶段描述 */
+  description?: string
+}
+
+/**
+ * 当前阶段信息（简化版本，用于列表）
+ */
+export interface CurrentStage {
+  /** 阶段ID */
+  id: number
+  /** 阶段类型 */
+  stageType: StageType
+  /** 阶段名称 */
+  stageName: string
+  /** 阶段顺序 */
+  stageOrder?: number
+  /** 开始时间 */
+  startTime?: string
+  /** 结束时间 */
+  endTime?: string
+  /** 阶段状态 */
+  status: StageStatus
 }
 
 /**
  * 全局配置
  */
 export interface GlobalConfig {
-  /** 每人每日投票次数限制 */
-  voteLimit: number
-  /** 每人最多可投稿数量 */
-  submissionLimit: number
-  /** 投稿是否需要审核 */
-  requireReview: boolean
-  /** 是否允许匿名投票 */
-  anonymousVoting: boolean
+  /** 是否允许多次投稿 */
+  allowMultipleSubmissions: boolean
+  /** 每时段最多投稿数 */
+  maxSubmissionsPerPeriod: number
+  /** 投票模式: unified=统一投票（海沧校区）, per_building=分宿舍投票（思明校区） */
+  votingMode: 'unified' | 'per_building'
 }
 
 /**
@@ -31,20 +78,26 @@ export interface GlobalConfig {
  */
 export interface Campaign {
   id: number
-  /** 活动名称 */
-  name: string
+  /** 活动标题 */
+  title: string
   /** 活动描述 */
   description: string
-  /** 活动封面图 */
-  coverImage: string | null
-  /** 当前阶段: idle=未开始, submission=投稿中, review=审核中, voting=投票中, result=公示中, ended=已结束 */
-  currentStage: 'idle' | 'submission' | 'review' | 'voting' | 'result' | 'ended'
-  /** 阶段配置 */
-  stages: CampaignStage[]
-  /** 全局配置 */
-  globalConfig: GlobalConfig
-  /** 状态: 0=禁用, 1=启用 */
-  status: number
+  /** 关联的校区 */
+  campus: Campus
+  /** 活动状态: active=进行中, completed=已完成, draft=草稿, cancelled=已取消 */
+  status: CampaignStatus
+  /** 当前阶段 */
+  currentStage: CurrentStage | null
+  /** 全局配置（仅在详情接口返回） */
+  globalConfig?: GlobalConfig
+  /** 铃声时段列表（仅在详情接口返回） */
+  timePeriods?: TimePeriod[]
+  /** 宿舍楼列表（仅在详情接口返回） */
+  buildings?: Building[]
+  /** 阶段配置（仅在详情接口返回） */
+  stages?: CampaignStage[]
+  /** 创建者ID */
+  createdBy: number
   /** 创建时间 */
   createdAt: string
   /** 更新时间 */
@@ -54,114 +107,124 @@ export interface Campaign {
 // ==================== 审核相关 ====================
 
 /**
- * 音乐信息
+ * 音乐信息（来自QQ音乐等服务）
  */
 export interface MusicInfo {
   id: number
-  /** 音乐名称 */
-  name: string
+  /** 音乐服务ID */
+  musicServiceId: string
+  /** 音乐MID */
+  mid: string
+  /** 歌曲名称 */
+  song: string
+  /** 副标题 */
+  subtitle: string
   /** 歌手 */
-  artist: string
-  /** 音乐来源 */
-  source: string
-  /** 音乐来源 ID */
-  sourceId: string
-  /** 封面图 */
-  coverImage: string | null
-  /** 音乐时长(秒) */
-  duration: number
+  singer: string
+  /** 专辑 */
+  album: string
+  /** 时长（如 "3分54秒"） */
+  interval: string
+  /** 封面图URL */
+  cover: string
+  /** 播放链接 */
+  link: string
 }
 
 /**
- * 用户信息
+ * 按音乐分组的投稿项
  */
-export interface SubmissionUser {
-  id: number
-  nickname: string
-  avatar: string | null
-}
-
-/**
- * 投稿信息
- */
-export interface Submission {
-  id: number
-  /** 投稿用户 */
-  user: SubmissionUser
+export interface SubmissionItem {
   /** 音乐信息 */
   music: MusicInfo
-  /** 投稿理由/留言 */
-  message: string | null
-  /** 审核状态: pending=待审核, approved=已通过, rejected=已拒绝 */
-  reviewStatus: 'pending' | 'approved' | 'rejected'
-  /** 审核备注 */
-  reviewNote: string | null
-  /** 创建时间 */
-  createdAt: string
-}
-
-/**
- * 按音乐分组的投稿
- */
-export interface SubmissionGroup {
-  /** 音乐信息 */
-  music: MusicInfo
-  /** 该音乐的所有投稿 */
-  submissions: Submission[]
   /** 投稿数量 */
-  count: number
+  submissionCount: number
+  /** 投稿ID列表 */
+  submissionIds: number[]
+}
+
+/**
+ * 按时段分组的投稿（审核接口响应）
+ */
+export interface TimePeriodSubmissions {
+  /** 铃声时段 */
+  timePeriod: TimePeriod
+  /** 该时段的投稿列表（按音乐分组） */
+  submissions: SubmissionItem[]
 }
 
 // ==================== 投票结果相关 ====================
 
 /**
- * 投票结果项
+ * 投票选项
  */
-export interface VotingResultItem {
-  /** 排名 */
-  rank: number
+export interface VotingOption {
+  /** 选项ID */
+  id: number
   /** 音乐信息 */
   music: MusicInfo
+  /** 目标宿舍楼列表 */
+  targetBuildings: string[]
   /** 得票数 */
   voteCount: number
-  /** 投稿数 */
-  submissionCount: number
 }
 
 /**
- * 投票结果统计
+ * 宿舍楼投票结果
  */
-export interface VotingResultStats {
+export interface BuildingVotingResult {
+  /** 宿舍楼代码 */
+  buildingCode: string
+  /** 宿舍楼名称 */
+  buildingName: string
   /** 总投票数 */
   totalVotes: number
-  /** 参与投票人数 */
-  totalVoters: number
-  /** 有效投稿数 */
-  validSubmissions: number
+  /** 投票选项列表 */
+  options: VotingOption[]
 }
 
 /**
- * 投票结果响应
+ * 按时段分组的投票结果
  */
-export interface VotingResultResponse {
-  /** 活动信息 */
-  campaign: Pick<Campaign, 'id' | 'name' | 'currentStage'>
-  /** 结果列表 */
-  results: VotingResultItem[]
-  /** 统计信息 */
-  stats: VotingResultStats
+export interface TimePeriodVotingResult {
+  /** 铃声时段 */
+  timePeriod: TimePeriod
+  /** 各宿舍楼的投票结果 */
+  buildingResults: BuildingVotingResult[]
 }
 
 // ==================== 请求类型 ====================
 
 /**
+ * 创建活动阶段请求
+ */
+export interface CreateCampaignStageRequest {
+  /** 阶段类型 */
+  stageType: StageType
+  /** 阶段名称 */
+  stageName: string
+  /** 阶段顺序 */
+  stageOrder: number
+  /** 开始时间 */
+  startTime: string
+  /** 结束时间 */
+  endTime: string
+  /** 阶段配置 */
+  config?: Record<string, unknown>
+  /** 阶段描述 */
+  description?: string
+}
+
+/**
  * 创建活动请求
  */
 export interface CreateCampaignRequest {
-  name: string
+  title: string
   description: string
-  coverImage?: string
-  stages: CampaignStage[]
+  campusId: number
+  timePeriodIds?: number[]
+  buildingIds?: number[]
+  stages: CreateCampaignStageRequest[]
   globalConfig: GlobalConfig
 }
 
@@ -169,12 +232,14 @@ export interface CreateCampaignRequest {
  * 更新活动请求
  */
 export interface UpdateCampaignRequest {
-  name?: string
+  title?: string
   description?: string
-  coverImage?: string
-  stages?: CampaignStage[]
+  campusId?: number
+  timePeriodIds?: number[]
+  buildingIds?: number[]
+  stages?: CreateCampaignStageRequest[]
   globalConfig?: GlobalConfig
-  status?: number
+  status?: CampaignStatus
 }
 
 /**

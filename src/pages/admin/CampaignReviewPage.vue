@@ -4,12 +4,12 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
-  getAdminCampaignDetail,
+  getCampaignDetail,
   getReviewSubmissions,
   reviewSubmissions,
   deleteSubmissions,
 } from '@/api/campaign'
-import type { Campaign, SubmissionGroup, Submission } from '@/types/campaign'
+import type { Campaign, TimePeriodSubmissions, SubmissionItem } from '@/types/campaign'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -23,16 +23,16 @@ const toast = useToast()
 const campaignId = computed(() => Number(route.params.id))
 const isLoading = ref(true)
 const campaign = ref<Campaign | null>(null)
-const submissionGroups = ref<SubmissionGroup[]>([])
+const timePeriodSubmissions = ref<TimePeriodSubmissions[]>([])
 
-// 选中状态
+// 选中状态 (存储投稿ID)
 const selectedSubmissions = ref<Set<number>>(new Set())
 
 // 批量操作
 const isProcessing = ref(false)
 
-// 展开的音乐卡片
-const expandedMusicIds = ref<Set<number>>(new Set())
+// 展开的时段
+const expandedPeriodIds = ref<Set<number>>(new Set())
 
 // 审核确认弹窗
 const showReviewConfirm = ref(false)
@@ -42,51 +42,13 @@ const reviewNote = ref('')
 // 删除确认弹窗
 const showDeleteConfirm = ref(false)
 
-// ==================== 辅助函数 ====================
-
-const reviewStatusLabels: Record<string, string> = {
-  pending: '待审核',
-  approved: '已通过',
-  rejected: '已拒绝',
-}
-
-const reviewStatusClasses: Record<string, string> = {
-  pending: 'review-pending',
-  approved: 'review-approved',
-  rejected: 'review-rejected',
-}
-
-function getReviewStatusLabel(status: string): string {
-  return reviewStatusLabels[status] || status
-}
-
-function getReviewStatusClass(status: string): string {
-  return reviewStatusClasses[status] || ''
-}
-
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${String(secs).padStart(2, '0')}`
-}
-
 // ==================== 数据加载 ====================
 
 async function loadData() {
   isLoading.value = true
   try {
     const [campaignRes, submissionsRes] = await Promise.all([
-      getAdminCampaignDetail(campaignId.value),
+      getCampaignDetail(campaignId.value),
       getReviewSubmissions(campaignId.value),
     ])
 
@@ -98,7 +60,11 @@ async function loadData() {
     }
 
     if (submissionsRes.data.code === 200) {
-      submissionGroups.value = submissionsRes.data.data
+      timePeriodSubmissions.value = submissionsRes.data.data
+      // 默认展开第一个时段
+      if (timePeriodSubmissions.value.length > 0) {
+        expandedPeriodIds.value.add(timePeriodSubmissions.value[0].timePeriod.id)
+      }
     } else {
       toast.error(submissionsRes.data.message || '获取投稿列表失败')
     }
@@ -111,44 +77,54 @@ async function loadData() {
 
 // ==================== 展开/收起 ====================
 
-function toggleMusicExpand(musicId: number) {
-  if (expandedMusicIds.value.has(musicId)) {
-    expandedMusicIds.value.delete(musicId)
+function togglePeriodExpand(periodId: number) {
+  if (expandedPeriodIds.value.has(periodId)) {
+    expandedPeriodIds.value.delete(periodId)
   } else {
-    expandedMusicIds.value.add(musicId)
+    expandedPeriodIds.value.add(periodId)
   }
 }
 
-function isMusicExpanded(musicId: number): boolean {
-  return expandedMusicIds.value.has(musicId)
+function isPeriodExpanded(periodId: number): boolean {
+  return expandedPeriodIds.value.has(periodId)
 }
 
 // ==================== 选择操作 ====================
 
-function toggleSubmissionSelection(submissionId: number) {
-  if (selectedSubmissions.value.has(submissionId)) {
-    selectedSubmissions.value.delete(submissionId)
+function toggleSubmissionSelection(submissionIds: number[]) {
+  // 检查是否所有ID都已选中
+  const allSelected = submissionIds.every(id => selectedSubmissions.value.has(id))
+
+  if (allSelected) {
+    // 取消选中
+    submissionIds.forEach(id => selectedSubmissions.value.delete(id))
   } else {
-    selectedSubmissions.value.add(submissionId)
+    // 选中
+    submissionIds.forEach(id => selectedSubmissions.value.add(id))
   }
 }
 
-function isSubmissionSelected(submissionId: number): boolean {
-  return selectedSubmissions.value.has(submissionId)
+function isSubmissionSelected(submissionIds: number[]): boolean {
+  return submissionIds.some(id => selectedSubmissions.value.has(id))
 }
 
-function selectAllInGroup(group: SubmissionGroup) {
-  const pendingSubmissions = group.submissions.filter(s => s.reviewStatus === 'pending')
-  pendingSubmissions.forEach(s => selectedSubmissions.value.add(s.id))
+function selectAllInPeriod(period: TimePeriodSubmissions) {
+  period.submissions.forEach(item => {
+    item.submissionIds.forEach(id => selectedSubmissions.value.add(id))
+  })
 }
 
-function deselectAllInGroup(group: SubmissionGroup) {
-  group.submissions.forEach(s => selectedSubmissions.value.delete(s.id))
+function deselectAllInPeriod(period: TimePeriodSubmissions) {
+  period.submissions.forEach(item => {
+    item.submissionIds.forEach(id => selectedSubmissions.value.delete(id))
+  })
 }
 
 function selectAll() {
-  submissionGroups.value.forEach(group => {
-    group.submissions.filter(s => s.reviewStatus === 'pending').forEach(s => selectedSubmissions.value.add(s.id))
+  timePeriodSubmissions.value.forEach(period => {
+    period.submissions.forEach(item => {
+      item.submissionIds.forEach(id => selectedSubmissions.value.add(id))
+    })
   })
 }
 
@@ -157,6 +133,17 @@ function deselectAll() {
 }
 
 const selectedCount = computed(() => selectedSubmissions.value.size)
+
+// 计算总投稿数
+const totalSubmissions = computed(() => {
+  let count = 0
+  timePeriodSubmissions.value.forEach(period => {
+    period.submissions.forEach(item => {
+      count += item.submissionIds.length
+    })
+  })
+  return count
+})
 
 // ==================== 审核操作 ====================
 
@@ -266,7 +253,7 @@ onMounted(() => {
           <div class="header-main">
             <div class="header-text">
               <h1 class="page-title">审核投稿</h1>
-              <p class="page-subtitle" v-if="campaign">{{ campaign.name }}</p>
+              <p class="page-subtitle" v-if="campaign">{{ campaign.title }}</p>
             </div>
           </div>
         </div>
@@ -281,9 +268,10 @@ onMounted(() => {
           <!-- 操作栏 -->
           <div class="action-bar">
             <div class="selection-info">
-              <span v-if="selectedCount > 0">已选择 {{ selectedCount }} 条</span>
+              <span v-if="selectedCount > 0">已选择 {{ selectedCount }} / {{ totalSubmissions }} 条</span>
+              <span v-else>共 {{ totalSubmissions }} 条投稿</span>
               <button v-if="selectedCount > 0" class="text-btn" @click="deselectAll">取消全选</button>
-              <button v-else class="text-btn" @click="selectAll">全选待审核</button>
+              <button v-else class="text-btn" @click="selectAll">全选</button>
             </div>
             <div class="action-buttons">
               <button
@@ -311,7 +299,7 @@ onMounted(() => {
           </div>
 
           <!-- 空状态 -->
-          <div v-if="submissionGroups.length === 0" class="empty-container">
+          <div v-if="timePeriodSubmissions.length === 0" class="empty-container">
             <div class="empty-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
@@ -321,41 +309,20 @@ onMounted(() => {
             <p>该活动还没有收到任何投稿</p>
           </div>
 
-          <!-- 投稿分组列表 -->
-          <div v-else class="submission-groups">
+          <!-- 按时段分组的投稿列表 -->
+          <div v-else class="period-groups">
             <div
-              v-for="group in submissionGroups"
-              :key="group.music.id"
-              class="music-group"
+              v-for="periodData in timePeriodSubmissions"
+              :key="periodData.timePeriod.id"
+              class="period-group"
             >
-              <!-- 音乐卡片头部 -->
-              <div class="music-header" @click="toggleMusicExpand(group.music.id)">
-                <div class="music-cover">
-                  <img
-                    v-if="group.music.coverImage"
-                    :src="group.music.coverImage"
-                    :alt="group.music.name"
-                  />
-                  <div v-else class="cover-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M9 18V5l12-2v13"></path>
-                      <circle cx="6" cy="18" r="3"></circle>
-                      <circle cx="18" cy="16" r="3"></circle>
-                    </svg>
-                  </div>
+              <!-- 时段头部 -->
+              <div class="period-header" @click="togglePeriodExpand(periodData.timePeriod.id)">
+                <div class="period-info">
+                  <h3 class="period-name">{{ periodData.timePeriod.name }}</h3>
+                  <span class="period-count">{{ periodData.submissions.length }} 首音乐</span>
                 </div>
-                <div class="music-info">
-                  <h3 class="music-name">{{ group.music.name }}</h3>
-                  <p class="music-artist">{{ group.music.artist }}</p>
-                  <div class="music-meta">
-                    <span class="meta-item">{{ group.music.source }}</span>
-                    <span class="meta-divider">|</span>
-                    <span class="meta-item">{{ formatDuration(group.music.duration) }}</span>
-                    <span class="meta-divider">|</span>
-                    <span class="meta-item">{{ group.count }} 人投稿</span>
-                  </div>
-                </div>
-                <div class="expand-icon" :class="{ expanded: isMusicExpanded(group.music.id) }">
+                <div class="expand-icon" :class="{ expanded: isPeriodExpanded(periodData.timePeriod.id) }">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
@@ -364,40 +331,55 @@ onMounted(() => {
 
               <!-- 投稿列表 -->
               <Transition name="expand">
-                <div v-if="isMusicExpanded(group.music.id)" class="submissions-list">
+                <div v-if="isPeriodExpanded(periodData.timePeriod.id)" class="submissions-list">
                   <div class="submissions-header">
-                    <button class="text-btn-sm" @click.stop="selectAllInGroup(group)">全选</button>
-                    <button class="text-btn-sm" @click.stop="deselectAllInGroup(group)">取消</button>
+                    <button class="text-btn-sm" @click.stop="selectAllInPeriod(periodData)">全选本时段</button>
+                    <button class="text-btn-sm" @click.stop="deselectAllInPeriod(periodData)">取消</button>
                   </div>
+
                   <div
-                    v-for="submission in group.submissions"
-                    :key="submission.id"
+                    v-for="item in periodData.submissions"
+                    :key="item.music.id"
                     class="submission-item"
-                    :class="{ selected: isSubmissionSelected(submission.id) }"
-                    @click="toggleSubmissionSelection(submission.id)"
+                    :class="{ selected: isSubmissionSelected(item.submissionIds) }"
+                    @click="toggleSubmissionSelection(item.submissionIds)"
                   >
                     <div class="submission-checkbox">
-                      <div class="checkbox" :class="{ checked: isSubmissionSelected(submission.id) }">
-                        <svg v-if="isSubmissionSelected(submission.id)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                      <div class="checkbox" :class="{ checked: isSubmissionSelected(item.submissionIds) }">
+                        <svg v-if="isSubmissionSelected(item.submissionIds)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       </div>
                     </div>
-                    <div class="submission-info">
-                      <div class="submission-user">
-                        <span class="user-name">{{ submission.user.nickname }}</span>
-                        <span class="review-status" :class="getReviewStatusClass(submission.reviewStatus)">
-                          {{ getReviewStatusLabel(submission.reviewStatus) }}
-                        </span>
+
+                    <div class="music-cover">
+                      <img
+                        v-if="item.music.cover"
+                        :src="item.music.cover"
+                        :alt="item.music.song"
+                      />
+                      <div v-else class="cover-placeholder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M9 18V5l12-2v13"></path>
+                          <circle cx="6" cy="18" r="3"></circle>
+                          <circle cx="18" cy="16" r="3"></circle>
+                        </svg>
                       </div>
-                      <p v-if="submission.message" class="submission-message">{{ submission.message }}</p>
-                      <div class="submission-meta">
-                        <span class="meta-item">{{ formatDate(submission.createdAt) }}</span>
-                        <template v-if="submission.reviewNote">
-                          <span class="meta-divider">|</span>
-                          <span class="meta-item review-note">备注: {{ submission.reviewNote }}</span>
-                        </template>
+                    </div>
+
+                    <div class="music-info">
+                      <h4 class="music-name">{{ item.music.song }}</h4>
+                      <p class="music-artist">{{ item.music.singer }}</p>
+                      <div class="music-meta">
+                        <span class="meta-item">{{ item.music.album }}</span>
+                        <span class="meta-divider">|</span>
+                        <span class="meta-item">{{ item.music.interval }}</span>
                       </div>
+                    </div>
+
+                    <div class="submission-count">
+                      <span class="count-value">{{ item.submissionCount }}</span>
+                      <span class="count-label">人投稿</span>
                     </div>
                   </div>
                 </div>
@@ -676,92 +658,50 @@ onMounted(() => {
   color: white;
 }
 
-/* ===== Music Group ===== */
-.submission-groups {
+/* ===== Period Group ===== */
+.period-groups {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
 }
 
-.music-group {
+.period-group {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
-.music-header {
+.period-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  justify-content: space-between;
   padding: var(--spacing-md);
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
-.music-header:hover {
+.period-header:hover {
   background: var(--color-bg);
 }
 
-.music-cover {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.music-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cover-placeholder {
-  width: 100%;
-  height: 100%;
+.period-info {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
+  gap: var(--spacing-sm);
 }
 
-.cover-placeholder svg {
-  width: 24px;
-  height: 24px;
-}
-
-.music-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.music-name {
-  font-size: var(--text-sm);
+.period-name {
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
-  margin-bottom: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.music-artist {
+.period-count {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  margin-bottom: 4px;
-}
-
-.music-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
-}
-
-.meta-divider {
-  color: var(--color-border);
+  background: var(--color-border);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
 }
 
 .expand-icon {
@@ -799,6 +739,7 @@ onMounted(() => {
 
 .submission-item {
   display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm);
   background: var(--color-card);
@@ -848,64 +789,85 @@ onMounted(() => {
   color: white;
 }
 
-.submission-info {
+.music-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.music-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.cover-placeholder svg {
+  width: 20px;
+  height: 20px;
+}
+
+.music-info {
   flex: 1;
   min-width: 0;
 }
 
-.submission-user {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: 4px;
-}
-
-.user-name {
+.music-name {
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-}
-
-.review-status {
-  font-size: 10px;
   font-weight: var(--font-semibold);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-}
-
-.review-status.review-pending {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.review-status.review-approved {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.review-status.review-rejected {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
-
-.submission-message {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.submission-meta {
-  display: flex;
+.music-artist {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.music-meta {
+  display: none;
   align-items: center;
   gap: var(--spacing-xs);
   font-size: var(--text-xs);
   color: var(--color-text-placeholder);
 }
 
-.review-note {
-  color: var(--color-info);
+.meta-divider {
+  color: var(--color-border);
+}
+
+.submission-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 0 var(--spacing-sm);
+}
+
+.count-value {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+}
+
+.count-label {
+  font-size: 10px;
+  color: var(--color-text-secondary);
 }
 
 /* ===== Expand Animation ===== */
@@ -1036,6 +998,10 @@ onMounted(() => {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .music-meta {
+    display: flex;
   }
 }
 

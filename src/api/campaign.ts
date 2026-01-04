@@ -2,8 +2,8 @@ import api from './index'
 import type { ApiResponse } from './index'
 import type {
   Campaign,
-  SubmissionGroup,
-  VotingResultResponse,
+  TimePeriodSubmissions,
+  TimePeriodVotingResult,
   CreateCampaignRequest,
   UpdateCampaignRequest,
   StageOperationRequest,
@@ -30,20 +30,6 @@ export function getCampaignDetail(id: number) {
 // ==================== 管理端 API ====================
 
 // ----- 活动管理 -----
-
-/**
- * 获取所有活动（管理端）
- */
-export function getAdminCampaigns() {
-  return api.get<ApiResponse<Campaign[]>>('/admin/campaigns')
-}
-
-/**
- * 获取活动详情（管理端）
- */
-export function getAdminCampaignDetail(id: number) {
-  return api.get<ApiResponse<Campaign>>(`/admin/campaigns/${id}`)
-}
 
 /**
  * 创建活动
@@ -76,10 +62,10 @@ export function stageOperation(id: number, data: StageOperationRequest) {
 // ----- 审核管理 -----
 
 /**
- * 获取待审核投稿（按音乐分组）
+ * 获取待审核投稿（按时段分组）
  */
 export function getReviewSubmissions(campaignId: number) {
-  return api.get<ApiResponse<SubmissionGroup[]>>(`/admin/review/campaigns/${campaignId}/submissions`)
+  return api.get<ApiResponse<TimePeriodSubmissions[]>>(`/admin/review/campaigns/${campaignId}/submissions`)
 }
 
 /**
@@ -99,8 +85,8 @@ export function deleteSubmissions(data: DeleteSubmissionRequest) {
 // ----- 投票结果 -----
 
 /**
- * 获取投票结果
+ * 获取投票结果（按时段和宿舍楼分组）
  */
 export function getVotingResults(campaignId: number) {
-  return api.get<ApiResponse<VotingResultResponse>>(`/admin/voting/campaigns/${campaignId}/results`)
+  return api.get<ApiResponse<TimePeriodVotingResult[]>>(`/admin/voting/campaigns/${campaignId}/results`)
 }

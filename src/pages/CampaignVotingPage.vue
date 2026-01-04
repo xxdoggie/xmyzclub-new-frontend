@@ -111,7 +111,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 3px solid var(--color-border);
-  border-top-color: var(--color-secondary);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: var(--spacing-md);
@@ -136,8 +136,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(168, 85, 247, 0.1);
-  color: #a855f7;
+  background: var(--color-info-bg);
+  color: var(--color-info);
   border-radius: var(--radius-xl);
 }
 
@@ -173,7 +173,7 @@ onMounted(() => {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: white;
-  background: var(--color-secondary);
+  background: var(--color-primary);
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;

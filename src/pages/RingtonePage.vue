@@ -306,8 +306,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--color-secondary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
   border-radius: var(--radius-xl);
 }
 
@@ -333,7 +333,7 @@ onMounted(() => {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: white;
-  background: var(--color-secondary);
+  background: var(--color-primary);
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -358,7 +358,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 3px solid var(--color-border);
-  border-top-color: var(--color-secondary);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: var(--spacing-md);
@@ -438,7 +438,7 @@ onMounted(() => {
 .campaign-cover {
   position: relative;
   height: 100px;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+  background: linear-gradient(135deg, var(--color-primary-bg) 0%, rgba(231, 76, 60, 0.03) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -450,8 +450,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.2);
-  color: var(--color-secondary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
   border-radius: var(--radius-lg);
 }
 
@@ -473,19 +473,19 @@ onMounted(() => {
 }
 
 .stage-badge.stage-submission {
-  background: rgba(6, 182, 212, 0.9);
+  background: var(--color-primary);
 }
 
 .stage-badge.stage-review {
-  background: rgba(245, 158, 11, 0.9);
+  background: var(--color-warning);
 }
 
 .stage-badge.stage-voting {
-  background: rgba(168, 85, 247, 0.9);
+  background: var(--color-info);
 }
 
 .stage-badge.stage-result {
-  background: rgba(107, 114, 128, 0.9);
+  background: var(--color-text-secondary);
 }
 
 /* ===== Campaign Info ===== */
@@ -567,22 +567,22 @@ onMounted(() => {
 }
 
 .enter-btn.submission {
-  background: rgba(6, 182, 212, 0.15);
-  color: var(--color-secondary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
 .enter-btn.submission:hover {
-  background: var(--color-secondary);
+  background: var(--color-primary);
   color: white;
 }
 
 .enter-btn.voting {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .enter-btn.voting:hover {
-  background: #a855f7;
+  background: var(--color-info);
   color: white;
 }
 

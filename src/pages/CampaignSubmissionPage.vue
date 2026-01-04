@@ -751,7 +751,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 3px solid var(--color-border);
-  border-top-color: var(--color-secondary);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: var(--spacing-md);
@@ -774,7 +774,7 @@ onMounted(() => {
 
 .campaign-cover {
   height: 120px;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+  background: linear-gradient(135deg, var(--color-primary-bg) 0%, rgba(231, 76, 60, 0.03) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -786,8 +786,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.2);
-  color: var(--color-secondary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
   border-radius: var(--radius-lg);
 }
 
@@ -834,8 +834,8 @@ onMounted(() => {
 }
 
 .meta-tag.location {
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--color-secondary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
 .meta-tag.deadline {
@@ -873,7 +873,7 @@ onMounted(() => {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: white;
-  background: var(--color-secondary);
+  background: var(--color-primary);
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -914,7 +914,7 @@ onMounted(() => {
 
 .section-count {
   font-size: var(--text-sm);
-  color: var(--color-secondary);
+  color: var(--color-primary);
   font-weight: var(--font-medium);
 }
 
@@ -984,7 +984,7 @@ onMounted(() => {
 
 .period-count {
   font-size: var(--text-xs);
-  color: var(--color-secondary);
+  color: var(--color-primary);
   font-weight: var(--font-medium);
 }
 
@@ -1130,8 +1130,8 @@ onMounted(() => {
 }
 
 .search-box:focus-within {
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
 }
 
 .search-box svg {
@@ -1196,7 +1196,7 @@ onMounted(() => {
   width: 24px;
   height: 24px;
   border: 2px solid var(--color-border);
-  border-top-color: var(--color-secondary);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: var(--spacing-sm);
@@ -1231,8 +1231,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--color-secondary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
   border-radius: var(--radius-md);
   flex-shrink: 0;
 }
@@ -1284,8 +1284,8 @@ onMounted(() => {
 .load-more-btn {
   padding: var(--spacing-sm) var(--spacing-lg);
   font-size: var(--text-sm);
-  color: var(--color-secondary);
-  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -1293,7 +1293,7 @@ onMounted(() => {
 }
 
 .load-more-btn:hover:not(:disabled) {
-  background: var(--color-secondary);
+  background: var(--color-primary);
   color: white;
 }
 
@@ -1393,7 +1393,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   color: white;
-  background: var(--color-secondary);
+  background: var(--color-primary);
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -1435,8 +1435,8 @@ onMounted(() => {
 .select-all-btn {
   padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--text-xs);
-  color: var(--color-secondary);
-  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -1444,7 +1444,7 @@ onMounted(() => {
 }
 
 .select-all-btn:hover {
-  background: var(--color-secondary);
+  background: var(--color-primary);
   color: white;
 }
 
@@ -1471,12 +1471,12 @@ onMounted(() => {
 }
 
 .period-item:hover:not(.disabled) {
-  border-color: var(--color-secondary);
+  border-color: var(--color-primary);
 }
 
 .period-item.selected {
-  background: rgba(6, 182, 212, 0.1);
-  border-color: var(--color-secondary);
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
 }
 
 .period-item.disabled {
@@ -1515,8 +1515,8 @@ onMounted(() => {
 }
 
 .period-item.selected .period-check {
-  background: var(--color-secondary);
-  border-color: var(--color-secondary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: white;
 }
 
@@ -1560,7 +1560,7 @@ onMounted(() => {
 }
 
 .action-btn.confirm {
-  background: var(--color-secondary);
+  background: var(--color-primary);
   color: white;
 }
 

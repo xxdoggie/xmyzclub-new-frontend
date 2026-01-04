@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
   getCampaigns,
+  getCampaignDetail,
   createCampaign,
   updateCampaign,
   activateCampaign,
@@ -47,6 +48,7 @@ const showCampaignModal = ref(false)
 const campaignModalMode = ref<'create' | 'edit'>('create')
 const editingCampaign = ref<Campaign | null>(null)
 const isSaving = ref(false)
+const isLoadingCampaign = ref(false)
 
 // 表单规则类型
 interface FormRules {
@@ -330,43 +332,57 @@ function parseStageConfig(stage: CampaignStage): Partial<FormStage> {
 async function openEditModal(campaign: Campaign) {
   campaignModalMode.value = 'edit'
   editingCampaign.value = campaign
-
-  // 如果有校区，先加载该校区的宿舍楼列表
-  if (campaign.campus?.id) {
-    isLoadingBuildings.value = true
-    try {
-      const res = await getCampusBuildings(campaign.campus.id)
-      if (res.data.code === 200) {
-        availableBuildings.value = res.data.data
-      }
-    } catch (error) {
-      console.error('获取宿舍楼列表失败', error)
-    } finally {
-      isLoadingBuildings.value = false
-    }
-  }
-
-  // 填充表单
-  campaignForm.value = {
-    title: campaign.title,
-    description: campaign.description,
-    campusId: campaign.campus?.id || null,
-    timePeriodIds: campaign.timePeriods?.map(tp => tp.id) || [],
-    buildingIds: campaign.buildings?.map(b => b.id) || [],
-    globalConfig: {
-      auto_stage_transition: campaign.globalConfig?.auto_stage_transition ?? false,
-    },
-    stages: campaign.stages?.map(s => ({
-      stageType: s.stageType,
-      stageName: s.stageName,
-      startTime: toLocalDateTime(s.startTime),
-      endTime: s.endTime ? toLocalDateTime(s.endTime) : '',
-      description: s.description || '',
-      ...parseStageConfig(s),
-    })) || getDefaultStages(),
-  }
-
+  isLoadingCampaign.value = true
   showCampaignModal.value = true
+
+  try {
+    // 获取完整的活动详情
+    const detailRes = await getCampaignDetail(campaign.id)
+    if (detailRes.data.code !== 200) {
+      toast.error(detailRes.data.message || '获取活动详情失败')
+      showCampaignModal.value = false
+      return
+    }
+
+    const fullCampaign = detailRes.data.data
+
+    // 如果有校区，加载该校区的宿舍楼列表
+    if (fullCampaign.campus?.id) {
+      try {
+        const buildingsRes = await getCampusBuildings(fullCampaign.campus.id)
+        if (buildingsRes.data.code === 200) {
+          availableBuildings.value = buildingsRes.data.data
+        }
+      } catch (error) {
+        console.error('获取宿舍楼列表失败', error)
+      }
+    }
+
+    // 填充表单
+    campaignForm.value = {
+      title: fullCampaign.title,
+      description: fullCampaign.description,
+      campusId: fullCampaign.campus?.id || null,
+      timePeriodIds: fullCampaign.timePeriods?.map(tp => tp.id) || [],
+      buildingIds: fullCampaign.buildings?.map(b => b.id) || [],
+      globalConfig: {
+        auto_stage_transition: fullCampaign.globalConfig?.auto_stage_transition ?? false,
+      },
+      stages: fullCampaign.stages?.map(s => ({
+        stageType: s.stageType,
+        stageName: s.stageName,
+        startTime: toLocalDateTime(s.startTime),
+        endTime: s.endTime ? toLocalDateTime(s.endTime) : '',
+        description: s.description || '',
+        ...parseStageConfig(s),
+      })) || getDefaultStages(),
+    }
+  } catch (error) {
+    toast.error('获取活动详情失败')
+    showCampaignModal.value = false
+  } finally {
+    isLoadingCampaign.value = false
+  }
 }
 
 function getDefaultStages(): FormStage[] {
@@ -866,6 +882,14 @@ onMounted(async () => {
           <div v-if="showCampaignModal" class="modal-content modal-lg" @click.stop>
             <h3 class="modal-title">{{ campaignModalMode === 'create' ? '创建活动' : '编辑活动' }}</h3>
 
+            <!-- 加载状态 -->
+            <div v-if="isLoadingCampaign" class="modal-loading">
+              <div class="loading-spinner"></div>
+              <p>加载活动详情...</p>
+            </div>
+
+            <!-- 表单内容 -->
+            <template v-else>
             <!-- 基本信息 -->
             <div class="form-section">
               <h4 class="form-section-title">基本信息</h4>
@@ -1173,6 +1197,7 @@ onMounted(async () => {
                 {{ isSaving ? '保存中...' : '保存' }}
               </button>
             </div>
+            </template>
           </div>
         </Transition>
       </div>
@@ -1661,6 +1686,20 @@ onMounted(async () => {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-lg);
+}
+
+.modal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+.modal-loading p {
+  margin-top: var(--spacing-md);
+  font-size: var(--text-sm);
 }
 
 .modal-actions {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -8,7 +8,8 @@ import {
   getCampaignDetail,
   createCampaign,
   updateCampaign,
-  deleteCampaign,
+  activateCampaign,
+  closeCampaign,
   stageOperation,
 } from '@/api/campaign'
 import type {
@@ -20,9 +21,12 @@ import type {
   CreateCampaignStageRequest,
   StageType,
   CampaignStatus,
+  StageRules,
+  SubmissionStageConfig,
+  VotingStageConfig,
 } from '@/types/campaign'
-import { getCampuses } from '@/api/dorm'
-import type { Campus } from '@/types/dorm'
+import { getCampuses, getTimePeriods, getCampusBuildings } from '@/api/dorm'
+import type { Campus, TimePeriod, Building } from '@/types/dorm'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -35,21 +39,56 @@ const toast = useToast()
 const isLoading = ref(true)
 const campaigns = ref<Campaign[]>([])
 const campuses = ref<Campus[]>([])
+const allTimePeriods = ref<TimePeriod[]>([])
+const availableBuildings = ref<Building[]>([])
+const isLoadingBuildings = ref(false)
 
 // 创建/编辑 Modal
 const showCampaignModal = ref(false)
 const campaignModalMode = ref<'create' | 'edit'>('create')
 const editingCampaign = ref<Campaign | null>(null)
 const isSaving = ref(false)
+const isLoadingCampaign = ref(false)
+
+// 表单规则类型
+interface FormRules {
+  has_limit: boolean
+  limit_scope: 'period' | 'activity'
+  min_count: number | null
+  max_count: number | null
+}
 
 // 表单阶段类型
 interface FormStage {
   stageType: StageType
   stageName: string
-  stageOrder: number
   startTime: string
   endTime: string
   description: string
+  // 投稿阶段配置
+  submissionRules?: FormRules
+  require_user_info?: boolean
+  user_info_fields?: string[]
+  // 投票阶段配置
+  votingRules?: FormRules
+  voting_mode?: 'unified' | 'per_building'
+}
+
+// 可用的用户信息字段选项
+const userInfoFieldOptions = [
+  { value: 'dormitory', label: '宿舍楼' },
+  { value: 'bed', label: '床位号' },
+  { value: 'student_id', label: '学号' },
+]
+
+// 创建默认规则
+function getDefaultRules(): FormRules {
+  return {
+    has_limit: true,
+    limit_scope: 'period',
+    min_count: 1,
+    max_count: 3,
+  }
 }
 
 // 表单状态
@@ -57,58 +96,100 @@ const campaignForm = ref<{
   title: string
   description: string
   campusId: number | null
+  timePeriodIds: number[]
+  buildingIds: number[]
   globalConfig: GlobalConfig
   stages: FormStage[]
 }>({
   title: '',
   description: '',
   campusId: null,
+  timePeriodIds: [],
+  buildingIds: [],
   globalConfig: {
-    allowMultipleSubmissions: true,
-    maxSubmissionsPerPeriod: 3,
-    votingMode: 'unified',
+    auto_stage_transition: false,
   },
   stages: [
-    { stageType: 'submission', stageName: '投稿阶段', stageOrder: 1, startTime: '', endTime: '', description: '用户提交铃声歌曲' },
-    { stageType: 'review', stageName: '审核阶段', stageOrder: 2, startTime: '', endTime: '', description: '管理员审核投稿' },
-    { stageType: 'voting', stageName: '投票阶段', stageOrder: 3, startTime: '', endTime: '', description: '用户投票选择铃声' },
-    { stageType: 'result', stageName: '结果公示', stageOrder: 4, startTime: '', endTime: '', description: '公示投票结果' },
+    {
+      stageType: 'submission',
+      stageName: '投稿阶段',
+      startTime: '',
+      endTime: '',
+      description: '用户提交铃声歌曲',
+      submissionRules: getDefaultRules(),
+      require_user_info: false,
+      user_info_fields: [],
+    },
+    { stageType: 'review', stageName: '审核阶段', startTime: '', endTime: '', description: '管理员审核投稿' },
+    {
+      stageType: 'voting',
+      stageName: '投票阶段',
+      startTime: '',
+      endTime: '',
+      description: '用户投票选择铃声',
+      votingRules: { has_limit: true, limit_scope: 'period', min_count: 1, max_count: 1 },
+      voting_mode: 'unified',
+    },
+    { stageType: 'result', stageName: '结果公示', startTime: '', endTime: '', description: '公示投票结果' },
   ],
 })
 
-// 删除确认
-const showDeleteConfirm = ref(false)
-const deleteCampaignTarget = ref<Campaign | null>(null)
-const isDeleting = ref(false)
+// 监听校区变化，加载对应的宿舍楼
+watch(() => campaignForm.value.campusId, async (newCampusId) => {
+  if (newCampusId) {
+    isLoadingBuildings.value = true
+    try {
+      const res = await getCampusBuildings(newCampusId)
+      if (res.data.code === 200) {
+        availableBuildings.value = res.data.data
+        // 如果是创建模式，清空已选宿舍楼
+        if (campaignModalMode.value === 'create') {
+          campaignForm.value.buildingIds = []
+        }
+      }
+    } catch (error) {
+      console.error('获取宿舍楼列表失败', error)
+    } finally {
+      isLoadingBuildings.value = false
+    }
+  } else {
+    availableBuildings.value = []
+    campaignForm.value.buildingIds = []
+  }
+})
 
-// 阶段操作
-const isOperatingStage = ref(false)
-const operatingCampaignId = ref<number | null>(null)
+// 操作确认弹窗
+const showOperationConfirm = ref(false)
+const operationTarget = ref<{
+  campaign: Campaign
+  type: 'activate' | 'close' | 'next' | 'previous'
+  title: string
+  message: string
+} | null>(null)
+const isOperating = ref(false)
 
 // ==================== 辅助函数 ====================
 
-// 阶段类型标签（用于阶段配置表单）
-const stageTypeLabels: Record<StageType, string> = {
-  submission: '投稿',
-  review: '审核',
-  voting: '投票',
-  result: '公示',
-}
-
 // 活动状态标签
 const campaignStatusLabels: Record<CampaignStatus, string> = {
+  pending: '待开始',
   active: '进行中',
   completed: '已完成',
   draft: '草稿',
   cancelled: '已取消',
+  closed: '已关闭',
+  archived: '已归档',
 }
 
 // 活动状态样式
 const campaignStatusClasses: Record<CampaignStatus, string> = {
+  pending: 'status-pending',
   active: 'status-active',
   completed: 'status-completed',
   draft: 'status-draft',
   cancelled: 'status-cancelled',
+  closed: 'status-closed',
+  archived: 'status-archived',
 }
 
 // 阶段状态样式
@@ -116,10 +197,6 @@ const stageStatusClasses: Record<string, string> = {
   pending: 'stage-pending',
   active: 'stage-active',
   completed: 'stage-completed',
-}
-
-function getStageTypeLabel(stageType: StageType): string {
-  return stageTypeLabels[stageType] || stageType
 }
 
 function getCampaignStatusLabel(status: CampaignStatus): string {
@@ -147,18 +224,6 @@ function formatDate(dateStr: string) {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  })
-}
-
-function formatDateTime(dateStr: string) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
   })
 }
 
@@ -194,6 +259,17 @@ async function loadCampuses() {
   }
 }
 
+async function loadTimePeriods() {
+  try {
+    const res = await getTimePeriods()
+    if (res.data.code === 200) {
+      allTimePeriods.value = res.data.data
+    }
+  } catch (error) {
+    console.error('获取时段列表失败', error)
+  }
+}
+
 async function loadCampaigns() {
   isLoading.value = true
   try {
@@ -219,39 +295,119 @@ function openCreateModal() {
   showCampaignModal.value = true
 }
 
-function openEditModal(campaign: Campaign) {
-  campaignModalMode.value = 'edit'
-  editingCampaign.value = campaign
+// 从服务器返回的阶段配置中解析规则
+function parseStageConfig(stage: CampaignStage): Partial<FormStage> {
+  const config = stage.config as Record<string, unknown> | null
 
-  // 填充表单
-  campaignForm.value = {
-    title: campaign.title,
-    description: campaign.description,
-    campusId: campaign.campus?.id || null,
-    globalConfig: campaign.globalConfig ? { ...campaign.globalConfig } : {
-      allowMultipleSubmissions: true,
-      maxSubmissionsPerPeriod: 3,
-      votingMode: 'unified',
-    },
-    stages: campaign.stages?.map(s => ({
-      stageType: s.stageType,
-      stageName: s.stageName,
-      stageOrder: s.stageOrder,
-      startTime: toLocalDateTime(s.startTime),
-      endTime: s.endTime ? toLocalDateTime(s.endTime) : '',
-      description: s.description || '',
-    })) || getDefaultStages(),
+  if (stage.stageType === 'submission') {
+    const rules = config?.rules as StageRules | undefined
+    return {
+      submissionRules: rules ? {
+        has_limit: rules.has_limit,
+        limit_scope: rules.limit_scope || 'period',
+        min_count: rules.min_count ?? null,
+        max_count: rules.max_count ?? null,
+      } : getDefaultRules(),
+      require_user_info: (config?.require_user_info as boolean) || false,
+      user_info_fields: (config?.user_info_fields as string[]) || [],
+    }
   }
 
+  if (stage.stageType === 'voting') {
+    const rules = config?.rules as StageRules | undefined
+    return {
+      votingRules: rules ? {
+        has_limit: rules.has_limit,
+        limit_scope: rules.limit_scope || 'period',
+        min_count: rules.min_count ?? null,
+        max_count: rules.max_count ?? null,
+      } : { has_limit: true, limit_scope: 'period', min_count: 1, max_count: 1 },
+      voting_mode: (config?.voting_mode as 'unified' | 'per_building') || 'unified',
+    }
+  }
+
+  return {}
+}
+
+async function openEditModal(campaign: Campaign) {
+  campaignModalMode.value = 'edit'
+  editingCampaign.value = campaign
+  isLoadingCampaign.value = true
   showCampaignModal.value = true
+
+  try {
+    // 获取完整的活动详情
+    const detailRes = await getCampaignDetail(campaign.id)
+    if (detailRes.data.code !== 200) {
+      toast.error(detailRes.data.message || '获取活动详情失败')
+      showCampaignModal.value = false
+      return
+    }
+
+    const fullCampaign = detailRes.data.data
+
+    // 如果有校区，加载该校区的宿舍楼列表
+    if (fullCampaign.campus?.id) {
+      try {
+        const buildingsRes = await getCampusBuildings(fullCampaign.campus.id)
+        if (buildingsRes.data.code === 200) {
+          availableBuildings.value = buildingsRes.data.data
+        }
+      } catch (error) {
+        console.error('获取宿舍楼列表失败', error)
+      }
+    }
+
+    // 填充表单
+    campaignForm.value = {
+      title: fullCampaign.title,
+      description: fullCampaign.description,
+      campusId: fullCampaign.campus?.id || null,
+      timePeriodIds: fullCampaign.timePeriods?.map(tp => tp.id) || [],
+      buildingIds: fullCampaign.buildings?.map(b => b.id) || [],
+      globalConfig: {
+        auto_stage_transition: fullCampaign.globalConfig?.auto_stage_transition ?? false,
+      },
+      stages: fullCampaign.stages?.map(s => ({
+        stageType: s.stageType,
+        stageName: s.stageName,
+        startTime: toLocalDateTime(s.startTime),
+        endTime: s.endTime ? toLocalDateTime(s.endTime) : '',
+        description: s.description || '',
+        ...parseStageConfig(s),
+      })) || getDefaultStages(),
+    }
+  } catch (error) {
+    toast.error('获取活动详情失败')
+    showCampaignModal.value = false
+  } finally {
+    isLoadingCampaign.value = false
+  }
 }
 
 function getDefaultStages(): FormStage[] {
   return [
-    { stageType: 'submission', stageName: '投稿阶段', stageOrder: 1, startTime: '', endTime: '', description: '用户提交铃声歌曲' },
-    { stageType: 'review', stageName: '审核阶段', stageOrder: 2, startTime: '', endTime: '', description: '管理员审核投稿' },
-    { stageType: 'voting', stageName: '投票阶段', stageOrder: 3, startTime: '', endTime: '', description: '用户投票选择铃声' },
-    { stageType: 'result', stageName: '结果公示', stageOrder: 4, startTime: '', endTime: '', description: '公示投票结果' },
+    {
+      stageType: 'submission',
+      stageName: '投稿阶段',
+      startTime: '',
+      endTime: '',
+      description: '用户提交铃声歌曲',
+      submissionRules: getDefaultRules(),
+      require_user_info: false,
+      user_info_fields: [],
+    },
+    { stageType: 'review', stageName: '审核阶段', startTime: '', endTime: '', description: '管理员审核投稿' },
+    {
+      stageType: 'voting',
+      stageName: '投票阶段',
+      startTime: '',
+      endTime: '',
+      description: '用户投票选择铃声',
+      votingRules: { has_limit: true, limit_scope: 'period', min_count: 1, max_count: 1 },
+      voting_mode: 'unified',
+    },
+    { stageType: 'result', stageName: '结果公示', startTime: '', endTime: '', description: '公示投票结果' },
   ]
 }
 
@@ -260,18 +416,81 @@ function resetForm() {
     title: '',
     description: '',
     campusId: null,
+    timePeriodIds: [],
+    buildingIds: [],
     globalConfig: {
-      allowMultipleSubmissions: true,
-      maxSubmissionsPerPeriod: 3,
-      votingMode: 'unified',
+      auto_stage_transition: false,
     },
     stages: getDefaultStages(),
   }
+  availableBuildings.value = []
 }
 
 function closeModal() {
   showCampaignModal.value = false
   editingCampaign.value = null
+}
+
+// 构建阶段配置
+function buildStageConfig(stage: FormStage): SubmissionStageConfig | VotingStageConfig | Record<string, unknown> {
+  if (stage.stageType === 'submission') {
+    const config: SubmissionStageConfig = {}
+
+    // 规则配置
+    if (stage.submissionRules) {
+      const rules: StageRules = {
+        has_limit: stage.submissionRules.has_limit,
+      }
+      if (stage.submissionRules.has_limit) {
+        rules.limit_scope = stage.submissionRules.limit_scope
+        if (stage.submissionRules.min_count !== null) {
+          rules.min_count = stage.submissionRules.min_count
+        }
+        if (stage.submissionRules.max_count !== null) {
+          rules.max_count = stage.submissionRules.max_count
+        }
+      }
+      config.rules = rules
+    }
+
+    // 用户信息字段
+    if (stage.require_user_info) {
+      config.require_user_info = true
+      config.user_info_fields = stage.user_info_fields || []
+    }
+
+    return config
+  }
+
+  if (stage.stageType === 'voting') {
+    const config: VotingStageConfig = {}
+
+    // 规则配置
+    if (stage.votingRules) {
+      const rules: StageRules = {
+        has_limit: stage.votingRules.has_limit,
+      }
+      if (stage.votingRules.has_limit) {
+        rules.limit_scope = stage.votingRules.limit_scope
+        if (stage.votingRules.min_count !== null) {
+          rules.min_count = stage.votingRules.min_count
+        }
+        if (stage.votingRules.max_count !== null) {
+          rules.max_count = stage.votingRules.max_count
+        }
+      }
+      config.rules = rules
+    }
+
+    // 投票模式
+    if (stage.voting_mode) {
+      config.voting_mode = stage.voting_mode
+    }
+
+    return config
+  }
+
+  return {}
 }
 
 async function saveCampaign() {
@@ -285,6 +504,14 @@ async function saveCampaign() {
   }
   if (!campaignForm.value.campusId) {
     toast.error('请选择校区')
+    return
+  }
+  if (campaignForm.value.timePeriodIds.length === 0) {
+    toast.error('请选择至少一个铃声时段')
+    return
+  }
+  if (campaignForm.value.buildingIds.length === 0) {
+    toast.error('请选择至少一栋宿舍楼')
     return
   }
 
@@ -302,14 +529,14 @@ async function saveCampaign() {
 
   isSaving.value = true
   try {
-    // 转换时间格式
+    // 转换时间格式和构建阶段配置
     const stages: CreateCampaignStageRequest[] = campaignForm.value.stages.map(s => ({
       stageType: s.stageType,
       stageName: s.stageName,
-      stageOrder: s.stageOrder,
       startTime: toISOString(s.startTime),
       endTime: toISOString(s.endTime),
       description: s.description,
+      config: buildStageConfig(s),
     }))
 
     if (campaignModalMode.value === 'create') {
@@ -317,6 +544,8 @@ async function saveCampaign() {
         title: campaignForm.value.title,
         description: campaignForm.value.description,
         campusId: campaignForm.value.campusId,
+        timePeriodIds: campaignForm.value.timePeriodIds,
+        buildingIds: campaignForm.value.buildingIds,
         globalConfig: campaignForm.value.globalConfig,
         stages,
       }
@@ -333,6 +562,8 @@ async function saveCampaign() {
         title: campaignForm.value.title,
         description: campaignForm.value.description,
         campusId: campaignForm.value.campusId,
+        timePeriodIds: campaignForm.value.timePeriodIds,
+        buildingIds: campaignForm.value.buildingIds,
         globalConfig: campaignForm.value.globalConfig,
         stages,
       }
@@ -352,110 +583,149 @@ async function saveCampaign() {
   }
 }
 
-async function toggleStatus(campaign: Campaign) {
+// 打开操作确认弹窗
+function openOperationConfirm(
+  campaign: Campaign,
+  type: 'activate' | 'close' | 'next' | 'previous'
+) {
+  const messages: Record<'activate' | 'close' | 'next' | 'previous', { title: string; message: string }> = {
+    activate: {
+      title: '开始活动',
+      message: `确定要开始活动"${campaign.title}"吗？活动将进入投稿阶段。`,
+    },
+    close: {
+      title: '关闭活动',
+      message: `确定要关闭活动"${campaign.title}"吗？关闭后活动将无法继续。`,
+    },
+    next: {
+      title: '进入下一阶段',
+      message: `确定要将活动"${campaign.title}"推进到下一阶段吗？`,
+    },
+    previous: {
+      title: '返回上一阶段',
+      message: `确定要将活动"${campaign.title}"返回到上一阶段吗？`,
+    },
+  }
+  const msg = messages[type]
+  operationTarget.value = {
+    campaign,
+    type,
+    title: msg.title,
+    message: msg.message,
+  }
+  showOperationConfirm.value = true
+}
+
+// 确认执行操作
+async function confirmOperation() {
+  if (!operationTarget.value) return
+
+  isOperating.value = true
+  const { campaign, type } = operationTarget.value
+
   try {
-    const newStatus: CampaignStatus = campaign.status === 'active' ? 'cancelled' : 'active'
-    const res = await updateCampaign(campaign.id, { status: newStatus })
+    let res
+    if (type === 'activate') {
+      res = await activateCampaign(campaign.id)
+    } else if (type === 'close') {
+      res = await closeCampaign(campaign.id)
+    } else {
+      res = await stageOperation(campaign.id, { operation: type })
+    }
+
     if (res.data.code === 200) {
-      toast.success(campaign.status === 'active' ? '已取消' : '已激活')
+      const successMessages: Record<'activate' | 'close' | 'next' | 'previous', string> = {
+        activate: '活动已开始',
+        close: '活动已关闭',
+        next: '已进入下一阶段',
+        previous: '已返回上一阶段',
+      }
+      toast.success(successMessages[type])
+      showOperationConfirm.value = false
+      operationTarget.value = null
       await loadCampaigns()
     } else {
       toast.error(res.data.message || '操作失败')
     }
   } catch (error) {
     toast.error('操作失败')
-  }
-}
-
-function openDeleteConfirmModal(campaign: Campaign) {
-  deleteCampaignTarget.value = campaign
-  showDeleteConfirm.value = true
-}
-
-async function confirmDelete() {
-  if (!deleteCampaignTarget.value) return
-
-  isDeleting.value = true
-  try {
-    const res = await deleteCampaign(deleteCampaignTarget.value.id)
-    if (res.data.code === 200) {
-      toast.success('活动已删除')
-      showDeleteConfirm.value = false
-      deleteCampaignTarget.value = null
-      await loadCampaigns()
-    } else {
-      toast.error(res.data.message || '删除失败')
-    }
-  } catch (error) {
-    toast.error('删除失败')
   } finally {
-    isDeleting.value = false
+    isOperating.value = false
   }
 }
 
-function cancelDelete() {
-  showDeleteConfirm.value = false
-  deleteCampaignTarget.value = null
+// 取消操作
+function cancelOperation() {
+  showOperationConfirm.value = false
+  operationTarget.value = null
 }
 
 // ==================== 阶段操作 ====================
 
-async function handleStageOperation(campaign: Campaign, operation: 'start' | 'end' | 'next') {
-  isOperatingStage.value = true
-  operatingCampaignId.value = campaign.id
+// 根据活动状态显示可用操作
+function getAvailableOperations(campaign: Campaign): Array<{
+  label: string
+  operationType: 'activate' | 'close' | 'next' | 'previous'
+  btnType: string
+}> {
+  const ops: Array<{
+    label: string
+    operationType: 'activate' | 'close' | 'next' | 'previous'
+    btnType: string
+  }> = []
 
-  try {
-    const res = await stageOperation(campaign.id, { operation })
-    if (res.data.code === 200) {
-      const messages: Record<string, string> = {
-        start: '活动已开始',
-        end: '活动已结束',
-        next: '已进入下一阶段',
-      }
-      toast.success(messages[operation] || '操作成功')
-      await loadCampaigns()
-    } else {
-      toast.error(res.data.message || '操作失败')
-    }
-  } catch (error) {
-    toast.error('操作失败')
-  } finally {
-    isOperatingStage.value = false
-    operatingCampaignId.value = null
-  }
-}
-
-// 根据当前阶段显示可用操作
-function getAvailableOperations(campaign: Campaign): Array<{ label: string; operation: 'start' | 'end' | 'next'; type: string }> {
-  const ops: Array<{ label: string; operation: 'start' | 'end' | 'next'; type: string }> = []
-
-  // 如果活动已完成或取消，不显示操作
-  if (campaign.status === 'completed' || campaign.status === 'cancelled') {
+  // 如果活动已关闭/归档，不显示操作
+  if (campaign.status === 'closed' || campaign.status === 'completed' || campaign.status === 'cancelled' || campaign.status === 'archived') {
     return ops
   }
 
-  const stageType = campaign.currentStage?.stageType
-  const stageStatus = campaign.currentStage?.status
+  // 活动还未开始（待开始状态）
+  if (campaign.status === 'pending' || campaign.status === 'draft') {
+    ops.push({ label: '开始活动', operationType: 'activate', btnType: 'primary' })
+    return ops
+  }
 
-  if (!campaign.currentStage || stageStatus === 'pending') {
-    // 没有当前阶段或阶段未开始
-    ops.push({ label: '开始活动', operation: 'start', type: 'primary' })
-  } else if (stageStatus === 'active') {
-    // 阶段进行中
-    switch (stageType) {
-      case 'submission':
-      case 'review':
-      case 'voting':
-        ops.push({ label: '下一阶段', operation: 'next', type: 'info' })
-        ops.push({ label: '结束活动', operation: 'end', type: 'danger' })
-        break
-      case 'result':
-        ops.push({ label: '结束活动', operation: 'end', type: 'danger' })
-        break
+  // 活动进行中
+  if (campaign.status === 'active' && campaign.currentStage) {
+    const stageType = campaign.currentStage.stageType
+
+    // 非第一个阶段可以返回上一阶段
+    if (stageType !== 'submission') {
+      ops.push({ label: '上一阶段', operationType: 'previous', btnType: 'secondary' })
     }
+
+    // 非最后一个阶段可以进入下一阶段
+    if (stageType !== 'result') {
+      ops.push({ label: '下一阶段', operationType: 'next', btnType: 'info' })
+    }
+
+    // 始终可以关闭活动
+    ops.push({ label: '关闭活动', operationType: 'close', btnType: 'danger' })
   }
 
   return ops
+}
+
+// 判断是否可以编辑活动（只有未开始的活动可以编辑）
+function canEditCampaign(campaign: Campaign): boolean {
+  return campaign.status === 'pending' || campaign.status === 'draft'
+}
+
+// 判断是否显示投稿/审核按钮（投稿阶段和审核阶段）
+function canShowSubmissionsButton(campaign: Campaign): boolean {
+  const stageType = campaign.currentStage?.stageType
+  return stageType === 'submission' || stageType === 'review'
+}
+
+// 获取投稿/审核按钮的文案
+function getSubmissionsButtonLabel(campaign: Campaign): string {
+  return campaign.currentStage?.stageType === 'submission' ? '投稿' : '审核'
+}
+
+// 判断是否显示结果按钮（投票阶段和结果阶段）
+function canShowResultsButton(campaign: Campaign): boolean {
+  const stageType = campaign.currentStage?.stageType
+  return stageType === 'voting' || stageType === 'result'
 }
 
 // ==================== 页面跳转 ====================
@@ -476,7 +746,7 @@ onMounted(async () => {
     router.push('/')
     return
   }
-  await Promise.all([loadCampaigns(), loadCampuses()])
+  await Promise.all([loadCampaigns(), loadCampuses(), loadTimePeriods()])
 })
 </script>
 
@@ -536,7 +806,11 @@ onMounted(async () => {
                 <div class="campaign-header">
                   <h3 class="campaign-name">{{ campaign.title }}</h3>
                   <div class="badges">
-                    <span class="stage-badge" :class="getCurrentStageDisplay(campaign).class">
+                    <span
+                      v-if="campaign.currentStage"
+                      class="stage-badge"
+                      :class="getCurrentStageDisplay(campaign).class"
+                    >
                       {{ getCurrentStageDisplay(campaign).label }}
                     </span>
                     <span class="status-badge" :class="getCampaignStatusClass(campaign.status)">
@@ -551,10 +825,6 @@ onMounted(async () => {
                   </span>
                   <span class="meta-divider">|</span>
                   <span class="meta-item">
-                    投稿限制: {{ campaign.globalConfig?.maxSubmissionsPerPeriod || '-' }} 首/时段
-                  </span>
-                  <span class="meta-divider">|</span>
-                  <span class="meta-item">
                     {{ formatDate(campaign.createdAt) }}
                   </span>
                 </div>
@@ -563,14 +833,14 @@ onMounted(async () => {
               <div class="campaign-actions">
                 <!-- 阶段操作 -->
                 <div class="stage-operations">
-                  <template v-for="op in getAvailableOperations(campaign)" :key="op.operation">
+                  <template v-for="op in getAvailableOperations(campaign)" :key="op.operationType">
                     <button
                       class="action-btn"
-                      :class="op.type"
-                      :disabled="isOperatingStage && operatingCampaignId === campaign.id"
-                      @click="handleStageOperation(campaign, op.operation)"
+                      :class="op.btnType"
+                      :disabled="isOperating"
+                      @click="openOperationConfirm(campaign, op.operationType)"
                     >
-                      {{ isOperatingStage && operatingCampaignId === campaign.id ? '...' : op.label }}
+                      {{ op.label }}
                     </button>
                   </template>
                 </div>
@@ -578,28 +848,29 @@ onMounted(async () => {
                 <!-- 管理操作 -->
                 <div class="manage-actions">
                   <button
-                    v-if="campaign.currentStage && ['review', 'voting', 'result'].includes(campaign.currentStage.stageType)"
+                    v-if="canShowSubmissionsButton(campaign)"
                     class="action-btn review"
+                    :disabled="isOperating"
                     @click="goToReview(campaign)"
                   >
-                    审核
+                    {{ getSubmissionsButtonLabel(campaign) }}
                   </button>
                   <button
-                    v-if="campaign.currentStage && ['voting', 'result'].includes(campaign.currentStage.stageType)"
+                    v-if="canShowResultsButton(campaign)"
                     class="action-btn results"
+                    :disabled="isOperating"
                     @click="goToResults(campaign)"
                   >
                     结果
                   </button>
                   <button
-                    class="action-btn toggle"
-                    :class="{ 'is-enabled': campaign.status === 'active' }"
-                    @click="toggleStatus(campaign)"
+                    v-if="canEditCampaign(campaign)"
+                    class="action-btn edit"
+                    :disabled="isOperating"
+                    @click="openEditModal(campaign)"
                   >
-                    {{ campaign.status === 'active' ? '取消' : '激活' }}
+                    编辑
                   </button>
-                  <button class="action-btn edit" @click="openEditModal(campaign)">编辑</button>
-                  <button class="action-btn delete" @click="openDeleteConfirmModal(campaign)">删除</button>
                 </div>
               </div>
             </div>
@@ -617,6 +888,14 @@ onMounted(async () => {
           <div v-if="showCampaignModal" class="modal-content modal-lg" @click.stop>
             <h3 class="modal-title">{{ campaignModalMode === 'create' ? '创建活动' : '编辑活动' }}</h3>
 
+            <!-- 加载状态 -->
+            <div v-if="isLoadingCampaign" class="modal-loading">
+              <div class="loading-spinner"></div>
+              <p>加载活动详情...</p>
+            </div>
+
+            <!-- 表单内容 -->
+            <template v-else>
             <!-- 基本信息 -->
             <div class="form-section">
               <h4 class="form-section-title">基本信息</h4>
@@ -654,71 +933,265 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- 全局配置 -->
+            <!-- 铃声时段和宿舍楼选择 -->
             <div class="form-section">
-              <h4 class="form-section-title">全局配置</h4>
-              <div class="form-row">
-                <div class="form-group half">
-                  <label class="form-label">每时段最多投稿数</label>
-                  <input
-                    v-model.number="campaignForm.globalConfig.maxSubmissionsPerPeriod"
-                    type="number"
-                    class="form-input"
-                    min="1"
-                    max="20"
-                  />
-                </div>
-                <div class="form-group half">
-                  <label class="form-label">投票模式</label>
-                  <select
-                    v-model="campaignForm.globalConfig.votingMode"
-                    class="form-select"
+              <h4 class="form-section-title">活动范围</h4>
+
+              <!-- 铃声时段选择 -->
+              <div class="form-group">
+                <label class="form-label">铃声时段 *</label>
+                <p class="form-hint">选择本次活动包含的铃声时段</p>
+                <div class="selection-list">
+                  <label
+                    v-for="tp in allTimePeriods"
+                    :key="tp.id"
+                    class="selection-item"
+                    :class="{ selected: campaignForm.timePeriodIds.includes(tp.id) }"
                   >
-                    <option value="unified">统一投票（海沧校区）</option>
-                    <option value="per_building">分宿舍投票（思明校区）</option>
-                  </select>
+                    <input
+                      type="checkbox"
+                      :value="tp.id"
+                      v-model="campaignForm.timePeriodIds"
+                      class="selection-checkbox"
+                    />
+                    <span class="selection-name">{{ tp.name }}</span>
+                    <span class="selection-code">{{ tp.code }}</span>
+                  </label>
+                  <div v-if="allTimePeriods.length === 0" class="selection-empty">
+                    暂无铃声时段，请先在宿舍管理中创建
+                  </div>
                 </div>
               </div>
+
+              <!-- 宿舍楼选择 -->
               <div class="form-group">
-                <label class="form-label checkbox-label">
-                  <input
-                    v-model="campaignForm.globalConfig.allowMultipleSubmissions"
-                    type="checkbox"
-                    class="form-checkbox"
-                  />
-                  允许多次投稿
-                </label>
+                <label class="form-label">宿舍楼 *</label>
+                <p class="form-hint">选择本次活动覆盖的宿舍楼（请先选择校区）</p>
+                <div v-if="isLoadingBuildings" class="selection-loading">
+                  <div class="loading-spinner-sm"></div>
+                  <span>加载中...</span>
+                </div>
+                <div v-else class="selection-list">
+                  <label
+                    v-for="building in availableBuildings"
+                    :key="building.id"
+                    class="selection-item"
+                    :class="{ selected: campaignForm.buildingIds.includes(building.id) }"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="building.id"
+                      v-model="campaignForm.buildingIds"
+                      class="selection-checkbox"
+                    />
+                    <span class="selection-name">{{ building.name }}</span>
+                    <span class="selection-code">{{ building.code }}</span>
+                  </label>
+                  <div v-if="!campaignForm.campusId" class="selection-empty">
+                    请先选择校区
+                  </div>
+                  <div v-else-if="availableBuildings.length === 0" class="selection-empty">
+                    该校区暂无宿舍楼
+                  </div>
+                </div>
+                <!-- 全选/取消全选按钮 -->
+                <div v-if="availableBuildings.length > 0" class="selection-actions">
+                  <button
+                    type="button"
+                    class="selection-action-btn"
+                    @click="campaignForm.buildingIds = availableBuildings.map(b => b.id)"
+                  >
+                    全选
+                  </button>
+                  <button
+                    type="button"
+                    class="selection-action-btn"
+                    @click="campaignForm.buildingIds = []"
+                  >
+                    取消全选
+                  </button>
+                </div>
               </div>
             </div>
 
             <!-- 阶段配置 -->
             <div class="form-section">
               <h4 class="form-section-title">阶段配置</h4>
+              <div class="form-group">
+                <label class="form-label checkbox-label">
+                  <input
+                    v-model="campaignForm.globalConfig.auto_stage_transition"
+                    type="checkbox"
+                    class="form-checkbox"
+                  />
+                  启用阶段自动转换
+                </label>
+                <p class="form-hint">开启后，阶段将在到达设定时间时自动转换到下一阶段</p>
+              </div>
               <div
                 v-for="(stage, index) in campaignForm.stages"
                 :key="stage.stageType"
                 class="stage-config"
               >
-                <div class="stage-label">
-                  <span class="stage-number">{{ index + 1 }}</span>
-                  <span class="stage-type">{{ stage.stageName }}</span>
-                </div>
-                <div class="stage-times">
-                  <div class="form-group">
-                    <label class="form-label-sm">开始时间</label>
-                    <input
-                      v-model="stage.startTime"
-                      type="datetime-local"
-                      class="form-input"
-                    />
+                <div class="stage-header">
+                  <div class="stage-label">
+                    <span class="stage-number">{{ index + 1 }}</span>
+                    <span class="stage-type">{{ stage.stageName }}</span>
                   </div>
-                  <div class="form-group">
-                    <label class="form-label-sm">结束时间</label>
-                    <input
-                      v-model="stage.endTime"
-                      type="datetime-local"
-                      class="form-input"
-                    />
+                  <div class="stage-times">
+                    <div class="form-group">
+                      <label class="form-label-sm">开始时间</label>
+                      <input
+                        v-model="stage.startTime"
+                        type="datetime-local"
+                        class="form-input"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label-sm">结束时间</label>
+                      <input
+                        v-model="stage.endTime"
+                        type="datetime-local"
+                        class="form-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 投稿阶段配置 -->
+                <div v-if="stage.stageType === 'submission' && stage.submissionRules" class="stage-extra-config">
+                  <div class="config-row">
+                    <label class="form-label checkbox-label">
+                      <input
+                        v-model="stage.submissionRules.has_limit"
+                        type="checkbox"
+                        class="form-checkbox"
+                      />
+                      启用投稿数量限制
+                    </label>
+                  </div>
+                  <div class="config-details" :class="{ expanded: stage.submissionRules.has_limit }">
+                    <div class="config-details-inner">
+                      <div class="form-row">
+                        <div class="form-group half">
+                          <label class="form-label-sm">限制范围</label>
+                          <select v-model="stage.submissionRules.limit_scope" class="form-select">
+                            <option value="period">每个时段分别限制</option>
+                            <option value="activity">整个活动总限制</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <div class="form-group half">
+                          <label class="form-label-sm">最少投稿数</label>
+                          <input
+                            v-model.number="stage.submissionRules.min_count"
+                            type="number"
+                            class="form-input"
+                            min="0"
+                            placeholder="不限"
+                          />
+                        </div>
+                        <div class="form-group half">
+                          <label class="form-label-sm">最多投稿数</label>
+                          <input
+                            v-model.number="stage.submissionRules.max_count"
+                            type="number"
+                            class="form-input"
+                            min="1"
+                            placeholder="不限"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="config-row">
+                    <label class="form-label checkbox-label">
+                      <input
+                        v-model="stage.require_user_info"
+                        type="checkbox"
+                        class="form-checkbox"
+                      />
+                      需要填写用户信息
+                    </label>
+                  </div>
+                  <div class="config-details" :class="{ expanded: stage.require_user_info }">
+                    <div class="config-details-inner">
+                      <label class="form-label-sm">选择需要的信息字段</label>
+                      <div class="checkbox-group">
+                        <label
+                          v-for="field in userInfoFieldOptions"
+                          :key="field.value"
+                          class="checkbox-item"
+                        >
+                          <input
+                            type="checkbox"
+                            :value="field.value"
+                            v-model="stage.user_info_fields"
+                            class="form-checkbox"
+                          />
+                          {{ field.label }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 投票阶段配置 -->
+                <div v-if="stage.stageType === 'voting' && stage.votingRules" class="stage-extra-config">
+                  <div class="form-row">
+                    <div class="form-group half">
+                      <label class="form-label-sm">投票模式</label>
+                      <select v-model="stage.voting_mode" class="form-select">
+                        <option value="unified">统一投票（海沧校区）</option>
+                        <option value="per_building">分宿舍投票（思明校区）</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="config-row">
+                    <label class="form-label checkbox-label">
+                      <input
+                        v-model="stage.votingRules.has_limit"
+                        type="checkbox"
+                        class="form-checkbox"
+                      />
+                      启用投票数量限制
+                    </label>
+                  </div>
+                  <div class="config-details" :class="{ expanded: stage.votingRules.has_limit }">
+                    <div class="config-details-inner">
+                      <div class="form-row">
+                        <div class="form-group half">
+                          <label class="form-label-sm">限制范围</label>
+                          <select v-model="stage.votingRules.limit_scope" class="form-select">
+                            <option value="period">每个时段分别限制</option>
+                            <option value="activity">整个活动总限制</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <div class="form-group half">
+                          <label class="form-label-sm">最少投票数</label>
+                          <input
+                            v-model.number="stage.votingRules.min_count"
+                            type="number"
+                            class="form-input"
+                            min="0"
+                            placeholder="不限"
+                          />
+                        </div>
+                        <div class="form-group half">
+                          <label class="form-label-sm">最多投票数</label>
+                          <input
+                            v-model.number="stage.votingRules.max_count"
+                            type="number"
+                            class="form-input"
+                            min="1"
+                            placeholder="不限"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -730,24 +1203,30 @@ onMounted(async () => {
                 {{ isSaving ? '保存中...' : '保存' }}
               </button>
             </div>
+            </template>
           </div>
         </Transition>
       </div>
     </Transition>
 
-    <!-- ==================== 删除确认 Modal ==================== -->
+    <!-- ==================== 操作确认 Modal ==================== -->
     <Transition name="modal-fade">
-      <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
+      <div v-if="showOperationConfirm" class="modal-overlay" @click.self="cancelOperation">
         <Transition name="modal-scale" appear>
-          <div v-if="showDeleteConfirm" class="modal-content" @click.stop>
-            <h3 class="modal-title">确认删除</h3>
+          <div v-if="showOperationConfirm" class="modal-content" @click.stop>
+            <h3 class="modal-title">{{ operationTarget?.title }}</h3>
             <p class="modal-desc">
-              确定要删除活动"{{ deleteCampaignTarget?.title }}"吗？此操作不可撤销。
+              {{ operationTarget?.message }}
             </p>
             <div class="modal-actions">
-              <button class="modal-btn cancel" @click="cancelDelete" :disabled="isDeleting">取消</button>
-              <button class="modal-btn confirm danger" @click="confirmDelete" :disabled="isDeleting">
-                {{ isDeleting ? '删除中...' : '确认删除' }}
+              <button class="modal-btn cancel" @click="cancelOperation" :disabled="isOperating">取消</button>
+              <button
+                class="modal-btn confirm"
+                :class="{ danger: operationTarget?.type === 'close' }"
+                @click="confirmOperation"
+                :disabled="isOperating"
+              >
+                {{ isOperating ? '处理中...' : '确认' }}
               </button>
             </div>
           </div>
@@ -1001,6 +1480,11 @@ onMounted(async () => {
   color: #9333ea;
 }
 
+.status-badge.status-pending {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
 .status-badge.status-draft {
   background: var(--color-border);
   color: var(--color-text-tertiary);
@@ -1009,6 +1493,16 @@ onMounted(async () => {
 .status-badge.status-cancelled {
   background: var(--color-error-bg);
   color: var(--color-error);
+}
+
+.status-badge.status-closed {
+  background: var(--color-text-placeholder);
+  color: white;
+}
+
+.status-badge.status-archived {
+  background: var(--color-border);
+  color: var(--color-text-tertiary);
 }
 
 .campaign-desc {
@@ -1079,6 +1573,16 @@ onMounted(async () => {
 
 .action-btn.info:hover:not(:disabled) {
   background: var(--color-info);
+  color: white;
+}
+
+.action-btn.secondary {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.action-btn.secondary:hover:not(:disabled) {
+  background: var(--color-text-secondary);
   color: white;
 }
 
@@ -1188,6 +1692,20 @@ onMounted(async () => {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-lg);
+}
+
+.modal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+.modal-loading p {
+  margin-top: var(--spacing-md);
+  font-size: var(--text-sm);
 }
 
 .modal-actions {
@@ -1336,6 +1854,109 @@ onMounted(async () => {
   min-height: 80px;
 }
 
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ===== Selection List ===== */
+.selection-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.selection-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: var(--text-sm);
+}
+
+.selection-item:hover {
+  border-color: var(--color-primary);
+}
+
+.selection-item.selected {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
+}
+
+.selection-checkbox {
+  display: none;
+}
+
+.selection-name {
+  font-weight: var(--font-medium);
+}
+
+.selection-code {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.selection-empty {
+  width: 100%;
+  text-align: center;
+  padding: var(--spacing-md);
+  color: var(--color-text-placeholder);
+  font-size: var(--text-sm);
+}
+
+.selection-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.loading-spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.selection-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.selection-action-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.selection-action-btn:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
 /* ===== Stage Config ===== */
 .stage-config {
   display: flex;
@@ -1350,6 +1971,12 @@ onMounted(async () => {
 
 .stage-config:last-child {
   margin-bottom: 0;
+}
+
+.stage-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
 .stage-label {
@@ -1392,6 +2019,58 @@ onMounted(async () => {
   min-width: 0;
 }
 
+/* Stage Extra Config */
+.stage-extra-config {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px dashed var(--color-border);
+}
+
+.config-row {
+  margin-bottom: var(--spacing-sm);
+}
+
+.config-row:last-child {
+  margin-bottom: 0;
+}
+
+/* 可折叠内容区域 */
+.config-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  opacity: 0;
+  margin-left: var(--spacing-lg);
+  margin-bottom: 0;
+}
+
+.config-details.expanded {
+  max-height: 300px;
+  opacity: 1;
+  margin-bottom: var(--spacing-sm);
+}
+
+.config-details-inner {
+  padding: var(--spacing-sm);
+  background: var(--color-card);
+  border-radius: var(--radius-sm);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
 /* ===== Desktop ===== */
 @media (min-width: 768px) {
   .campaign-card {
@@ -1405,7 +2084,7 @@ onMounted(async () => {
     flex-shrink: 0;
   }
 
-  .stage-config {
+  .stage-header {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;

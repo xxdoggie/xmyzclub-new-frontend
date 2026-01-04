@@ -9,6 +9,7 @@ import type {
   StageOperationRequest,
   ReviewSubmissionRequest,
   DeleteSubmissionRequest,
+  ProgressResponse,
 } from '@/types/campaign'
 
 // ==================== 用户端 API ====================
@@ -53,7 +54,21 @@ export function deleteCampaign(id: number) {
 }
 
 /**
- * 阶段操作（开始/结束/下一阶段）
+ * 开始活动 - 将活动状态设为 active，并激活第一个阶段
+ */
+export function activateCampaign(id: number) {
+  return api.post<ApiResponse<Campaign>>(`/admin/campaigns/${id}/activate`)
+}
+
+/**
+ * 关闭活动 - 将活动状态设为 closed
+ */
+export function closeCampaign(id: number) {
+  return api.post<ApiResponse<Campaign>>(`/admin/campaigns/${id}/close`)
+}
+
+/**
+ * 阶段操作（next/previous/activate）
  */
 export function stageOperation(id: number, data: StageOperationRequest) {
   return api.post<ApiResponse<Campaign>>(`/admin/campaigns/${id}/stage-operation`, data)
@@ -89,4 +104,20 @@ export function deleteSubmissions(data: DeleteSubmissionRequest) {
  */
 export function getVotingResults(campaignId: number) {
   return api.get<ApiResponse<TimePeriodVotingResult[]>>(`/admin/voting/campaigns/${campaignId}/results`)
+}
+
+// ==================== 用户端进度 API ====================
+
+/**
+ * 获取投稿进度和限制信息
+ */
+export function getSubmissionProgress(campaignId: number) {
+  return api.get<ApiResponse<ProgressResponse>>(`/submissions/campaigns/${campaignId}/progress`)
+}
+
+/**
+ * 获取投票进度和限制信息
+ */
+export function getVotingProgress(campaignId: number) {
+  return api.get<ApiResponse<ProgressResponse>>(`/voting/campaigns/${campaignId}/progress`)
 }

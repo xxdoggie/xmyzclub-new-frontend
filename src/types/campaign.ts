@@ -15,7 +15,7 @@ export type StageType = 'submission' | 'review' | 'voting' | 'result'
 /**
  * 活动状态
  */
-export type CampaignStatus = 'active' | 'completed' | 'draft' | 'cancelled'
+export type CampaignStatus = 'pending' | 'active' | 'completed' | 'draft' | 'cancelled' | 'closed' | 'archived'
 
 /**
  * 活动阶段（详细版本，用于活动详情）
@@ -62,16 +62,54 @@ export interface CurrentStage {
 }
 
 /**
- * 全局配置
+ * 全局配置（可扩展）
  */
 export interface GlobalConfig {
-  /** 是否允许多次投稿 */
-  allowMultipleSubmissions: boolean
-  /** 每时段最多投稿数 */
-  maxSubmissionsPerPeriod: number
-  /** 投票模式: unified=统一投票（海沧校区）, per_building=分宿舍投票（思明校区） */
-  votingMode: 'unified' | 'per_building'
+  /** 阶段自动转换（到时间自动执行） */
+  auto_stage_transition?: boolean
+  [key: string]: unknown
 }
+
+/**
+ * 投稿/投票阶段的规则配置
+ */
+export interface StageRules {
+  /** 是否启用数量限制 */
+  has_limit: boolean
+  /** 限制范围: period=每个时段分别限制, activity=整个活动总限制 */
+  limit_scope?: 'period' | 'activity'
+  /** 最少数量 */
+  min_count?: number
+  /** 最多数量 */
+  max_count?: number
+}
+
+/**
+ * 投稿阶段配置
+ */
+export interface SubmissionStageConfig {
+  /** 规则配置 */
+  rules?: StageRules
+  /** 是否需要用户信息 */
+  require_user_info?: boolean
+  /** 用户信息字段 */
+  user_info_fields?: string[]
+}
+
+/**
+ * 投票阶段配置
+ */
+export interface VotingStageConfig {
+  /** 规则配置 */
+  rules?: StageRules
+  /** 投票模式: unified=统一投票, per_building=分宿舍投票 */
+  voting_mode?: 'unified' | 'per_building'
+}
+
+/**
+ * 阶段配置（联合类型）
+ */
+export type StageConfig = SubmissionStageConfig | VotingStageConfig | Record<string, unknown>
 
 /**
  * 活动信息
@@ -203,14 +241,12 @@ export interface CreateCampaignStageRequest {
   stageType: StageType
   /** 阶段名称 */
   stageName: string
-  /** 阶段顺序 */
-  stageOrder: number
   /** 开始时间 */
   startTime: string
   /** 结束时间 */
   endTime: string
   /** 阶段配置 */
-  config?: Record<string, unknown>
+  config?: StageConfig
   /** 阶段描述 */
   description?: string
 }
@@ -246,8 +282,8 @@ export interface UpdateCampaignRequest {
  * 阶段操作请求
  */
 export interface StageOperationRequest {
-  /** 操作类型: start=开始, end=结束, next=进入下一阶段 */
-  operation: 'start' | 'end' | 'next'
+  /** 操作类型: next=进入下一阶段, previous=返回上一阶段, activate=激活当前阶段 */
+  operation: 'next' | 'previous' | 'activate'
 }
 
 /**
@@ -268,4 +304,47 @@ export interface ReviewSubmissionRequest {
 export interface DeleteSubmissionRequest {
   /** 投稿 ID 列表 */
   submissionIds: number[]
+}
+
+// ==================== 进度相关类型 ====================
+
+/**
+ * 时段进度项
+ */
+export interface TimePeriodProgressItem {
+  /** 铃声时段 */
+  timePeriod: {
+    id: number
+    name: string
+  }
+  /** 当前数量 */
+  currentCount: number
+  /** 最小数量 */
+  minCount: number
+  /** 最大数量 */
+  maxCount: number
+  /** 是否达到最小值 */
+  reachedMin: boolean
+  /** 是否达到最大值 */
+  reachedMax: boolean
+}
+
+/**
+ * 投稿/投票进度响应
+ */
+export interface ProgressResponse {
+  /** 活动ID */
+  campaignId: number
+  /** 规则配置 */
+  rules: {
+    hasLimit: boolean
+    limitScope: 'period' | 'activity'
+    minCount?: number
+    maxCount?: number
+  }
+  /** 总数量（投稿或投票） */
+  totalSubmissions?: number
+  totalVotes?: number
+  /** 各时段进度 */
+  timePeriodProgress: TimePeriodProgressItem[]
 }

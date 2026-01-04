@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
   getCampaigns,
-  getCampaignDetail,
   createCampaign,
   updateCampaign,
   deleteCampaign,
@@ -20,6 +19,9 @@ import type {
   CreateCampaignStageRequest,
   StageType,
   CampaignStatus,
+  StageRules,
+  SubmissionStageConfig,
+  VotingStageConfig,
 } from '@/types/campaign'
 import { getCampuses } from '@/api/dorm'
 import type { Campus } from '@/types/dorm'
@@ -42,14 +44,45 @@ const campaignModalMode = ref<'create' | 'edit'>('create')
 const editingCampaign = ref<Campaign | null>(null)
 const isSaving = ref(false)
 
+// 表单规则类型
+interface FormRules {
+  has_limit: boolean
+  limit_scope: 'period' | 'activity'
+  min_count: number | null
+  max_count: number | null
+}
+
 // 表单阶段类型
 interface FormStage {
   stageType: StageType
   stageName: string
-  stageOrder: number
   startTime: string
   endTime: string
   description: string
+  // 投稿阶段配置
+  submissionRules?: FormRules
+  require_user_info?: boolean
+  user_info_fields?: string[]
+  // 投票阶段配置
+  votingRules?: FormRules
+  voting_mode?: 'unified' | 'per_building'
+}
+
+// 可用的用户信息字段选项
+const userInfoFieldOptions = [
+  { value: 'dormitory', label: '宿舍楼' },
+  { value: 'bed', label: '床位号' },
+  { value: 'student_id', label: '学号' },
+]
+
+// 创建默认规则
+function getDefaultRules(): FormRules {
+  return {
+    has_limit: true,
+    limit_scope: 'period',
+    min_count: 1,
+    max_count: 3,
+  }
 }
 
 // 表单状态
@@ -63,16 +96,29 @@ const campaignForm = ref<{
   title: '',
   description: '',
   campusId: null,
-  globalConfig: {
-    allowMultipleSubmissions: true,
-    maxSubmissionsPerPeriod: 3,
-    votingMode: 'unified',
-  },
+  globalConfig: {},
   stages: [
-    { stageType: 'submission', stageName: '投稿阶段', stageOrder: 1, startTime: '', endTime: '', description: '用户提交铃声歌曲' },
-    { stageType: 'review', stageName: '审核阶段', stageOrder: 2, startTime: '', endTime: '', description: '管理员审核投稿' },
-    { stageType: 'voting', stageName: '投票阶段', stageOrder: 3, startTime: '', endTime: '', description: '用户投票选择铃声' },
-    { stageType: 'result', stageName: '结果公示', stageOrder: 4, startTime: '', endTime: '', description: '公示投票结果' },
+    {
+      stageType: 'submission',
+      stageName: '投稿阶段',
+      startTime: '',
+      endTime: '',
+      description: '用户提交铃声歌曲',
+      submissionRules: getDefaultRules(),
+      require_user_info: false,
+      user_info_fields: [],
+    },
+    { stageType: 'review', stageName: '审核阶段', startTime: '', endTime: '', description: '管理员审核投稿' },
+    {
+      stageType: 'voting',
+      stageName: '投票阶段',
+      startTime: '',
+      endTime: '',
+      description: '用户投票选择铃声',
+      votingRules: { has_limit: true, limit_scope: 'period', min_count: 1, max_count: 1 },
+      voting_mode: 'unified',
+    },
+    { stageType: 'result', stageName: '结果公示', startTime: '', endTime: '', description: '公示投票结果' },
   ],
 })
 
@@ -86,14 +132,6 @@ const isOperatingStage = ref(false)
 const operatingCampaignId = ref<number | null>(null)
 
 // ==================== 辅助函数 ====================
-
-// 阶段类型标签（用于阶段配置表单）
-const stageTypeLabels: Record<StageType, string> = {
-  submission: '投稿',
-  review: '审核',
-  voting: '投票',
-  result: '公示',
-}
 
 // 活动状态标签
 const campaignStatusLabels: Record<CampaignStatus, string> = {
@@ -116,10 +154,6 @@ const stageStatusClasses: Record<string, string> = {
   pending: 'stage-pending',
   active: 'stage-active',
   completed: 'stage-completed',
-}
-
-function getStageTypeLabel(stageType: StageType): string {
-  return stageTypeLabels[stageType] || stageType
 }
 
 function getCampaignStatusLabel(status: CampaignStatus): string {
@@ -147,18 +181,6 @@ function formatDate(dateStr: string) {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  })
-}
-
-function formatDateTime(dateStr: string) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
   })
 }
 
@@ -219,6 +241,40 @@ function openCreateModal() {
   showCampaignModal.value = true
 }
 
+// 从服务器返回的阶段配置中解析规则
+function parseStageConfig(stage: CampaignStage): Partial<FormStage> {
+  const config = stage.config as Record<string, unknown> | null
+
+  if (stage.stageType === 'submission') {
+    const rules = config?.rules as StageRules | undefined
+    return {
+      submissionRules: rules ? {
+        has_limit: rules.has_limit,
+        limit_scope: rules.limit_scope || 'period',
+        min_count: rules.min_count ?? null,
+        max_count: rules.max_count ?? null,
+      } : getDefaultRules(),
+      require_user_info: (config?.require_user_info as boolean) || false,
+      user_info_fields: (config?.user_info_fields as string[]) || [],
+    }
+  }
+
+  if (stage.stageType === 'voting') {
+    const rules = config?.rules as StageRules | undefined
+    return {
+      votingRules: rules ? {
+        has_limit: rules.has_limit,
+        limit_scope: rules.limit_scope || 'period',
+        min_count: rules.min_count ?? null,
+        max_count: rules.max_count ?? null,
+      } : { has_limit: true, limit_scope: 'period', min_count: 1, max_count: 1 },
+      voting_mode: (config?.voting_mode as 'unified' | 'per_building') || 'unified',
+    }
+  }
+
+  return {}
+}
+
 function openEditModal(campaign: Campaign) {
   campaignModalMode.value = 'edit'
   editingCampaign.value = campaign
@@ -228,18 +284,14 @@ function openEditModal(campaign: Campaign) {
     title: campaign.title,
     description: campaign.description,
     campusId: campaign.campus?.id || null,
-    globalConfig: campaign.globalConfig ? { ...campaign.globalConfig } : {
-      allowMultipleSubmissions: true,
-      maxSubmissionsPerPeriod: 3,
-      votingMode: 'unified',
-    },
+    globalConfig: campaign.globalConfig ? { ...campaign.globalConfig } : {},
     stages: campaign.stages?.map(s => ({
       stageType: s.stageType,
       stageName: s.stageName,
-      stageOrder: s.stageOrder,
       startTime: toLocalDateTime(s.startTime),
       endTime: s.endTime ? toLocalDateTime(s.endTime) : '',
       description: s.description || '',
+      ...parseStageConfig(s),
     })) || getDefaultStages(),
   }
 
@@ -248,10 +300,27 @@ function openEditModal(campaign: Campaign) {
 
 function getDefaultStages(): FormStage[] {
   return [
-    { stageType: 'submission', stageName: '投稿阶段', stageOrder: 1, startTime: '', endTime: '', description: '用户提交铃声歌曲' },
-    { stageType: 'review', stageName: '审核阶段', stageOrder: 2, startTime: '', endTime: '', description: '管理员审核投稿' },
-    { stageType: 'voting', stageName: '投票阶段', stageOrder: 3, startTime: '', endTime: '', description: '用户投票选择铃声' },
-    { stageType: 'result', stageName: '结果公示', stageOrder: 4, startTime: '', endTime: '', description: '公示投票结果' },
+    {
+      stageType: 'submission',
+      stageName: '投稿阶段',
+      startTime: '',
+      endTime: '',
+      description: '用户提交铃声歌曲',
+      submissionRules: getDefaultRules(),
+      require_user_info: false,
+      user_info_fields: [],
+    },
+    { stageType: 'review', stageName: '审核阶段', startTime: '', endTime: '', description: '管理员审核投稿' },
+    {
+      stageType: 'voting',
+      stageName: '投票阶段',
+      startTime: '',
+      endTime: '',
+      description: '用户投票选择铃声',
+      votingRules: { has_limit: true, limit_scope: 'period', min_count: 1, max_count: 1 },
+      voting_mode: 'unified',
+    },
+    { stageType: 'result', stageName: '结果公示', startTime: '', endTime: '', description: '公示投票结果' },
   ]
 }
 
@@ -260,11 +329,7 @@ function resetForm() {
     title: '',
     description: '',
     campusId: null,
-    globalConfig: {
-      allowMultipleSubmissions: true,
-      maxSubmissionsPerPeriod: 3,
-      votingMode: 'unified',
-    },
+    globalConfig: {},
     stages: getDefaultStages(),
   }
 }
@@ -272,6 +337,68 @@ function resetForm() {
 function closeModal() {
   showCampaignModal.value = false
   editingCampaign.value = null
+}
+
+// 构建阶段配置
+function buildStageConfig(stage: FormStage): SubmissionStageConfig | VotingStageConfig | Record<string, unknown> {
+  if (stage.stageType === 'submission') {
+    const config: SubmissionStageConfig = {}
+
+    // 规则配置
+    if (stage.submissionRules) {
+      const rules: StageRules = {
+        has_limit: stage.submissionRules.has_limit,
+      }
+      if (stage.submissionRules.has_limit) {
+        rules.limit_scope = stage.submissionRules.limit_scope
+        if (stage.submissionRules.min_count !== null) {
+          rules.min_count = stage.submissionRules.min_count
+        }
+        if (stage.submissionRules.max_count !== null) {
+          rules.max_count = stage.submissionRules.max_count
+        }
+      }
+      config.rules = rules
+    }
+
+    // 用户信息字段
+    if (stage.require_user_info) {
+      config.require_user_info = true
+      config.user_info_fields = stage.user_info_fields || []
+    }
+
+    return config
+  }
+
+  if (stage.stageType === 'voting') {
+    const config: VotingStageConfig = {}
+
+    // 规则配置
+    if (stage.votingRules) {
+      const rules: StageRules = {
+        has_limit: stage.votingRules.has_limit,
+      }
+      if (stage.votingRules.has_limit) {
+        rules.limit_scope = stage.votingRules.limit_scope
+        if (stage.votingRules.min_count !== null) {
+          rules.min_count = stage.votingRules.min_count
+        }
+        if (stage.votingRules.max_count !== null) {
+          rules.max_count = stage.votingRules.max_count
+        }
+      }
+      config.rules = rules
+    }
+
+    // 投票模式
+    if (stage.voting_mode) {
+      config.voting_mode = stage.voting_mode
+    }
+
+    return config
+  }
+
+  return {}
 }
 
 async function saveCampaign() {
@@ -302,14 +429,14 @@ async function saveCampaign() {
 
   isSaving.value = true
   try {
-    // 转换时间格式
+    // 转换时间格式和构建阶段配置
     const stages: CreateCampaignStageRequest[] = campaignForm.value.stages.map(s => ({
       stageType: s.stageType,
       stageName: s.stageName,
-      stageOrder: s.stageOrder,
       startTime: toISOString(s.startTime),
       endTime: toISOString(s.endTime),
       description: s.description,
+      config: buildStageConfig(s),
     }))
 
     if (campaignModalMode.value === 'create') {
@@ -551,10 +678,6 @@ onMounted(async () => {
                   </span>
                   <span class="meta-divider">|</span>
                   <span class="meta-item">
-                    投稿限制: {{ campaign.globalConfig?.maxSubmissionsPerPeriod || '-' }} 首/时段
-                  </span>
-                  <span class="meta-divider">|</span>
-                  <span class="meta-item">
                     {{ formatDate(campaign.createdAt) }}
                   </span>
                 </div>
@@ -654,43 +777,6 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- 全局配置 -->
-            <div class="form-section">
-              <h4 class="form-section-title">全局配置</h4>
-              <div class="form-row">
-                <div class="form-group half">
-                  <label class="form-label">每时段最多投稿数</label>
-                  <input
-                    v-model.number="campaignForm.globalConfig.maxSubmissionsPerPeriod"
-                    type="number"
-                    class="form-input"
-                    min="1"
-                    max="20"
-                  />
-                </div>
-                <div class="form-group half">
-                  <label class="form-label">投票模式</label>
-                  <select
-                    v-model="campaignForm.globalConfig.votingMode"
-                    class="form-select"
-                  >
-                    <option value="unified">统一投票（海沧校区）</option>
-                    <option value="per_building">分宿舍投票（思明校区）</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label checkbox-label">
-                  <input
-                    v-model="campaignForm.globalConfig.allowMultipleSubmissions"
-                    type="checkbox"
-                    class="form-checkbox"
-                  />
-                  允许多次投稿
-                </label>
-              </div>
-            </div>
-
             <!-- 阶段配置 -->
             <div class="form-section">
               <h4 class="form-section-title">阶段配置</h4>
@@ -699,26 +785,159 @@ onMounted(async () => {
                 :key="stage.stageType"
                 class="stage-config"
               >
-                <div class="stage-label">
-                  <span class="stage-number">{{ index + 1 }}</span>
-                  <span class="stage-type">{{ stage.stageName }}</span>
-                </div>
-                <div class="stage-times">
-                  <div class="form-group">
-                    <label class="form-label-sm">开始时间</label>
-                    <input
-                      v-model="stage.startTime"
-                      type="datetime-local"
-                      class="form-input"
-                    />
+                <div class="stage-header">
+                  <div class="stage-label">
+                    <span class="stage-number">{{ index + 1 }}</span>
+                    <span class="stage-type">{{ stage.stageName }}</span>
                   </div>
-                  <div class="form-group">
-                    <label class="form-label-sm">结束时间</label>
-                    <input
-                      v-model="stage.endTime"
-                      type="datetime-local"
-                      class="form-input"
-                    />
+                  <div class="stage-times">
+                    <div class="form-group">
+                      <label class="form-label-sm">开始时间</label>
+                      <input
+                        v-model="stage.startTime"
+                        type="datetime-local"
+                        class="form-input"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label-sm">结束时间</label>
+                      <input
+                        v-model="stage.endTime"
+                        type="datetime-local"
+                        class="form-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 投稿阶段配置 -->
+                <div v-if="stage.stageType === 'submission' && stage.submissionRules" class="stage-extra-config">
+                  <div class="config-row">
+                    <label class="form-label checkbox-label">
+                      <input
+                        v-model="stage.submissionRules.has_limit"
+                        type="checkbox"
+                        class="form-checkbox"
+                      />
+                      启用投稿数量限制
+                    </label>
+                  </div>
+                  <div v-if="stage.submissionRules.has_limit" class="config-details">
+                    <div class="form-row">
+                      <div class="form-group half">
+                        <label class="form-label-sm">限制范围</label>
+                        <select v-model="stage.submissionRules.limit_scope" class="form-select">
+                          <option value="period">每个时段分别限制</option>
+                          <option value="activity">整个活动总限制</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <div class="form-group half">
+                        <label class="form-label-sm">最少投稿数</label>
+                        <input
+                          v-model.number="stage.submissionRules.min_count"
+                          type="number"
+                          class="form-input"
+                          min="0"
+                          placeholder="不限"
+                        />
+                      </div>
+                      <div class="form-group half">
+                        <label class="form-label-sm">最多投稿数</label>
+                        <input
+                          v-model.number="stage.submissionRules.max_count"
+                          type="number"
+                          class="form-input"
+                          min="1"
+                          placeholder="不限"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="config-row">
+                    <label class="form-label checkbox-label">
+                      <input
+                        v-model="stage.require_user_info"
+                        type="checkbox"
+                        class="form-checkbox"
+                      />
+                      需要填写用户信息
+                    </label>
+                  </div>
+                  <div v-if="stage.require_user_info" class="config-details">
+                    <label class="form-label-sm">选择需要的信息字段</label>
+                    <div class="checkbox-group">
+                      <label
+                        v-for="field in userInfoFieldOptions"
+                        :key="field.value"
+                        class="checkbox-item"
+                      >
+                        <input
+                          type="checkbox"
+                          :value="field.value"
+                          v-model="stage.user_info_fields"
+                          class="form-checkbox"
+                        />
+                        {{ field.label }}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 投票阶段配置 -->
+                <div v-if="stage.stageType === 'voting' && stage.votingRules" class="stage-extra-config">
+                  <div class="form-row">
+                    <div class="form-group half">
+                      <label class="form-label-sm">投票模式</label>
+                      <select v-model="stage.voting_mode" class="form-select">
+                        <option value="unified">统一投票（海沧校区）</option>
+                        <option value="per_building">分宿舍投票（思明校区）</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="config-row">
+                    <label class="form-label checkbox-label">
+                      <input
+                        v-model="stage.votingRules.has_limit"
+                        type="checkbox"
+                        class="form-checkbox"
+                      />
+                      启用投票数量限制
+                    </label>
+                  </div>
+                  <div v-if="stage.votingRules.has_limit" class="config-details">
+                    <div class="form-row">
+                      <div class="form-group half">
+                        <label class="form-label-sm">限制范围</label>
+                        <select v-model="stage.votingRules.limit_scope" class="form-select">
+                          <option value="period">每个时段分别限制</option>
+                          <option value="activity">整个活动总限制</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <div class="form-group half">
+                        <label class="form-label-sm">最少投票数</label>
+                        <input
+                          v-model.number="stage.votingRules.min_count"
+                          type="number"
+                          class="form-input"
+                          min="0"
+                          placeholder="不限"
+                        />
+                      </div>
+                      <div class="form-group half">
+                        <label class="form-label-sm">最多投票数</label>
+                        <input
+                          v-model.number="stage.votingRules.max_count"
+                          type="number"
+                          class="form-input"
+                          min="1"
+                          placeholder="不限"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1352,6 +1571,12 @@ onMounted(async () => {
   margin-bottom: 0;
 }
 
+.stage-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
 .stage-label {
   display: flex;
   align-items: center;
@@ -1392,6 +1617,44 @@ onMounted(async () => {
   min-width: 0;
 }
 
+/* Stage Extra Config */
+.stage-extra-config {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px dashed var(--color-border);
+}
+
+.config-row {
+  margin-bottom: var(--spacing-sm);
+}
+
+.config-row:last-child {
+  margin-bottom: 0;
+}
+
+.config-details {
+  margin-left: var(--spacing-lg);
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-card);
+  border-radius: var(--radius-sm);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
 /* ===== Desktop ===== */
 @media (min-width: 768px) {
   .campaign-card {
@@ -1405,7 +1668,7 @@ onMounted(async () => {
     flex-shrink: 0;
   }
 
-  .stage-config {
+  .stage-header {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;

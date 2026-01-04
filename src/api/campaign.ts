@@ -9,6 +9,7 @@ import type {
   StageOperationRequest,
   ReviewSubmissionRequest,
   DeleteSubmissionRequest,
+  ProgressResponse,
 } from '@/types/campaign'
 
 // ==================== 用户端 API ====================
@@ -89,4 +90,20 @@ export function deleteSubmissions(data: DeleteSubmissionRequest) {
  */
 export function getVotingResults(campaignId: number) {
   return api.get<ApiResponse<TimePeriodVotingResult[]>>(`/admin/voting/campaigns/${campaignId}/results`)
+}
+
+// ==================== 用户端进度 API ====================
+
+/**
+ * 获取投稿进度和限制信息
+ */
+export function getSubmissionProgress(campaignId: number) {
+  return api.get<ApiResponse<ProgressResponse>>(`/submissions/campaigns/${campaignId}/progress`)
+}
+
+/**
+ * 获取投票进度和限制信息
+ */
+export function getVotingProgress(campaignId: number) {
+  return api.get<ApiResponse<ProgressResponse>>(`/voting/campaigns/${campaignId}/progress`)
 }

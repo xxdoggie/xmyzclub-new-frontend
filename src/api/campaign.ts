@@ -33,13 +33,6 @@ export function getCampaignDetail(id: number) {
 // ----- 活动管理 -----
 
 /**
- * 获取所有活动列表（管理端，不包含 archived）
- */
-export function getAdminCampaigns() {
-  return api.get<ApiResponse<Campaign[]>>('/admin/campaigns')
-}
-
-/**
  * 创建活动
  */
 export function createCampaign(data: CreateCampaignRequest) {

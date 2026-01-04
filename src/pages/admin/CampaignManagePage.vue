@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -23,8 +23,8 @@ import type {
   SubmissionStageConfig,
   VotingStageConfig,
 } from '@/types/campaign'
-import { getCampuses } from '@/api/dorm'
-import type { Campus } from '@/types/dorm'
+import { getCampuses, getTimePeriods, getCampusBuildings } from '@/api/dorm'
+import type { Campus, TimePeriod, Building } from '@/types/dorm'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -37,6 +37,9 @@ const toast = useToast()
 const isLoading = ref(true)
 const campaigns = ref<Campaign[]>([])
 const campuses = ref<Campus[]>([])
+const allTimePeriods = ref<TimePeriod[]>([])
+const availableBuildings = ref<Building[]>([])
+const isLoadingBuildings = ref(false)
 
 // 创建/编辑 Modal
 const showCampaignModal = ref(false)
@@ -90,12 +93,16 @@ const campaignForm = ref<{
   title: string
   description: string
   campusId: number | null
+  timePeriodIds: number[]
+  buildingIds: number[]
   globalConfig: GlobalConfig
   stages: FormStage[]
 }>({
   title: '',
   description: '',
   campusId: null,
+  timePeriodIds: [],
+  buildingIds: [],
   globalConfig: {},
   stages: [
     {
@@ -120,6 +127,30 @@ const campaignForm = ref<{
     },
     { stageType: 'result', stageName: '结果公示', startTime: '', endTime: '', description: '公示投票结果' },
   ],
+})
+
+// 监听校区变化，加载对应的宿舍楼
+watch(() => campaignForm.value.campusId, async (newCampusId) => {
+  if (newCampusId) {
+    isLoadingBuildings.value = true
+    try {
+      const res = await getCampusBuildings(newCampusId)
+      if (res.data.code === 200) {
+        availableBuildings.value = res.data.data
+        // 如果是创建模式，清空已选宿舍楼
+        if (campaignModalMode.value === 'create') {
+          campaignForm.value.buildingIds = []
+        }
+      }
+    } catch (error) {
+      console.error('获取宿舍楼列表失败', error)
+    } finally {
+      isLoadingBuildings.value = false
+    }
+  } else {
+    availableBuildings.value = []
+    campaignForm.value.buildingIds = []
+  }
 })
 
 // 删除确认
@@ -216,6 +247,17 @@ async function loadCampuses() {
   }
 }
 
+async function loadTimePeriods() {
+  try {
+    const res = await getTimePeriods()
+    if (res.data.code === 200) {
+      allTimePeriods.value = res.data.data
+    }
+  } catch (error) {
+    console.error('获取时段列表失败', error)
+  }
+}
+
 async function loadCampaigns() {
   isLoading.value = true
   try {
@@ -275,15 +317,32 @@ function parseStageConfig(stage: CampaignStage): Partial<FormStage> {
   return {}
 }
 
-function openEditModal(campaign: Campaign) {
+async function openEditModal(campaign: Campaign) {
   campaignModalMode.value = 'edit'
   editingCampaign.value = campaign
+
+  // 如果有校区，先加载该校区的宿舍楼列表
+  if (campaign.campus?.id) {
+    isLoadingBuildings.value = true
+    try {
+      const res = await getCampusBuildings(campaign.campus.id)
+      if (res.data.code === 200) {
+        availableBuildings.value = res.data.data
+      }
+    } catch (error) {
+      console.error('获取宿舍楼列表失败', error)
+    } finally {
+      isLoadingBuildings.value = false
+    }
+  }
 
   // 填充表单
   campaignForm.value = {
     title: campaign.title,
     description: campaign.description,
     campusId: campaign.campus?.id || null,
+    timePeriodIds: campaign.timePeriods?.map(tp => tp.id) || [],
+    buildingIds: campaign.buildings?.map(b => b.id) || [],
     globalConfig: campaign.globalConfig ? { ...campaign.globalConfig } : {},
     stages: campaign.stages?.map(s => ({
       stageType: s.stageType,
@@ -329,9 +388,12 @@ function resetForm() {
     title: '',
     description: '',
     campusId: null,
+    timePeriodIds: [],
+    buildingIds: [],
     globalConfig: {},
     stages: getDefaultStages(),
   }
+  availableBuildings.value = []
 }
 
 function closeModal() {
@@ -414,6 +476,14 @@ async function saveCampaign() {
     toast.error('请选择校区')
     return
   }
+  if (campaignForm.value.timePeriodIds.length === 0) {
+    toast.error('请选择至少一个铃声时段')
+    return
+  }
+  if (campaignForm.value.buildingIds.length === 0) {
+    toast.error('请选择至少一栋宿舍楼')
+    return
+  }
 
   // 验证阶段时间
   for (const stage of campaignForm.value.stages) {
@@ -444,6 +514,8 @@ async function saveCampaign() {
         title: campaignForm.value.title,
         description: campaignForm.value.description,
         campusId: campaignForm.value.campusId,
+        timePeriodIds: campaignForm.value.timePeriodIds,
+        buildingIds: campaignForm.value.buildingIds,
         globalConfig: campaignForm.value.globalConfig,
         stages,
       }
@@ -460,6 +532,8 @@ async function saveCampaign() {
         title: campaignForm.value.title,
         description: campaignForm.value.description,
         campusId: campaignForm.value.campusId,
+        timePeriodIds: campaignForm.value.timePeriodIds,
+        buildingIds: campaignForm.value.buildingIds,
         globalConfig: campaignForm.value.globalConfig,
         stages,
       }
@@ -603,7 +677,7 @@ onMounted(async () => {
     router.push('/')
     return
   }
-  await Promise.all([loadCampaigns(), loadCampuses()])
+  await Promise.all([loadCampaigns(), loadCampuses(), loadTimePeriods()])
 })
 </script>
 
@@ -774,6 +848,87 @@ onMounted(async () => {
                     {{ campus.name }}
                   </option>
                 </select>
+              </div>
+            </div>
+
+            <!-- 铃声时段和宿舍楼选择 -->
+            <div class="form-section">
+              <h4 class="form-section-title">活动范围</h4>
+
+              <!-- 铃声时段选择 -->
+              <div class="form-group">
+                <label class="form-label">铃声时段 *</label>
+                <p class="form-hint">选择本次活动包含的铃声时段</p>
+                <div class="selection-list">
+                  <label
+                    v-for="tp in allTimePeriods"
+                    :key="tp.id"
+                    class="selection-item"
+                    :class="{ selected: campaignForm.timePeriodIds.includes(tp.id) }"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="tp.id"
+                      v-model="campaignForm.timePeriodIds"
+                      class="selection-checkbox"
+                    />
+                    <span class="selection-name">{{ tp.name }}</span>
+                    <span class="selection-code">{{ tp.code }}</span>
+                  </label>
+                  <div v-if="allTimePeriods.length === 0" class="selection-empty">
+                    暂无铃声时段，请先在宿舍管理中创建
+                  </div>
+                </div>
+              </div>
+
+              <!-- 宿舍楼选择 -->
+              <div class="form-group">
+                <label class="form-label">宿舍楼 *</label>
+                <p class="form-hint">选择本次活动覆盖的宿舍楼（请先选择校区）</p>
+                <div v-if="isLoadingBuildings" class="selection-loading">
+                  <div class="loading-spinner-sm"></div>
+                  <span>加载中...</span>
+                </div>
+                <div v-else class="selection-list">
+                  <label
+                    v-for="building in availableBuildings"
+                    :key="building.id"
+                    class="selection-item"
+                    :class="{ selected: campaignForm.buildingIds.includes(building.id) }"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="building.id"
+                      v-model="campaignForm.buildingIds"
+                      class="selection-checkbox"
+                    />
+                    <span class="selection-name">{{ building.name }}</span>
+                    <span class="selection-code">{{ building.code }}</span>
+                  </label>
+                  <div v-if="!campaignForm.campusId" class="selection-empty">
+                    请先选择校区
+                  </div>
+                  <div v-else-if="availableBuildings.length === 0" class="selection-empty">
+                    该校区暂无宿舍楼
+                  </div>
+                </div>
+                <!-- 全选/取消全选按钮 -->
+                <div v-if="availableBuildings.length > 0" class="selection-actions">
+                  <button
+                    type="button"
+                    class="selection-action-btn"
+                    @click="campaignForm.buildingIds = availableBuildings.map(b => b.id)"
+                  >
+                    全选
+                  </button>
+                  <button
+                    type="button"
+                    class="selection-action-btn"
+                    @click="campaignForm.buildingIds = []"
+                  >
+                    取消全选
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1559,6 +1714,109 @@ onMounted(async () => {
 .form-textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ===== Selection List ===== */
+.selection-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.selection-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: var(--text-sm);
+}
+
+.selection-item:hover {
+  border-color: var(--color-primary);
+}
+
+.selection-item.selected {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
+}
+
+.selection-checkbox {
+  display: none;
+}
+
+.selection-name {
+  font-weight: var(--font-medium);
+}
+
+.selection-code {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.selection-empty {
+  width: 100%;
+  text-align: center;
+  padding: var(--spacing-md);
+  color: var(--color-text-placeholder);
+  font-size: var(--text-sm);
+}
+
+.selection-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.loading-spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.selection-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.selection-action-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.selection-action-btn:hover {
+  background: var(--color-primary);
+  color: white;
 }
 
 /* ===== Stage Config ===== */

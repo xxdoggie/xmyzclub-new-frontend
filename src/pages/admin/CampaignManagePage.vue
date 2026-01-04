@@ -822,36 +822,38 @@ onMounted(async () => {
                       启用投稿数量限制
                     </label>
                   </div>
-                  <div v-if="stage.submissionRules.has_limit" class="config-details">
-                    <div class="form-row">
-                      <div class="form-group half">
-                        <label class="form-label-sm">限制范围</label>
-                        <select v-model="stage.submissionRules.limit_scope" class="form-select">
-                          <option value="period">每个时段分别限制</option>
-                          <option value="activity">整个活动总限制</option>
-                        </select>
+                  <div class="config-details" :class="{ expanded: stage.submissionRules.has_limit }">
+                    <div class="config-details-inner">
+                      <div class="form-row">
+                        <div class="form-group half">
+                          <label class="form-label-sm">限制范围</label>
+                          <select v-model="stage.submissionRules.limit_scope" class="form-select">
+                            <option value="period">每个时段分别限制</option>
+                            <option value="activity">整个活动总限制</option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-group half">
-                        <label class="form-label-sm">最少投稿数</label>
-                        <input
-                          v-model.number="stage.submissionRules.min_count"
-                          type="number"
-                          class="form-input"
-                          min="0"
-                          placeholder="不限"
-                        />
-                      </div>
-                      <div class="form-group half">
-                        <label class="form-label-sm">最多投稿数</label>
-                        <input
-                          v-model.number="stage.submissionRules.max_count"
-                          type="number"
-                          class="form-input"
-                          min="1"
-                          placeholder="不限"
-                        />
+                      <div class="form-row">
+                        <div class="form-group half">
+                          <label class="form-label-sm">最少投稿数</label>
+                          <input
+                            v-model.number="stage.submissionRules.min_count"
+                            type="number"
+                            class="form-input"
+                            min="0"
+                            placeholder="不限"
+                          />
+                        </div>
+                        <div class="form-group half">
+                          <label class="form-label-sm">最多投稿数</label>
+                          <input
+                            v-model.number="stage.submissionRules.max_count"
+                            type="number"
+                            class="form-input"
+                            min="1"
+                            placeholder="不限"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -865,22 +867,24 @@ onMounted(async () => {
                       需要填写用户信息
                     </label>
                   </div>
-                  <div v-if="stage.require_user_info" class="config-details">
-                    <label class="form-label-sm">选择需要的信息字段</label>
-                    <div class="checkbox-group">
-                      <label
-                        v-for="field in userInfoFieldOptions"
-                        :key="field.value"
-                        class="checkbox-item"
-                      >
-                        <input
-                          type="checkbox"
-                          :value="field.value"
-                          v-model="stage.user_info_fields"
-                          class="form-checkbox"
-                        />
-                        {{ field.label }}
-                      </label>
+                  <div class="config-details" :class="{ expanded: stage.require_user_info }">
+                    <div class="config-details-inner">
+                      <label class="form-label-sm">选择需要的信息字段</label>
+                      <div class="checkbox-group">
+                        <label
+                          v-for="field in userInfoFieldOptions"
+                          :key="field.value"
+                          class="checkbox-item"
+                        >
+                          <input
+                            type="checkbox"
+                            :value="field.value"
+                            v-model="stage.user_info_fields"
+                            class="form-checkbox"
+                          />
+                          {{ field.label }}
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -906,36 +910,38 @@ onMounted(async () => {
                       启用投票数量限制
                     </label>
                   </div>
-                  <div v-if="stage.votingRules.has_limit" class="config-details">
-                    <div class="form-row">
-                      <div class="form-group half">
-                        <label class="form-label-sm">限制范围</label>
-                        <select v-model="stage.votingRules.limit_scope" class="form-select">
-                          <option value="period">每个时段分别限制</option>
-                          <option value="activity">整个活动总限制</option>
-                        </select>
+                  <div class="config-details" :class="{ expanded: stage.votingRules.has_limit }">
+                    <div class="config-details-inner">
+                      <div class="form-row">
+                        <div class="form-group half">
+                          <label class="form-label-sm">限制范围</label>
+                          <select v-model="stage.votingRules.limit_scope" class="form-select">
+                            <option value="period">每个时段分别限制</option>
+                            <option value="activity">整个活动总限制</option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-group half">
-                        <label class="form-label-sm">最少投票数</label>
-                        <input
-                          v-model.number="stage.votingRules.min_count"
-                          type="number"
-                          class="form-input"
-                          min="0"
-                          placeholder="不限"
-                        />
-                      </div>
-                      <div class="form-group half">
-                        <label class="form-label-sm">最多投票数</label>
-                        <input
-                          v-model.number="stage.votingRules.max_count"
-                          type="number"
-                          class="form-input"
-                          min="1"
-                          placeholder="不限"
-                        />
+                      <div class="form-row">
+                        <div class="form-group half">
+                          <label class="form-label-sm">最少投票数</label>
+                          <input
+                            v-model.number="stage.votingRules.min_count"
+                            type="number"
+                            class="form-input"
+                            min="0"
+                            placeholder="不限"
+                          />
+                        </div>
+                        <div class="form-group half">
+                          <label class="form-label-sm">最多投票数</label>
+                          <input
+                            v-model.number="stage.votingRules.max_count"
+                            type="number"
+                            class="form-input"
+                            min="1"
+                            placeholder="不限"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1632,9 +1638,23 @@ onMounted(async () => {
   margin-bottom: 0;
 }
 
+/* 可折叠内容区域 */
 .config-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  opacity: 0;
   margin-left: var(--spacing-lg);
+  margin-bottom: 0;
+}
+
+.config-details.expanded {
+  max-height: 300px;
+  opacity: 1;
   margin-bottom: var(--spacing-sm);
+}
+
+.config-details-inner {
   padding: var(--spacing-sm);
   background: var(--color-card);
   border-radius: var(--radius-sm);

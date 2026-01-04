@@ -50,37 +50,15 @@ function canEnterCampaign(campaign: Campaign): boolean {
   return stageType === 'submission' || stageType === 'voting'
 }
 
-// 获取活动入口文案
-function getEnterLabel(stageType: StageType): string {
-  const labels: Record<StageType, string> = {
-    submission: '去投稿',
-    voting: '去投票',
-    review: '审核中',
-    result: '查看结果',
+// 获取阶段状态标签和样式
+function getStageInfo(stageType: StageType): { label: string; class: string } {
+  const info: Record<StageType, { label: string; class: string }> = {
+    submission: { label: '投稿中', class: 'stage-submission' },
+    review: { label: '审核中', class: 'stage-review' },
+    voting: { label: '投票中', class: 'stage-voting' },
+    result: { label: '已结束', class: 'stage-result' },
   }
-  return labels[stageType] || ''
-}
-
-// 获取阶段状态标签
-function getStageLabel(stageType: StageType): string {
-  const labels: Record<StageType, string> = {
-    submission: '投稿中',
-    review: '审核中',
-    voting: '投票中',
-    result: '已结束',
-  }
-  return labels[stageType] || ''
-}
-
-// 获取阶段状态样式
-function getStageClass(stageType: StageType): string {
-  const classes: Record<StageType, string> = {
-    submission: 'stage-submission',
-    review: 'stage-review',
-    voting: 'stage-voting',
-    result: 'stage-result',
-  }
-  return classes[stageType] || ''
+  return info[stageType] || { label: '', class: '' }
 }
 
 // 跳转到活动详情
@@ -168,9 +146,8 @@ onMounted(() => {
 
         <!-- 活动列表 -->
         <div v-else class="campaigns-section">
-          <!-- 移动端隐藏标题 -->
-          <div class="section-header desktop-only">
-            <span class="section-title">铃声征集活动</span>
+          <div class="section-header">
+            <span class="section-title">全部活动</span>
           </div>
 
           <div class="campaigns-list">
@@ -181,63 +158,43 @@ onMounted(() => {
               :class="{ clickable: canEnterCampaign(campaign) }"
               @click="canEnterCampaign(campaign) && goToCampaign(campaign)"
             >
-              <!-- 左侧状态指示条 -->
-              <div
-                class="status-indicator"
-                :class="getStageClass(campaign.currentStage?.stageType || 'result')"
-              ></div>
-
-              <!-- 主要内容区域 -->
-              <div class="card-content">
-                <!-- 顶部：标题和状态标签 -->
-                <div class="card-header">
-                  <h3 class="campaign-title">{{ campaign.title }}</h3>
-                  <span
-                    v-if="campaign.currentStage"
-                    class="stage-tag"
-                    :class="getStageClass(campaign.currentStage.stageType)"
-                  >
-                    {{ getStageLabel(campaign.currentStage.stageType) }}
-                  </span>
+              <!-- 卡片封面区域 -->
+              <div class="campaign-cover">
+                <div class="cover-gradient">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
                 </div>
+                <!-- 状态标签 -->
+                <span
+                  v-if="campaign.currentStage"
+                  class="status-badge"
+                  :class="getStageInfo(campaign.currentStage.stageType).class"
+                >
+                  {{ getStageInfo(campaign.currentStage.stageType).label }}
+                </span>
+              </div>
 
-                <!-- 描述 -->
+              <!-- 活动信息 -->
+              <div class="campaign-info">
+                <h3 class="campaign-title">{{ campaign.title }}</h3>
                 <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
-
-                <!-- 元信息 -->
                 <div class="campaign-meta">
-                  <span class="meta-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                      <circle cx="12" cy="10" r="3"></circle>
-                    </svg>
-                    {{ campaign.campus?.name || '未知校区' }}
-                  </span>
+                  <span class="meta-item">{{ campaign.campus?.name || '未知校区' }}</span>
+                  <span v-if="campaign.currentStage?.endTime" class="meta-divider">·</span>
                   <span v-if="campaign.currentStage?.endTime" class="meta-item countdown">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
                     {{ formatEndTime(campaign.currentStage.endTime) }}
                   </span>
                 </div>
               </div>
 
-              <!-- 右侧操作区域 -->
-              <div class="card-action">
-                <button
-                  v-if="canEnterCampaign(campaign)"
-                  class="action-btn"
-                  :class="getStageClass(campaign.currentStage!.stageType)"
-                >
-                  {{ getEnterLabel(campaign.currentStage!.stageType) }}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </button>
-                <span v-else class="status-text">
-                  {{ campaign.currentStage ? getStageLabel(campaign.currentStage.stageType) : '未开始' }}
-                </span>
+              <!-- 箭头（桌面端显示） -->
+              <div class="campaign-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
               </div>
             </div>
           </div>
@@ -270,7 +227,7 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* ===== Desktop Only ===== */
+/* ===== Desktop Only Title ===== */
 .page-title {
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
@@ -286,11 +243,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 .section-title {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
 }
@@ -343,7 +300,7 @@ onMounted(() => {
 }
 
 .login-btn:hover {
-  opacity: 0.9;
+  background: var(--color-primary-dark);
 }
 
 /* ===== Loading ===== */
@@ -406,21 +363,21 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* ===== Campaign Card - Modern Compact Design ===== */
+/* ===== Campaign Card ===== */
 .campaigns-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 
 .campaign-card {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   background: var(--color-card);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   transition: all var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .campaign-card.clickable {
@@ -428,38 +385,68 @@ onMounted(() => {
 }
 
 .campaign-card.clickable:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .campaign-card.clickable:active {
   transform: translateY(0);
 }
 
-/* ===== Status Indicator ===== */
-.status-indicator {
-  width: 4px;
+/* ===== Campaign Cover ===== */
+.campaign-cover {
+  position: relative;
+  width: 100%;
+  height: 100px;
   flex-shrink: 0;
 }
 
-.status-indicator.stage-submission {
-  background: var(--color-primary);
+.cover-gradient {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-info-bg) 100%);
+  color: var(--color-primary);
 }
 
-.status-indicator.stage-review {
-  background: var(--color-warning);
+.cover-gradient svg {
+  width: 36px;
+  height: 36px;
+  opacity: 0.6;
 }
 
-.status-indicator.stage-voting {
-  background: var(--color-info);
+.status-badge {
+  position: absolute;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  border-radius: var(--radius-full);
+  color: white;
+  backdrop-filter: blur(4px);
 }
 
-.status-indicator.stage-result {
-  background: var(--color-text-secondary);
+.status-badge.stage-submission {
+  background: rgba(231, 76, 60, 0.9);
 }
 
-/* ===== Card Content ===== */
-.card-content {
+.status-badge.stage-review {
+  background: rgba(245, 158, 11, 0.9);
+}
+
+.status-badge.stage-voting {
+  background: rgba(59, 130, 246, 0.9);
+}
+
+.status-badge.stage-result {
+  background: rgba(107, 114, 128, 0.9);
+}
+
+/* ===== Campaign Info ===== */
+.campaign-info {
   flex: 1;
   padding: var(--spacing-md);
   min-width: 0;
@@ -468,55 +455,19 @@ onMounted(() => {
   gap: var(--spacing-xs);
 }
 
-.card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
-}
-
 .campaign-title {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   line-height: 1.4;
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.stage-tag {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  border-radius: var(--radius-sm);
-}
-
-.stage-tag.stage-submission {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
-
-.stage-tag.stage-review {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.stage-tag.stage-voting {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
-.stage-tag.stage-result {
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-}
-
 .campaign-desc {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  line-height: 1.4;
+  line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -524,79 +475,23 @@ onMounted(() => {
 
 .campaign-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-
-.meta-item {
-  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
   color: var(--color-text-tertiary);
+  margin-top: var(--spacing-xs);
 }
 
-.meta-item svg {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
+.meta-divider {
+  color: var(--color-border);
 }
 
 .meta-item.countdown {
   color: var(--color-warning);
 }
 
-/* ===== Card Action ===== */
-.card-action {
-  display: flex;
-  align-items: center;
-  padding-right: var(--spacing-md);
-  flex-shrink: 0;
-}
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.action-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.action-btn.stage-submission {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
-
-.action-btn.stage-submission:hover {
-  background: var(--color-primary);
-  color: white;
-}
-
-.action-btn.stage-voting {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
-.action-btn.stage-voting:hover {
-  background: var(--color-info);
-  color: white;
-}
-
-.status-text {
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
-  padding: var(--spacing-xs);
+.campaign-arrow {
+  display: none;
 }
 
 /* ===== Desktop ===== */
@@ -613,62 +508,54 @@ onMounted(() => {
     max-width: 900px;
   }
 
+  .section-header {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .section-title {
+    font-size: var(--text-base);
+  }
+
   .campaigns-list {
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
   }
 
   .campaign-card {
-    border-radius: var(--radius-xl);
+    flex-direction: row;
   }
 
-  .status-indicator {
-    width: 5px;
+  .campaign-cover {
+    width: 160px;
+    height: 100px;
   }
 
-  .card-content {
+  .campaign-info {
     padding: var(--spacing-lg);
-    gap: var(--spacing-sm);
+    justify-content: center;
   }
 
   .campaign-title {
     font-size: var(--text-lg);
   }
 
-  .stage-tag {
-    padding: 4px 10px;
-    font-size: var(--text-sm);
-  }
-
   .campaign-desc {
     font-size: var(--text-base);
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
   }
 
-  .meta-item {
+  .campaign-meta {
     font-size: var(--text-sm);
   }
 
-  .meta-item svg {
-    width: 14px;
-    height: 14px;
+  .campaign-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-lg);
+    color: var(--color-text-placeholder);
   }
 
-  .card-action {
-    padding: var(--spacing-lg);
-    padding-left: 0;
-  }
-
-  .action-btn {
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--text-sm);
-  }
-
-  .action-btn svg {
-    width: 16px;
-    height: 16px;
+  .campaign-arrow svg {
+    width: 20px;
+    height: 20px;
   }
 }
 </style>

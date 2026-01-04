@@ -473,46 +473,27 @@ onMounted(() => {
         </div>
 
         <template v-else-if="campaign">
-          <!-- 活动信息头部 - 紧凑设计 -->
-          <div class="campaign-header">
-            <div class="header-main">
+          <!-- 活动信息卡片 -->
+          <div class="campaign-card">
+            <div class="campaign-info">
               <h1 class="campaign-title">{{ campaign.title }}</h1>
               <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
+              <div class="campaign-meta">
+                <span class="meta-item">{{ campaign.campus?.name }}</span>
+                <span class="meta-divider">·</span>
+                <span class="meta-item">{{ rulesDescription }}</span>
+                <template v-if="campaign.currentStage?.endTime">
+                  <span class="meta-divider">·</span>
+                  <span class="meta-item countdown">{{ formatEndTime(campaign.currentStage.endTime) }}</span>
+                </template>
+              </div>
             </div>
-
-            <!-- 元信息标签组 -->
-            <div class="info-tags">
-              <span class="info-tag">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                {{ campaign.campus?.name }}
-              </span>
-              <span v-if="campaign.currentStage?.endTime" class="info-tag deadline">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                {{ formatEndTime(campaign.currentStage.endTime) }}
-              </span>
-              <span class="info-tag rule">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                {{ rulesDescription }}
-              </span>
-            </div>
-
-            <!-- 投稿按钮 - 放在右侧 -->
             <button class="submit-btn" @click="openSearchModal">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              投稿
+              <span class="btn-text">投稿歌曲</span>
             </button>
           </div>
 
@@ -839,18 +820,18 @@ onMounted(() => {
   }
 }
 
-/* ===== Campaign Header - Compact Design ===== */
-.campaign-header {
+/* ===== Campaign Card ===== */
+.campaign-card {
   background: var(--color-card);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 
-.header-main {
+.campaign-info {
   flex: 1;
 }
 
@@ -865,42 +846,27 @@ onMounted(() => {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
+  margin-bottom: var(--spacing-sm);
 }
 
-/* ===== Info Tags ===== */
-.info-tags {
+.campaign-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-xs);
-}
-
-.info-tag {
-  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
-  color: var(--color-text-secondary);
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
 }
 
-.info-tag svg {
-  width: 12px;
-  height: 12px;
+.meta-divider {
+  color: var(--color-border);
 }
 
-.info-tag.deadline {
-  background: var(--color-warning-bg);
+.meta-item.countdown {
   color: var(--color-warning);
 }
 
-.info-tag.rule {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
-/* ===== Submit Button - Compact ===== */
+/* ===== Submit Button ===== */
 .submit-btn {
   display: inline-flex;
   align-items: center;
@@ -909,17 +875,18 @@ onMounted(() => {
   padding: var(--spacing-sm) var(--spacing-lg);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  color: white;
-  background: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
   align-self: flex-start;
 }
 
 .submit-btn:hover {
-  opacity: 0.9;
+  background: var(--color-primary);
+  color: white;
 }
 
 .submit-btn:active {
@@ -1700,24 +1667,10 @@ onMounted(() => {
     max-width: 900px;
   }
 
-  .campaign-header {
+  .campaign-card {
     flex-direction: row;
-    align-items: flex-start;
-    gap: var(--spacing-lg);
-  }
-
-  .header-main {
-    flex: 1;
-  }
-
-  .info-tags {
-    flex: 1;
-    justify-content: flex-start;
-  }
-
-  .submit-btn {
-    align-self: flex-start;
-    flex-shrink: 0;
+    align-items: center;
+    padding: var(--spacing-lg);
   }
 
   .campaign-title {
@@ -1726,6 +1679,12 @@ onMounted(() => {
 
   .campaign-desc {
     font-size: var(--text-base);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .submit-btn {
+    flex-shrink: 0;
+    padding: var(--spacing-sm) var(--spacing-xl);
   }
 
   .user-info-form {

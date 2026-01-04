@@ -168,7 +168,8 @@ onMounted(() => {
 
         <!-- 活动列表 -->
         <div v-else class="campaigns-section">
-          <div class="section-header">
+          <!-- 移动端隐藏标题 -->
+          <div class="section-header desktop-only">
             <span class="section-title">铃声征集活动</span>
           </div>
 
@@ -180,29 +181,30 @@ onMounted(() => {
               :class="{ clickable: canEnterCampaign(campaign) }"
               @click="canEnterCampaign(campaign) && goToCampaign(campaign)"
             >
-              <!-- 活动封面区域 -->
-              <div class="campaign-cover">
-                <div class="cover-content">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 18V5l12-2v13"></path>
-                    <circle cx="6" cy="18" r="3"></circle>
-                    <circle cx="18" cy="16" r="3"></circle>
-                  </svg>
-                </div>
-                <!-- 状态标签 -->
-                <span
-                  v-if="campaign.currentStage"
-                  class="stage-badge"
-                  :class="getStageClass(campaign.currentStage.stageType)"
-                >
-                  {{ getStageLabel(campaign.currentStage.stageType) }}
-                </span>
-              </div>
+              <!-- 左侧状态指示条 -->
+              <div
+                class="status-indicator"
+                :class="getStageClass(campaign.currentStage?.stageType || 'result')"
+              ></div>
 
-              <!-- 活动信息 -->
-              <div class="campaign-info">
-                <h3 class="campaign-name">{{ campaign.title }}</h3>
+              <!-- 主要内容区域 -->
+              <div class="card-content">
+                <!-- 顶部：标题和状态标签 -->
+                <div class="card-header">
+                  <h3 class="campaign-title">{{ campaign.title }}</h3>
+                  <span
+                    v-if="campaign.currentStage"
+                    class="stage-tag"
+                    :class="getStageClass(campaign.currentStage.stageType)"
+                  >
+                    {{ getStageLabel(campaign.currentStage.stageType) }}
+                  </span>
+                </div>
+
+                <!-- 描述 -->
                 <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
+
+                <!-- 元信息 -->
                 <div class="campaign-meta">
                   <span class="meta-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -221,12 +223,12 @@ onMounted(() => {
                 </div>
               </div>
 
-              <!-- 操作区域 -->
-              <div class="campaign-action">
+              <!-- 右侧操作区域 -->
+              <div class="card-action">
                 <button
                   v-if="canEnterCampaign(campaign)"
-                  class="enter-btn"
-                  :class="campaign.currentStage?.stageType"
+                  class="action-btn"
+                  :class="getStageClass(campaign.currentStage!.stageType)"
                 >
                   {{ getEnterLabel(campaign.currentStage!.stageType) }}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -260,7 +262,7 @@ onMounted(() => {
 
 .page-content {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-sm);
+  padding: var(--spacing-sm);
 }
 
 .content-container {
@@ -268,7 +270,7 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* ===== Desktop Only Title ===== */
+/* ===== Desktop Only ===== */
 .page-title {
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
@@ -284,11 +286,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .section-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
 }
@@ -404,21 +406,21 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* ===== Campaign Card ===== */
+/* ===== Campaign Card - Modern Compact Design ===== */
 .campaigns-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .campaign-card {
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
   background: var(--color-card);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .campaign-card.clickable {
@@ -426,102 +428,104 @@ onMounted(() => {
 }
 
 .campaign-card.clickable:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .campaign-card.clickable:active {
   transform: translateY(0);
 }
 
-/* ===== Campaign Cover ===== */
-.campaign-cover {
-  position: relative;
-  height: 100px;
-  background: linear-gradient(135deg, var(--color-primary-bg) 0%, rgba(231, 76, 60, 0.03) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* ===== Status Indicator ===== */
+.status-indicator {
+  width: 4px;
+  flex-shrink: 0;
 }
 
-.cover-content {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-lg);
-}
-
-.cover-content svg {
-  width: 28px;
-  height: 28px;
-}
-
-.stage-badge {
-  position: absolute;
-  top: var(--spacing-sm);
-  left: var(--spacing-sm);
-  padding: 4px 10px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  border-radius: var(--radius-full);
-  color: white;
-  backdrop-filter: blur(4px);
-}
-
-.stage-badge.stage-submission {
+.status-indicator.stage-submission {
   background: var(--color-primary);
 }
 
-.stage-badge.stage-review {
+.status-indicator.stage-review {
   background: var(--color-warning);
 }
 
-.stage-badge.stage-voting {
+.status-indicator.stage-voting {
   background: var(--color-info);
 }
 
-.stage-badge.stage-result {
+.status-indicator.stage-result {
   background: var(--color-text-secondary);
 }
 
-/* ===== Campaign Info ===== */
-.campaign-info {
+/* ===== Card Content ===== */
+.card-content {
   flex: 1;
   padding: var(--spacing-md);
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
 }
 
-.campaign-name {
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.campaign-title {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
+  line-height: 1.4;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-tag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-sm);
+}
+
+.stage-tag.stage-submission {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.stage-tag.stage-review {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.stage-tag.stage-voting {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.stage-tag.stage-result {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.campaign-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.campaign-desc {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
 .campaign-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-xs);
+  gap: var(--spacing-sm);
 }
 
 .meta-item {
@@ -535,63 +539,64 @@ onMounted(() => {
 .meta-item svg {
   width: 12px;
   height: 12px;
+  flex-shrink: 0;
 }
 
 .meta-item.countdown {
   color: var(--color-warning);
 }
 
-/* ===== Campaign Action ===== */
-.campaign-action {
-  padding: 0 var(--spacing-md) var(--spacing-md);
+/* ===== Card Action ===== */
+.card-action {
+  display: flex;
+  align-items: center;
+  padding-right: var(--spacing-md);
+  flex-shrink: 0;
 }
 
-.enter-btn {
-  width: 100%;
+.action-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
+  gap: 2px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
-.enter-btn svg {
-  width: 16px;
-  height: 16px;
+.action-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
-.enter-btn.submission {
+.action-btn.stage-submission {
   background: var(--color-primary-bg);
   color: var(--color-primary);
 }
 
-.enter-btn.submission:hover {
+.action-btn.stage-submission:hover {
   background: var(--color-primary);
   color: white;
 }
 
-.enter-btn.voting {
+.action-btn.stage-voting {
   background: var(--color-info-bg);
   color: var(--color-info);
 }
 
-.enter-btn.voting:hover {
+.action-btn.stage-voting:hover {
   background: var(--color-info);
   color: white;
 }
 
 .status-text {
-  display: block;
-  text-align: center;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text-placeholder);
-  padding: var(--spacing-sm);
+  padding: var(--spacing-xs);
 }
 
 /* ===== Desktop ===== */
@@ -608,43 +613,38 @@ onMounted(() => {
     max-width: 900px;
   }
 
-  .section-header {
-    margin-bottom: var(--spacing-md);
-  }
-
-  .section-title {
-    font-size: var(--text-base);
-  }
-
   .campaigns-list {
-    gap: var(--spacing-lg);
+    gap: var(--spacing-md);
   }
 
   .campaign-card {
-    flex-direction: row;
+    border-radius: var(--radius-xl);
   }
 
-  .campaign-cover {
-    width: 180px;
-    height: auto;
-    min-height: 140px;
+  .status-indicator {
+    width: 5px;
   }
 
-  .campaign-info {
+  .card-content {
     padding: var(--spacing-lg);
-    justify-content: center;
+    gap: var(--spacing-sm);
   }
 
-  .campaign-name {
+  .campaign-title {
     font-size: var(--text-lg);
+  }
+
+  .stage-tag {
+    padding: 4px 10px;
+    font-size: var(--text-sm);
   }
 
   .campaign-desc {
     font-size: var(--text-base);
-  }
-
-  .campaign-meta {
-    font-size: var(--text-sm);
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   .meta-item {
@@ -656,16 +656,19 @@ onMounted(() => {
     height: 14px;
   }
 
-  .campaign-action {
-    display: flex;
-    align-items: center;
+  .card-action {
     padding: var(--spacing-lg);
     padding-left: 0;
   }
 
-  .enter-btn {
-    width: auto;
-    padding: var(--spacing-sm) var(--spacing-lg);
+  .action-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--text-sm);
+  }
+
+  .action-btn svg {
+    width: 16px;
+    height: 16px;
   }
 }
 </style>

@@ -52,6 +52,19 @@ const isLoadingDetail = ref(false)
 // 选择的时段
 const selectedPeriodIds = ref<number[]>([])
 
+// 用户信息表单
+const userInfoForm = ref<{
+  dormitory: string
+  bed: string
+  student_id: string
+  phone: string
+}>({
+  dormitory: '',
+  bed: '',
+  student_id: '',
+  phone: '',
+})
+
 // 提交相关
 const isSubmitting = ref(false)
 
@@ -63,6 +76,52 @@ const submissionConfig = computed<SubmissionStageConfig | null>(() => {
   if (!campaign.value?.currentStage) return null
   return campaign.value.currentStage.config as SubmissionStageConfig
 })
+
+// 是否需要用户信息
+const requireUserInfo = computed(() => {
+  return submissionConfig.value?.require_user_info === true
+})
+
+// 需要填写的用户信息字段
+const userInfoFields = computed(() => {
+  return submissionConfig.value?.user_info_fields || []
+})
+
+// 获取字段标签
+function getFieldLabel(field: string): string {
+  const labels: Record<string, string> = {
+    dormitory: '宿舍号',
+    bed: '床位号',
+    student_id: '学号',
+    phone: '手机号',
+  }
+  return labels[field] || field
+}
+
+// 获取字段占位符
+function getFieldPlaceholder(field: string): string {
+  const placeholders: Record<string, string> = {
+    dormitory: '例如：101',
+    bed: '例如：1',
+    student_id: '请输入学号',
+    phone: '请输入手机号',
+  }
+  return placeholders[field] || `请输入${getFieldLabel(field)}`
+}
+
+// 验证用户信息
+function validateUserInfo(): boolean {
+  if (!requireUserInfo.value) return true
+
+  for (const field of userInfoFields.value) {
+    const value = userInfoForm.value[field as keyof typeof userInfoForm.value]
+    if (!value || !value.trim()) {
+      toast.error(`请填写${getFieldLabel(field)}`)
+      return false
+    }
+  }
+  return true
+}
 
 // 获取规则说明
 const rulesDescription = computed(() => {
@@ -94,7 +153,6 @@ function canSubmitToPeriod(periodId: number): boolean {
   if (limit_scope === 'period') {
     return getSubmissionCount(periodId) < max_count
   } else {
-    // 活动总限制：计算所有时段的投稿总数
     const totalCount = userSubmissions.value.reduce(
       (sum, p) => sum + (p.submissions?.length || 0),
       0
@@ -120,7 +178,6 @@ async function loadCampaign() {
     const res = await getCampaignDetail(campaignId.value)
     if (res.data.code === 200) {
       campaign.value = res.data.data
-      // 检查是否是投稿阶段
       if (campaign.value.currentStage?.stageType !== 'submission') {
         toast.error('当前不在投稿阶段')
         router.push('/ringtone')
@@ -174,6 +231,8 @@ function openSearchModal() {
   selectedMusic.value = null
   selectedMusicDetail.value = null
   selectedPeriodIds.value = []
+  // 重置用户信息表单
+  userInfoForm.value = { dormitory: '', bed: '', student_id: '', phone: '' }
 }
 
 // 关闭搜索弹窗
@@ -307,19 +366,36 @@ async function submitSubmission() {
     return
   }
 
+  // 验证用户信息
+  if (!validateUserInfo()) {
+    return
+  }
+
   isSubmitting.value = true
   try {
     const musicId = selectedMusic.value.mid || selectedMusic.value.id
+
+    // 构建用户信息
+    const userInfo: Record<string, string> = {}
+    if (requireUserInfo.value) {
+      for (const field of userInfoFields.value) {
+        const value = userInfoForm.value[field as keyof typeof userInfoForm.value]
+        if (value) {
+          userInfo[field] = value.trim()
+        }
+      }
+    }
+
     const res = await createSubmission({
       campaignId: campaignId.value,
       musicServiceId: `qq_${musicId}`,
       timePeriodIds: selectedPeriodIds.value,
+      userInfo: Object.keys(userInfo).length > 0 ? userInfo : undefined,
     })
 
     if (res.data.code === 200) {
       toast.success('投稿成功')
       closeSearchModal()
-      // 刷新用户投稿列表
       await loadUserSubmissions()
     } else {
       toast.error(res.data.message || '投稿失败')
@@ -346,12 +422,22 @@ function formatDate(dateStr: string) {
 function formatEndTime(endTime: string | undefined): string {
   if (!endTime) return ''
   const date = new Date(endTime)
-  return date.toLocaleDateString('zh-CN', {
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+
+  if (diffMs < 0) return '已结束'
+
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+
+  if (diffDays > 0) {
+    return `剩余 ${diffDays}天${diffHours}小时`
+  } else if (diffHours > 0) {
+    return `剩余 ${diffHours}小时`
+  } else {
+    const diffMinutes = Math.floor(diffMs / (1000 * 60))
+    return `剩余 ${diffMinutes}分钟`
+  }
 }
 
 // 监听登录状态变化
@@ -387,57 +473,48 @@ onMounted(() => {
         </div>
 
         <template v-else-if="campaign">
-          <!-- 活动信息卡片 -->
-          <div class="campaign-card">
-            <div class="campaign-cover">
-              <div class="cover-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M9 18V5l12-2v13"></path>
-                  <circle cx="6" cy="18" r="3"></circle>
-                  <circle cx="18" cy="16" r="3"></circle>
-                </svg>
-              </div>
-            </div>
-            <div class="campaign-info">
+          <!-- 活动信息头部 - 紧凑设计 -->
+          <div class="campaign-header">
+            <div class="header-main">
               <h1 class="campaign-title">{{ campaign.title }}</h1>
               <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
-              <div class="campaign-meta">
-                <span class="meta-tag location">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                  </svg>
-                  {{ campaign.campus?.name }}
-                </span>
-                <span v-if="campaign.currentStage?.endTime" class="meta-tag deadline">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  截止 {{ formatEndTime(campaign.currentStage.endTime) }}
-                </span>
-              </div>
             </div>
-          </div>
 
-          <!-- 规则提示 -->
-          <div class="rules-notice">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <span>{{ rulesDescription }}</span>
-          </div>
+            <!-- 元信息标签组 -->
+            <div class="info-tags">
+              <span class="info-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                {{ campaign.campus?.name }}
+              </span>
+              <span v-if="campaign.currentStage?.endTime" class="info-tag deadline">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                {{ formatEndTime(campaign.currentStage.endTime) }}
+              </span>
+              <span class="info-tag rule">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                {{ rulesDescription }}
+              </span>
+            </div>
 
-          <!-- 投稿按钮 -->
-          <button class="submit-action-btn" @click="openSearchModal">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            投稿歌曲
-          </button>
+            <!-- 投稿按钮 - 放在右侧 -->
+            <button class="submit-btn" @click="openSearchModal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              投稿
+            </button>
+          </div>
 
           <!-- 我的投稿 -->
           <section class="submissions-section">
@@ -446,10 +523,7 @@ onMounted(() => {
               <span class="section-count">{{ totalSubmissions }} 首</span>
             </div>
 
-            <div
-              v-if="totalSubmissions === 0"
-              class="empty-submissions"
-            >
+            <div v-if="totalSubmissions === 0" class="empty-submissions">
               <div class="empty-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M9 18V5l12-2v13"></path>
@@ -511,7 +585,6 @@ onMounted(() => {
       <div v-if="showSearchModal" class="modal-overlay" @click.self="closeSearchModal">
         <Transition name="modal-slide" appear>
           <div v-if="showSearchModal" class="modal-content" @click.stop>
-            <!-- 拖拽指示器 -->
             <div class="modal-handle"></div>
 
             <div class="modal-header">
@@ -526,7 +599,6 @@ onMounted(() => {
 
             <!-- 未选择歌曲：显示搜索 -->
             <template v-if="!selectedMusic">
-              <!-- 搜索框 -->
               <div class="search-box">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="11" cy="11" r="8"></circle>
@@ -540,7 +612,6 @@ onMounted(() => {
                 />
               </div>
 
-              <!-- 搜索结果 -->
               <div class="search-results">
                 <div v-if="isSearching && searchResults.length === 0" class="search-loading">
                   <div class="loading-spinner-sm"></div>
@@ -555,10 +626,7 @@ onMounted(() => {
                   <p>输入歌曲名或歌手搜索</p>
                 </div>
 
-                <div
-                  v-else-if="searchResults.length === 0 && !isSearching"
-                  class="search-empty"
-                >
+                <div v-else-if="searchResults.length === 0 && !isSearching" class="search-empty">
                   <p>未找到相关歌曲</p>
                   <span>换个关键词试试</span>
                 </div>
@@ -589,13 +657,8 @@ onMounted(() => {
                     </svg>
                   </div>
 
-                  <!-- 加载更多 -->
                   <div v-if="hasMoreResults" class="load-more">
-                    <button
-                      class="load-more-btn"
-                      :disabled="isSearching"
-                      @click="loadMoreResults"
-                    >
+                    <button class="load-more-btn" :disabled="isSearching" @click="loadMoreResults">
                       {{ isSearching ? '加载中...' : '加载更多' }}
                     </button>
                   </div>
@@ -605,7 +668,6 @@ onMounted(() => {
 
             <!-- 已选择歌曲：显示详情和时段选择 -->
             <template v-else>
-              <!-- 返回搜索 -->
               <button class="back-btn" @click="cancelSelection">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="15 18 9 12 15 6"></polyline>
@@ -613,7 +675,6 @@ onMounted(() => {
                 返回搜索
               </button>
 
-              <!-- 歌曲详情 -->
               <div v-if="isLoadingDetail" class="detail-loading">
                 <div class="loading-spinner-sm"></div>
                 <span>加载中...</span>
@@ -639,6 +700,22 @@ onMounted(() => {
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
                   </svg>
                 </button>
+              </div>
+
+              <!-- 用户信息填写（如果需要） -->
+              <div v-if="requireUserInfo && userInfoFields.length > 0" class="user-info-section">
+                <h4 class="section-label">填写信息</h4>
+                <div class="user-info-form">
+                  <div v-for="field in userInfoFields" :key="field" class="form-field">
+                    <label :for="`field-${field}`">{{ getFieldLabel(field) }}</label>
+                    <input
+                      :id="`field-${field}`"
+                      v-model="userInfoForm[field as keyof typeof userInfoForm]"
+                      type="text"
+                      :placeholder="getFieldPlaceholder(field)"
+                    />
+                  </div>
+                </div>
               </div>
 
               <!-- 时段选择 -->
@@ -718,8 +795,7 @@ onMounted(() => {
 
 .page-content {
   flex: 1;
-  padding: var(--spacing-md) 10px;
-  padding-bottom: var(--spacing-md);
+  padding: var(--spacing-sm);
 }
 
 .page-content.has-player {
@@ -763,136 +839,96 @@ onMounted(() => {
   }
 }
 
-/* ===== Campaign Card ===== */
-.campaign-card {
+/* ===== Campaign Header - Compact Design ===== */
+.campaign-header {
   background: var(--color-card);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
-  margin-bottom: var(--spacing-md);
-}
-
-.campaign-cover {
-  height: 120px;
-  background: linear-gradient(135deg, var(--color-primary-bg) 0%, rgba(231, 76, 60, 0.03) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cover-icon {
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-lg);
-}
-
-.cover-icon svg {
-  width: 32px;
-  height: 32px;
-}
-
-.campaign-info {
   padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.header-main {
+  flex: 1;
 }
 
 .campaign-title {
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
   margin-bottom: var(--spacing-xs);
+  line-height: 1.3;
 }
 
 .campaign-desc {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  line-height: var(--leading-relaxed);
-  margin-bottom: var(--spacing-sm);
+  line-height: 1.5;
 }
 
-.campaign-meta {
+/* ===== Info Tags ===== */
+.info-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
-.meta-tag {
+.info-tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
 }
 
-.meta-tag svg {
+.info-tag svg {
   width: 12px;
   height: 12px;
 }
 
-.meta-tag.location {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
-
-.meta-tag.deadline {
+.info-tag.deadline {
   background: var(--color-warning-bg);
   color: var(--color-warning);
 }
 
-/* ===== Rules Notice ===== */
-.rules-notice {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+.info-tag.rule {
   background: var(--color-info-bg);
   color: var(--color-info);
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-md);
 }
 
-.rules-notice svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* ===== Submit Action Button ===== */
-.submit-action-btn {
-  width: 100%;
-  display: flex;
+/* ===== Submit Button - Compact ===== */
+.submit-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--spacing-xs);
-  padding: var(--spacing-md);
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   color: white;
   background: var(--color-primary);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
-  margin-bottom: var(--spacing-lg);
+  align-self: flex-start;
 }
 
-.submit-action-btn:hover {
+.submit-btn:hover {
   opacity: 0.9;
-  transform: translateY(-1px);
 }
 
-.submit-action-btn:active {
-  transform: translateY(0);
+.submit-btn:active {
+  transform: scale(0.98);
 }
 
-.submit-action-btn svg {
-  width: 20px;
-  height: 20px;
+.submit-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* ===== Submissions Section ===== */
@@ -922,7 +958,6 @@ onMounted(() => {
   text-align: center;
   padding: var(--spacing-xl);
   background: var(--color-card);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
@@ -958,12 +993,11 @@ onMounted(() => {
 .submissions-by-period {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .period-group {
   background: var(--color-card);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -974,7 +1008,6 @@ onMounted(() => {
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .period-name {
@@ -1005,16 +1038,12 @@ onMounted(() => {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.submission-item:last-child {
-  border-bottom: none;
+  border-top: 1px solid var(--color-border);
 }
 
 .music-cover {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
@@ -1057,13 +1086,13 @@ onMounted(() => {
   align-items: flex-end;
   justify-content: center;
   z-index: 1000;
-  padding: 0;
 }
 
 .modal-content {
   background: var(--color-card);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-md);
+  padding-bottom: var(--spacing-lg);
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -1084,7 +1113,6 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--spacing-md);
-  flex-shrink: 0;
 }
 
 .modal-title {
@@ -1125,7 +1153,6 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   margin-bottom: var(--spacing-md);
-  flex-shrink: 0;
   transition: all var(--transition-fast);
 }
 
@@ -1342,7 +1369,6 @@ onMounted(() => {
   gap: var(--spacing-md);
   padding: var(--spacing-md);
   background: var(--color-bg);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   margin-bottom: var(--spacing-md);
 }
@@ -1413,6 +1439,55 @@ onMounted(() => {
   width: 18px;
   height: 18px;
   margin-left: 2px;
+}
+
+/* ===== User Info Section ===== */
+.user-info-section {
+  margin-bottom: var(--spacing-md);
+}
+
+.section-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.user-info-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.form-field label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.form-field input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.form-field input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.form-field input::placeholder {
+  color: var(--color-text-placeholder);
 }
 
 /* ===== Period Selection ===== */
@@ -1530,7 +1605,6 @@ onMounted(() => {
   display: flex;
   gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
-  flex-shrink: 0;
 }
 
 .action-btn {
@@ -1626,33 +1700,24 @@ onMounted(() => {
     max-width: 900px;
   }
 
-  .campaign-card {
-    display: flex;
+  .campaign-header {
     flex-direction: row;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
   }
 
-  .campaign-cover {
-    width: 200px;
-    height: auto;
-    min-height: 160px;
-  }
-
-  .cover-icon {
-    width: 80px;
-    height: 80px;
-  }
-
-  .cover-icon svg {
-    width: 40px;
-    height: 40px;
-  }
-
-  .campaign-info {
+  .header-main {
     flex: 1;
-    padding: var(--spacing-lg);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+  }
+
+  .info-tags {
+    flex: 1;
+    justify-content: flex-start;
+  }
+
+  .submit-btn {
+    align-self: flex-start;
+    flex-shrink: 0;
   }
 
   .campaign-title {
@@ -1661,6 +1726,16 @@ onMounted(() => {
 
   .campaign-desc {
     font-size: var(--text-base);
+  }
+
+  .user-info-form {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .form-field {
+    flex: 1;
+    min-width: 150px;
   }
 }
 </style>

@@ -74,28 +74,6 @@ const router = createRouter({
       },
     },
     {
-      path: '/ringtone/:id/submit',
-      name: 'ringtone-submit',
-      component: () => import('../pages/CampaignSubmissionPage.vue'),
-      meta: {
-        requiresAuth: true,
-        level: 2,
-        title: '投稿',
-        parent: 'ringtone',
-      },
-    },
-    {
-      path: '/ringtone/:id/vote',
-      name: 'ringtone-vote',
-      component: () => import('../pages/CampaignVotingPage.vue'),
-      meta: {
-        requiresAuth: true,
-        level: 2,
-        title: '投票',
-        parent: 'ringtone',
-      },
-    },
-    {
       path: '/community',
       name: 'community',
       component: () => import('../pages/CommunityPage.vue'),

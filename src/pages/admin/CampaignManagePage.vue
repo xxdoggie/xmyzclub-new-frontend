@@ -768,7 +768,7 @@ onMounted(async () => {
               <h1 class="page-title">活动管理</h1>
               <p class="page-subtitle">管理铃声征集投票活动</p>
             </div>
-            <button class="action-button primary" @click="openCreateModal">
+            <button class="action-button primary desktop-only" @click="openCreateModal">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -880,6 +880,15 @@ onMounted(async () => {
     </main>
 
     <PageFooter />
+
+    <!-- 移动端悬浮创建按钮 -->
+    <button class="floating-create-btn mobile-only" @click="openCreateModal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      <span>创建活动</span>
+    </button>
 
     <!-- ==================== 创建/编辑 Modal ==================== -->
     <Transition name="modal-fade">
@@ -2158,5 +2167,65 @@ onMounted(async () => {
 .modal-scale-leave-to {
   opacity: 0;
   transform: scale(0.9);
+}
+
+/* ===== Desktop/Mobile Only ===== */
+.desktop-only {
+  display: none;
+}
+
+.mobile-only {
+  display: flex;
+}
+
+/* ===== Floating Create Button (Mobile) ===== */
+.floating-create-btn {
+  position: fixed;
+  right: var(--spacing-md);
+  bottom: calc(var(--spacing-md) + 60px); /* 60px 为底部导航栏高度 */
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-primary);
+  color: white;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: none;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  z-index: 100;
+  transition: all var(--transition-fast);
+}
+
+.floating-create-btn:hover {
+  background: var(--color-primary-dark);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.floating-create-btn:active {
+  transform: translateY(0);
+}
+
+.floating-create-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.floating-create-btn span {
+  white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .desktop-only {
+    display: flex;
+  }
+
+  .mobile-only {
+    display: none;
+  }
 }
 </style>

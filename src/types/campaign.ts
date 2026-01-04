@@ -15,7 +15,7 @@ export type StageType = 'submission' | 'review' | 'voting' | 'result'
 /**
  * 活动状态
  */
-export type CampaignStatus = 'active' | 'completed' | 'draft' | 'cancelled'
+export type CampaignStatus = 'active' | 'completed' | 'draft' | 'cancelled' | 'closed'
 
 /**
  * 活动阶段（详细版本，用于活动详情）
@@ -65,6 +65,8 @@ export interface CurrentStage {
  * 全局配置（可扩展）
  */
 export interface GlobalConfig {
+  /** 阶段自动转换（到时间自动执行） */
+  auto_stage_transition?: boolean
   [key: string]: unknown
 }
 
@@ -280,8 +282,8 @@ export interface UpdateCampaignRequest {
  * 阶段操作请求
  */
 export interface StageOperationRequest {
-  /** 操作类型: start=开始, end=结束, next=进入下一阶段 */
-  operation: 'start' | 'end' | 'next'
+  /** 操作类型: next=进入下一阶段, previous=返回上一阶段, activate=激活当前阶段 */
+  operation: 'next' | 'previous' | 'activate'
 }
 
 /**

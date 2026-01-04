@@ -7,7 +7,8 @@ import {
   getCampaigns,
   createCampaign,
   updateCampaign,
-  deleteCampaign,
+  activateCampaign,
+  closeCampaign,
   stageOperation,
 } from '@/api/campaign'
 import type {
@@ -103,7 +104,9 @@ const campaignForm = ref<{
   campusId: null,
   timePeriodIds: [],
   buildingIds: [],
-  globalConfig: {},
+  globalConfig: {
+    auto_stage_transition: false,
+  },
   stages: [
     {
       stageType: 'submission',
@@ -153,14 +156,15 @@ watch(() => campaignForm.value.campusId, async (newCampusId) => {
   }
 })
 
-// 删除确认
-const showDeleteConfirm = ref(false)
-const deleteCampaignTarget = ref<Campaign | null>(null)
-const isDeleting = ref(false)
-
-// 阶段操作
-const isOperatingStage = ref(false)
-const operatingCampaignId = ref<number | null>(null)
+// 操作确认弹窗
+const showOperationConfirm = ref(false)
+const operationTarget = ref<{
+  campaign: Campaign
+  type: 'activate' | 'close' | 'next' | 'previous'
+  title: string
+  message: string
+} | null>(null)
+const isOperating = ref(false)
 
 // ==================== 辅助函数 ====================
 
@@ -170,6 +174,7 @@ const campaignStatusLabels: Record<CampaignStatus, string> = {
   completed: '已完成',
   draft: '草稿',
   cancelled: '已取消',
+  closed: '已关闭',
 }
 
 // 活动状态样式
@@ -178,6 +183,7 @@ const campaignStatusClasses: Record<CampaignStatus, string> = {
   completed: 'status-completed',
   draft: 'status-draft',
   cancelled: 'status-cancelled',
+  closed: 'status-closed',
 }
 
 // 阶段状态样式
@@ -343,7 +349,9 @@ async function openEditModal(campaign: Campaign) {
     campusId: campaign.campus?.id || null,
     timePeriodIds: campaign.timePeriods?.map(tp => tp.id) || [],
     buildingIds: campaign.buildings?.map(b => b.id) || [],
-    globalConfig: campaign.globalConfig ? { ...campaign.globalConfig } : {},
+    globalConfig: {
+      auto_stage_transition: campaign.globalConfig?.auto_stage_transition ?? false,
+    },
     stages: campaign.stages?.map(s => ({
       stageType: s.stageType,
       stageName: s.stageName,
@@ -390,7 +398,9 @@ function resetForm() {
     campusId: null,
     timePeriodIds: [],
     buildingIds: [],
-    globalConfig: {},
+    globalConfig: {
+      auto_stage_transition: false,
+    },
     stages: getDefaultStages(),
   }
   availableBuildings.value = []
@@ -553,110 +563,143 @@ async function saveCampaign() {
   }
 }
 
-async function toggleStatus(campaign: Campaign) {
+// 打开操作确认弹窗
+function openOperationConfirm(
+  campaign: Campaign,
+  type: 'activate' | 'close' | 'next' | 'previous'
+) {
+  const messages: Record<'activate' | 'close' | 'next' | 'previous', { title: string; message: string }> = {
+    activate: {
+      title: '开始活动',
+      message: `确定要开始活动"${campaign.title}"吗？活动将进入投稿阶段。`,
+    },
+    close: {
+      title: '关闭活动',
+      message: `确定要关闭活动"${campaign.title}"吗？关闭后活动将无法继续。`,
+    },
+    next: {
+      title: '进入下一阶段',
+      message: `确定要将活动"${campaign.title}"推进到下一阶段吗？`,
+    },
+    previous: {
+      title: '返回上一阶段',
+      message: `确定要将活动"${campaign.title}"返回到上一阶段吗？`,
+    },
+  }
+  const msg = messages[type]
+  operationTarget.value = {
+    campaign,
+    type,
+    title: msg.title,
+    message: msg.message,
+  }
+  showOperationConfirm.value = true
+}
+
+// 确认执行操作
+async function confirmOperation() {
+  if (!operationTarget.value) return
+
+  isOperating.value = true
+  const { campaign, type } = operationTarget.value
+
   try {
-    const newStatus: CampaignStatus = campaign.status === 'active' ? 'cancelled' : 'active'
-    const res = await updateCampaign(campaign.id, { status: newStatus })
+    let res
+    if (type === 'activate') {
+      res = await activateCampaign(campaign.id)
+    } else if (type === 'close') {
+      res = await closeCampaign(campaign.id)
+    } else {
+      res = await stageOperation(campaign.id, { operation: type })
+    }
+
     if (res.data.code === 200) {
-      toast.success(campaign.status === 'active' ? '已取消' : '已激活')
+      const successMessages: Record<'activate' | 'close' | 'next' | 'previous', string> = {
+        activate: '活动已开始',
+        close: '活动已关闭',
+        next: '已进入下一阶段',
+        previous: '已返回上一阶段',
+      }
+      toast.success(successMessages[type])
+      showOperationConfirm.value = false
+      operationTarget.value = null
       await loadCampaigns()
     } else {
       toast.error(res.data.message || '操作失败')
     }
   } catch (error) {
     toast.error('操作失败')
-  }
-}
-
-function openDeleteConfirmModal(campaign: Campaign) {
-  deleteCampaignTarget.value = campaign
-  showDeleteConfirm.value = true
-}
-
-async function confirmDelete() {
-  if (!deleteCampaignTarget.value) return
-
-  isDeleting.value = true
-  try {
-    const res = await deleteCampaign(deleteCampaignTarget.value.id)
-    if (res.data.code === 200) {
-      toast.success('活动已删除')
-      showDeleteConfirm.value = false
-      deleteCampaignTarget.value = null
-      await loadCampaigns()
-    } else {
-      toast.error(res.data.message || '删除失败')
-    }
-  } catch (error) {
-    toast.error('删除失败')
   } finally {
-    isDeleting.value = false
+    isOperating.value = false
   }
 }
 
-function cancelDelete() {
-  showDeleteConfirm.value = false
-  deleteCampaignTarget.value = null
+// 取消操作
+function cancelOperation() {
+  showOperationConfirm.value = false
+  operationTarget.value = null
 }
 
 // ==================== 阶段操作 ====================
 
-async function handleStageOperation(campaign: Campaign, operation: 'start' | 'end' | 'next') {
-  isOperatingStage.value = true
-  operatingCampaignId.value = campaign.id
+// 根据活动状态显示可用操作
+function getAvailableOperations(campaign: Campaign): Array<{
+  label: string
+  operationType: 'activate' | 'close' | 'next' | 'previous'
+  btnType: string
+}> {
+  const ops: Array<{
+    label: string
+    operationType: 'activate' | 'close' | 'next' | 'previous'
+    btnType: string
+  }> = []
 
-  try {
-    const res = await stageOperation(campaign.id, { operation })
-    if (res.data.code === 200) {
-      const messages: Record<string, string> = {
-        start: '活动已开始',
-        end: '活动已结束',
-        next: '已进入下一阶段',
-      }
-      toast.success(messages[operation] || '操作成功')
-      await loadCampaigns()
-    } else {
-      toast.error(res.data.message || '操作失败')
-    }
-  } catch (error) {
-    toast.error('操作失败')
-  } finally {
-    isOperatingStage.value = false
-    operatingCampaignId.value = null
-  }
-}
-
-// 根据当前阶段显示可用操作
-function getAvailableOperations(campaign: Campaign): Array<{ label: string; operation: 'start' | 'end' | 'next'; type: string }> {
-  const ops: Array<{ label: string; operation: 'start' | 'end' | 'next'; type: string }> = []
-
-  // 如果活动已完成或取消，不显示操作
-  if (campaign.status === 'completed' || campaign.status === 'cancelled') {
+  // 如果活动已关闭，不显示操作
+  if (campaign.status === 'closed' || campaign.status === 'completed' || campaign.status === 'cancelled') {
     return ops
   }
 
-  const stageType = campaign.currentStage?.stageType
-  const stageStatus = campaign.currentStage?.status
+  // 活动还未开始（草稿状态）
+  if (campaign.status === 'draft' || !campaign.currentStage) {
+    ops.push({ label: '开始活动', operationType: 'activate', btnType: 'primary' })
+    return ops
+  }
 
-  if (!campaign.currentStage || stageStatus === 'pending') {
-    // 没有当前阶段或阶段未开始
-    ops.push({ label: '开始活动', operation: 'start', type: 'primary' })
-  } else if (stageStatus === 'active') {
-    // 阶段进行中
-    switch (stageType) {
-      case 'submission':
-      case 'review':
-      case 'voting':
-        ops.push({ label: '下一阶段', operation: 'next', type: 'info' })
-        ops.push({ label: '结束活动', operation: 'end', type: 'danger' })
-        break
-      case 'result':
-        ops.push({ label: '结束活动', operation: 'end', type: 'danger' })
-        break
+  // 活动进行中
+  if (campaign.status === 'active' && campaign.currentStage) {
+    const stageType = campaign.currentStage.stageType
+
+    // 非第一个阶段可以返回上一阶段
+    if (stageType !== 'submission') {
+      ops.push({ label: '上一阶段', operationType: 'previous', btnType: 'secondary' })
     }
+
+    // 非最后一个阶段可以进入下一阶段
+    if (stageType !== 'result') {
+      ops.push({ label: '下一阶段', operationType: 'next', btnType: 'info' })
+    }
+
+    // 始终可以关闭活动
+    ops.push({ label: '关闭活动', operationType: 'close', btnType: 'danger' })
   }
 
   return ops
+}
+
+// 判断是否可以编辑活动（只有未开始的活动可以编辑）
+function canEditCampaign(campaign: Campaign): boolean {
+  return campaign.status === 'draft' || !campaign.currentStage
+}
+
+// 判断是否显示审核按钮（只在审核阶段）
+function canShowReviewButton(campaign: Campaign): boolean {
+  return campaign.currentStage?.stageType === 'review'
+}
+
+// 判断是否显示结果按钮（投票阶段和结果阶段）
+function canShowResultsButton(campaign: Campaign): boolean {
+  const stageType = campaign.currentStage?.stageType
+  return stageType === 'voting' || stageType === 'result'
 }
 
 // ==================== 页面跳转 ====================
@@ -760,14 +803,14 @@ onMounted(async () => {
               <div class="campaign-actions">
                 <!-- 阶段操作 -->
                 <div class="stage-operations">
-                  <template v-for="op in getAvailableOperations(campaign)" :key="op.operation">
+                  <template v-for="op in getAvailableOperations(campaign)" :key="op.operationType">
                     <button
                       class="action-btn"
-                      :class="op.type"
-                      :disabled="isOperatingStage && operatingCampaignId === campaign.id"
-                      @click="handleStageOperation(campaign, op.operation)"
+                      :class="op.btnType"
+                      :disabled="isOperating"
+                      @click="openOperationConfirm(campaign, op.operationType)"
                     >
-                      {{ isOperatingStage && operatingCampaignId === campaign.id ? '...' : op.label }}
+                      {{ op.label }}
                     </button>
                   </template>
                 </div>
@@ -775,28 +818,29 @@ onMounted(async () => {
                 <!-- 管理操作 -->
                 <div class="manage-actions">
                   <button
-                    v-if="campaign.currentStage && ['review', 'voting', 'result'].includes(campaign.currentStage.stageType)"
+                    v-if="canShowReviewButton(campaign)"
                     class="action-btn review"
+                    :disabled="isOperating"
                     @click="goToReview(campaign)"
                   >
                     审核
                   </button>
                   <button
-                    v-if="campaign.currentStage && ['voting', 'result'].includes(campaign.currentStage.stageType)"
+                    v-if="canShowResultsButton(campaign)"
                     class="action-btn results"
+                    :disabled="isOperating"
                     @click="goToResults(campaign)"
                   >
                     结果
                   </button>
                   <button
-                    class="action-btn toggle"
-                    :class="{ 'is-enabled': campaign.status === 'active' }"
-                    @click="toggleStatus(campaign)"
+                    v-if="canEditCampaign(campaign)"
+                    class="action-btn edit"
+                    :disabled="isOperating"
+                    @click="openEditModal(campaign)"
                   >
-                    {{ campaign.status === 'active' ? '取消' : '激活' }}
+                    编辑
                   </button>
-                  <button class="action-btn edit" @click="openEditModal(campaign)">编辑</button>
-                  <button class="action-btn delete" @click="openDeleteConfirmModal(campaign)">删除</button>
                 </div>
               </div>
             </div>
@@ -935,6 +979,17 @@ onMounted(async () => {
             <!-- 阶段配置 -->
             <div class="form-section">
               <h4 class="form-section-title">阶段配置</h4>
+              <div class="form-group">
+                <label class="form-label checkbox-label">
+                  <input
+                    v-model="campaignForm.globalConfig.auto_stage_transition"
+                    type="checkbox"
+                    class="form-checkbox"
+                  />
+                  启用阶段自动转换
+                </label>
+                <p class="form-hint">开启后，阶段将在到达设定时间时自动转换到下一阶段</p>
+              </div>
               <div
                 v-for="(stage, index) in campaignForm.stages"
                 :key="stage.stageType"
@@ -1115,19 +1170,24 @@ onMounted(async () => {
       </div>
     </Transition>
 
-    <!-- ==================== 删除确认 Modal ==================== -->
+    <!-- ==================== 操作确认 Modal ==================== -->
     <Transition name="modal-fade">
-      <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
+      <div v-if="showOperationConfirm" class="modal-overlay" @click.self="cancelOperation">
         <Transition name="modal-scale" appear>
-          <div v-if="showDeleteConfirm" class="modal-content" @click.stop>
-            <h3 class="modal-title">确认删除</h3>
+          <div v-if="showOperationConfirm" class="modal-content" @click.stop>
+            <h3 class="modal-title">{{ operationTarget?.title }}</h3>
             <p class="modal-desc">
-              确定要删除活动"{{ deleteCampaignTarget?.title }}"吗？此操作不可撤销。
+              {{ operationTarget?.message }}
             </p>
             <div class="modal-actions">
-              <button class="modal-btn cancel" @click="cancelDelete" :disabled="isDeleting">取消</button>
-              <button class="modal-btn confirm danger" @click="confirmDelete" :disabled="isDeleting">
-                {{ isDeleting ? '删除中...' : '确认删除' }}
+              <button class="modal-btn cancel" @click="cancelOperation" :disabled="isOperating">取消</button>
+              <button
+                class="modal-btn confirm"
+                :class="{ danger: operationTarget?.type === 'close' }"
+                @click="confirmOperation"
+                :disabled="isOperating"
+              >
+                {{ isOperating ? '处理中...' : '确认' }}
               </button>
             </div>
           </div>
@@ -1391,6 +1451,11 @@ onMounted(async () => {
   color: var(--color-error);
 }
 
+.status-badge.status-closed {
+  background: var(--color-text-placeholder);
+  color: white;
+}
+
 .campaign-desc {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
@@ -1459,6 +1524,16 @@ onMounted(async () => {
 
 .action-btn.info:hover:not(:disabled) {
   background: var(--color-info);
+  color: white;
+}
+
+.action-btn.secondary {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.action-btn.secondary:hover:not(:disabled) {
+  background: var(--color-text-secondary);
   color: white;
 }
 

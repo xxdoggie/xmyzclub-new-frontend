@@ -811,11 +811,6 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="result-actions">
-              <button class="back-btn" @click="router.push('/ringtone')">
-                返回活动列表
-              </button>
-            </div>
           </section>
         </template>
       </div>

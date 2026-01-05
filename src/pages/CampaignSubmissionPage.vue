@@ -34,6 +34,7 @@ const campaignId = computed(() => Number(route.params.id))
 const isLoading = ref(true)
 const campaign = ref<Campaign | null>(null)
 const userSubmissions = ref<TimePeriodUserSubmissions[]>([])
+const lastUserInfo = ref<Record<string, string> | null>(null)
 
 // 搜索相关
 const showSearchModal = ref(false)
@@ -196,7 +197,16 @@ async function loadUserSubmissions() {
   try {
     const res = await getUserSubmissions(campaignId.value)
     if (res.data.code === 200) {
-      userSubmissions.value = res.data.data
+      const data = res.data.data
+      // 支持新的返回格式 { timePeriods: [...], lastUserInfo: {...} }
+      if (data.timePeriods) {
+        userSubmissions.value = data.timePeriods
+        lastUserInfo.value = data.lastUserInfo || null
+      } else {
+        // 兼容旧格式（直接返回数组）
+        userSubmissions.value = data
+        lastUserInfo.value = null
+      }
     }
   } catch (error) {
     console.error('获取用户投稿失败', error)
@@ -229,8 +239,18 @@ function openSearchModal() {
   selectedMusic.value = null
   selectedMusicDetail.value = null
   selectedPeriodIds.value = []
-  // 重置用户信息表单
-  userInfoForm.value = { dormitory: '', bed: '', student_id: '', phone: '' }
+  // 如果需要用户信息且有上次填写的信息，自动填充
+  if (requireUserInfo.value && lastUserInfo.value) {
+    userInfoForm.value = {
+      dormitory: lastUserInfo.value.dormitory || '',
+      bed: lastUserInfo.value.bed || '',
+      student_id: lastUserInfo.value.student_id || '',
+      phone: lastUserInfo.value.phone || '',
+    }
+  } else {
+    // 重置用户信息表单
+    userInfoForm.value = { dormitory: '', bed: '', student_id: '', phone: '' }
+  }
 }
 
 // 关闭搜索弹窗

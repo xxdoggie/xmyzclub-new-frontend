@@ -37,8 +37,10 @@ const replyText = ref('')
 const isReplying = ref(false)
 
 // 加载详情
-async function loadDetail() {
-  isLoading.value = true
+async function loadDetail(silent = false) {
+  if (!silent) {
+    isLoading.value = true
+  }
   try {
     const res = await getRatingItemDetail(itemId)
     if (res.data.code === 200) {
@@ -47,13 +49,17 @@ async function loadDetail() {
       if (detail.value?.myRating !== null && detail.value?.myRating !== undefined) {
         userRating.value = Math.round(detail.value.myRating / 2)
       }
-    } else {
+    } else if (!silent) {
       toast.error(res.data.message || '获取详情失败')
     }
   } catch {
-    toast.error('获取详情失败')
+    if (!silent) {
+      toast.error('获取详情失败')
+    }
   } finally {
-    isLoading.value = false
+    if (!silent) {
+      isLoading.value = false
+    }
   }
 }
 
@@ -104,7 +110,7 @@ async function handleStarClick(star: number) {
     })
     if (res.data.code === 200) {
       toast.success(detail.value?.myRating !== null ? '评分已更新' : '评分成功')
-      await loadDetail()
+      await loadDetail(true)
     } else {
       userRating.value = serverRating
       toast.error(res.data.message || '评分失败')

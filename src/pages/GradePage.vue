@@ -476,6 +476,7 @@ onMounted(() => {
 
 /* ===== Page Header ===== */
 .page-header-section {
+  display: none;
   margin-bottom: var(--spacing-lg);
 }
 
@@ -611,7 +612,12 @@ onMounted(() => {
 .role-btn.active {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
+  color: #ffffff;
+}
+
+.role-btn.active:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: #ffffff;
 }
 
 .role-btn:disabled {
@@ -1001,6 +1007,10 @@ onMounted(() => {
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
   .breadcrumb-wrapper {
+    display: block;
+  }
+
+  .page-header-section {
     display: block;
   }
 

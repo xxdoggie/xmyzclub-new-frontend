@@ -109,7 +109,6 @@ async function handleStarClick(star: number) {
       stars: star,
     })
     if (res.data.code === 200) {
-      toast.success(detail.value?.myRating !== null ? '评分已更新' : '评分成功')
       await loadDetail(true)
     } else {
       userRating.value = serverRating

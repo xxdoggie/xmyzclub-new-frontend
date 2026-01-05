@@ -57,6 +57,16 @@ const INITIAL_SHOW_COUNT = 12
 const LOAD_MORE_COUNT = 12
 const periodVisibleCount = reactive<Record<number, number>>({})
 
+// 每个时段的搜索关键词
+const periodSearchKeyword = reactive<Record<number, string>>({})
+
+// 用户信息表单
+const userInfoForm = reactive<Record<string, string>>({
+  dormitory: '',
+  bed: '',
+  student_id: '',
+})
+
 // 获取投票规则配置
 const votingStageConfig = computed<VotingStageConfig | null>(() => {
   if (!campaign.value?.currentStage) return null
@@ -90,6 +100,29 @@ const votingRules = computed(() => {
     minCount: config.rules.min_count || 1,
     maxCount: config.rules.max_count || 1,
   }
+})
+
+// 是否需要填写用户信息
+const requireUserInfo = computed(() => {
+  return votingStageConfig.value?.rules?.require_user_info || false
+})
+
+// 需要填写的用户信息字段
+const userInfoFields = computed(() => {
+  return votingStageConfig.value?.rules?.user_info_fields || []
+})
+
+// 用户信息字段标签
+const userInfoFieldLabels: Record<string, string> = {
+  dormitory: '宿舍号',
+  bed: '床位号',
+  student_id: '学号',
+}
+
+// 检查用户信息是否填写完整
+const isUserInfoComplete = computed(() => {
+  if (!requireUserInfo.value) return true
+  return userInfoFields.value.every(field => userInfoForm[field]?.trim())
 })
 
 // 规则说明
@@ -258,22 +291,43 @@ function loadMoreOptions(periodId: number) {
   periodVisibleCount[periodId] = (periodVisibleCount[periodId] || INITIAL_SHOW_COUNT) + LOAD_MORE_COUNT
 }
 
-// 获取时段可见的选项
+// 过滤搜索结果
+function getFilteredOptions(periodData: TimePeriodVotingOptions): VotingOptionItem[] {
+  const keyword = periodSearchKeyword[periodData.timePeriod.id]?.trim().toLowerCase()
+  if (!keyword) return periodData.options
+
+  return periodData.options.filter(option => {
+    const song = option.music.song?.toLowerCase() || ''
+    const singer = option.music.singer?.toLowerCase() || ''
+    const album = option.music.album?.toLowerCase() || ''
+    return song.includes(keyword) || singer.includes(keyword) || album.includes(keyword)
+  })
+}
+
+// 获取时段可见的选项（考虑搜索过滤）
 function getVisibleOptions(periodData: TimePeriodVotingOptions): VotingOptionItem[] {
+  const filtered = getFilteredOptions(periodData)
   const count = periodVisibleCount[periodData.timePeriod.id] || INITIAL_SHOW_COUNT
-  return periodData.options.slice(0, count)
+  return filtered.slice(0, count)
 }
 
 // 是否还有更多选项可加载
 function hasMoreOptions(periodData: TimePeriodVotingOptions): boolean {
+  const filtered = getFilteredOptions(periodData)
   const count = periodVisibleCount[periodData.timePeriod.id] || INITIAL_SHOW_COUNT
-  return periodData.options.length > count
+  return filtered.length > count
 }
 
 // 获取剩余选项数量
 function getRemainingCount(periodData: TimePeriodVotingOptions): number {
+  const filtered = getFilteredOptions(periodData)
   const count = periodVisibleCount[periodData.timePeriod.id] || INITIAL_SHOW_COUNT
-  return periodData.options.length - count
+  return filtered.length - count
+}
+
+// 获取过滤后的选项总数
+function getFilteredCount(periodData: TimePeriodVotingOptions): number {
+  return getFilteredOptions(periodData).length
 }
 
 // 获取时段已选数量
@@ -369,6 +423,9 @@ const totalPeriodsCount = computed(() => votingOptions.value.length)
 
 // 是否可以提交
 const canSubmit = computed(() => {
+  // 检查用户信息是否完整
+  if (!isUserInfoComplete.value) return false
+
   const { hasLimit, limitScope, minCount } = votingRules.value
 
   if (limitScope === 'activity') {
@@ -393,6 +450,11 @@ const submitButtonText = computed(() => {
 
 // 提交投票
 async function handleSubmit() {
+  if (!isUserInfoComplete.value) {
+    toast.error('请填写完整的用户信息')
+    return
+  }
+
   if (!canSubmit.value) {
     const { limitScope, minCount } = votingRules.value
     if (limitScope === 'activity') {
@@ -412,10 +474,14 @@ async function handleSubmit() {
       })
     })
 
+    // 构建用户信息
+    const userInfo = requireUserInfo.value ? { ...userInfoForm } : undefined
+
     const res = await submitVote({
       campaignId: campaignId.value,
       buildingChoice: isByBuilding.value ? selectedBuildingCode.value || undefined : undefined,
       votes,
+      userInfo,
     })
 
     if (res.data.code === 200) {
@@ -551,6 +617,29 @@ onMounted(() => {
               更换宿舍楼
             </button>
 
+            <!-- 用户信息表单 -->
+            <div v-if="requireUserInfo" class="user-info-form">
+              <h3 class="form-title">填写信息</h3>
+              <div class="form-fields">
+                <div
+                  v-for="field in userInfoFields"
+                  :key="field"
+                  class="form-field"
+                >
+                  <label :for="`user-${field}`" class="field-label">
+                    {{ userInfoFieldLabels[field] || field }}
+                  </label>
+                  <input
+                    :id="`user-${field}`"
+                    v-model="userInfoForm[field]"
+                    type="text"
+                    class="field-input"
+                    :placeholder="`请输入${userInfoFieldLabels[field] || field}`"
+                  />
+                </div>
+              </div>
+            </div>
+
             <!-- 按时段显示投票选项 -->
             <div class="voting-periods">
               <div
@@ -572,7 +661,7 @@ onMounted(() => {
                         partial: getSelectedCount(periodData.timePeriod.id) > 0 && !periodMeetsMinimum(periodData.timePeriod.id)
                       }"
                     >
-                      {{ getSelectedCount(periodData.timePeriod.id) }}/{{ votingRules.minCount }}
+                      {{ getSelectedCount(periodData.timePeriod.id) }}/{{ votingRules.maxCount }}
                     </span>
                     <svg class="period-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="6 9 12 15 18 9"></polyline>
@@ -580,12 +669,38 @@ onMounted(() => {
                   </div>
                 </button>
 
-                <div v-show="periodExpanded[periodData.timePeriod.id]" class="period-content">
-                  <div v-if="periodData.options.length === 0" class="period-empty">
-                    <span>暂无投票选项</span>
-                  </div>
+                <Transition name="period-slide">
+                  <div v-show="periodExpanded[periodData.timePeriod.id]" class="period-content">
+                    <!-- 搜索框 -->
+                    <div class="period-search">
+                      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                      <input
+                        v-model="periodSearchKeyword[periodData.timePeriod.id]"
+                        type="text"
+                        class="search-input"
+                        placeholder="搜索歌曲、歌手..."
+                      />
+                      <button
+                        v-if="periodSearchKeyword[periodData.timePeriod.id]"
+                        class="search-clear"
+                        @click="periodSearchKeyword[periodData.timePeriod.id] = ''"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </div>
 
-                  <div v-else class="options-grid">
+                    <div v-if="getFilteredCount(periodData) === 0" class="period-empty">
+                      <span v-if="periodSearchKeyword[periodData.timePeriod.id]">没有找到匹配的歌曲</span>
+                      <span v-else>暂无投票选项</span>
+                    </div>
+
+                    <div v-else class="options-grid">
                     <div
                       v-for="option in getVisibleOptions(periodData)"
                       :key="option.id"
@@ -619,15 +734,16 @@ onMounted(() => {
                     </div>
                   </div>
 
-                  <!-- 加载更多按钮 -->
-                  <button
-                    v-if="hasMoreOptions(periodData)"
-                    class="load-more-btn"
-                    @click.stop="loadMoreOptions(periodData.timePeriod.id)"
-                  >
-                    加载更多 ({{ getRemainingCount(periodData) }}首)
-                  </button>
-                </div>
+                    <!-- 加载更多按钮 -->
+                    <button
+                      v-if="hasMoreOptions(periodData)"
+                      class="load-more-btn"
+                      @click.stop="loadMoreOptions(periodData.timePeriod.id)"
+                    >
+                      加载更多 ({{ getRemainingCount(periodData) }}首)
+                    </button>
+                  </div>
+                </Transition>
               </div>
             </div>
 
@@ -913,6 +1029,56 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+/* ===== User Info Form ===== */
+.user-info-form {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.form-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.field-input {
+  padding: var(--spacing-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.field-input:focus {
+  border-color: var(--color-primary);
+}
+
+.field-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
 /* ===== Voting Periods ===== */
 .voting-periods {
   display: flex;
@@ -997,6 +1163,76 @@ onMounted(() => {
 
 .period-content {
   border-top: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+/* Period Slide Transition */
+.period-slide-enter-active,
+.period-slide-leave-active {
+  transition: all 0.25s ease-out;
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.period-slide-enter-from,
+.period-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* ===== Period Search ===== */
+.period-search {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  padding: var(--spacing-xs) 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.search-clear:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.search-clear svg {
+  width: 14px;
+  height: 14px;
 }
 
 .period-empty {

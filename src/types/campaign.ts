@@ -84,6 +84,10 @@ export interface StageRules {
   min_count?: number
   /** 最多数量 */
   max_count?: number
+  /** 是否需要用户信息 */
+  require_user_info?: boolean
+  /** 用户信息字段 */
+  user_info_fields?: string[]
 }
 
 /**

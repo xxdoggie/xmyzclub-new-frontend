@@ -43,9 +43,9 @@ async function loadDetail() {
     const res = await getRatingItemDetail(itemId)
     if (res.data.code === 200) {
       detail.value = res.data.data
-      // 如果已有评分，初始化用户评分
+      // 如果已有评分，初始化用户评分（myRating 是 10 分制，转换为 5 星）
       if (detail.value?.myRating !== null && detail.value?.myRating !== undefined) {
-        userRating.value = detail.value.myRating
+        userRating.value = Math.round(detail.value.myRating / 2)
       }
     } else {
       toast.error(res.data.message || '获取详情失败')
@@ -90,8 +90,10 @@ async function handleStarClick(star: number) {
   }
   if (isSubmitting.value) return
 
-  // 保存服务器上的真实评分用于回退
-  const serverRating = detail.value?.myRating ?? 0
+  // 保存服务器上的真实评分用于回退（myRating 是 10 分制，转换为 5 星）
+  const serverRating = detail.value?.myRating !== null && detail.value?.myRating !== undefined
+    ? Math.round(detail.value.myRating / 2)
+    : 0
 
   userRating.value = star
   isSubmitting.value = true

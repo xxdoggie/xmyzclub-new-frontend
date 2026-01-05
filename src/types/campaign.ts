@@ -529,11 +529,15 @@ export interface VotingConfigResponse {
  */
 export interface VotingOptionMusic {
   id: number
-  songName: string
-  artist: string
-  album: string
-  coverUrl: string
   musicServiceId: string
+  mid: string
+  song: string
+  subtitle: string
+  singer: string
+  album: string
+  interval: string
+  cover: string
+  link: string
 }
 
 /**
@@ -590,8 +594,8 @@ export interface MyVoteRecord {
   }
   music: {
     id: number
-    songName: string
-    artist: string
+    song: string
+    singer: string
   }
 }
 

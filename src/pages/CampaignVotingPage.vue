@@ -452,33 +452,35 @@ onMounted(() => {
                   <span>暂无投票选项</span>
                 </div>
 
-                <div v-else class="options-list">
+                <div v-else class="options-grid">
                   <div
                     v-for="option in periodData.options"
                     :key="option.id"
-                    class="option-item"
+                    class="music-card"
                     :class="{ selected: isOptionSelected(periodData.timePeriod.id, option.id) }"
                     @click="selectOption(periodData.timePeriod.id, option.id)"
                   >
-                    <img
-                      :src="option.music.coverUrl"
-                      :alt="option.music.songName"
-                      class="option-cover"
-                    />
-                    <div class="option-info">
-                      <h4 class="option-name">{{ option.music.songName }}</h4>
-                      <p class="option-artist">{{ option.music.artist }}</p>
+                    <div class="card-cover-wrapper">
+                      <img
+                        :src="option.music.cover"
+                        :alt="option.music.song"
+                        class="card-cover"
+                      />
+                      <div class="card-check">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                      <div v-if="option.voteCount" class="card-votes">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                        </svg>
+                        <span>{{ option.voteCount }}</span>
+                      </div>
                     </div>
-                    <div class="option-votes">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                      </svg>
-                      <span>{{ option.voteCount }}</span>
-                    </div>
-                    <div class="option-check">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
+                    <div class="card-info">
+                      <h4 class="card-title">{{ option.music.song }}</h4>
+                      <p class="card-artist">{{ option.music.singer }}</p>
                     </div>
                   </div>
                 </div>
@@ -525,8 +527,8 @@ onMounted(() => {
                   <div class="vote-music">
                     <img
                       v-if="getVotedOptionDetail(vote.timePeriod.id)"
-                      :src="getVotedOptionDetail(vote.timePeriod.id)?.music.coverUrl"
-                      :alt="vote.music.songName"
+                      :src="getVotedOptionDetail(vote.timePeriod.id)?.music.cover"
+                      :alt="vote.music.song"
                       class="vote-cover"
                     />
                     <div v-else class="vote-cover-placeholder">
@@ -537,8 +539,8 @@ onMounted(() => {
                       </svg>
                     </div>
                     <div class="vote-info">
-                      <h4 class="vote-name">{{ vote.music.songName }}</h4>
-                      <p class="vote-artist">{{ vote.music.artist }}</p>
+                      <h4 class="vote-name">{{ vote.music.song }}</h4>
+                      <p class="vote-artist">{{ vote.music.singer }}</p>
                     </div>
                   </div>
                 </div>
@@ -828,98 +830,122 @@ onMounted(() => {
   color: var(--color-text-placeholder);
 }
 
-.options-list {
-  display: flex;
-  flex-direction: column;
+/* ===== Music Card Grid ===== */
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
 }
 
-.option-item {
+.music-card {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-top: 1px solid var(--color-border);
+  flex-direction: column;
   cursor: pointer;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.music-card:active {
+  transform: scale(0.96);
+}
+
+.card-cover-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-border);
+}
+
+.card-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transition: all var(--transition-fast);
 }
 
-.option-item:hover {
-  background: var(--color-bg);
+.music-card:hover .card-cover {
+  transform: scale(1.05);
 }
 
-.option-item:active {
-  transform: scale(0.99);
+.music-card.selected .card-cover-wrapper {
+  box-shadow: 0 0 0 3px var(--color-primary);
 }
 
-.option-item.selected {
-  background: var(--color-primary-bg);
-}
-
-.option-cover {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.option-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.option-name {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.option-artist {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.option-votes {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
-
-.option-votes svg {
-  width: 14px;
-  height: 14px;
-}
-
-.option-check {
-  width: 22px;
-  height: 22px;
+.card-check {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-full);
   color: transparent;
   transition: all var(--transition-fast);
-  flex-shrink: 0;
 }
 
-.option-item.selected .option-check {
+.music-card.selected .card-check {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: white;
 }
 
-.option-check svg {
-  width: 12px;
-  height: 12px;
+.card-check svg {
+  width: 14px;
+  height: 14px;
+}
+
+.card-votes {
+  position: absolute;
+  bottom: var(--spacing-xs);
+  left: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+}
+
+.card-votes svg {
+  width: 10px;
+  height: 10px;
+}
+
+.card-info {
+  padding: var(--spacing-xs) 2px;
+}
+
+.card-title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.card-artist {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
 }
 
 /* ===== Submit Area ===== */

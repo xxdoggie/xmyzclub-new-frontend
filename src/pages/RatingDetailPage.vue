@@ -91,7 +91,11 @@ async function handleStarClick(star: number) {
   }
   if (isSubmitting.value) return
 
-  const previousRating = userRating.value
+  // 保存服务器上的真实评分用于回退
+  const serverRating = detail.value?.myRating !== null && detail.value?.myRating !== undefined
+    ? Math.round(detail.value.myRating / 2)
+    : 0
+
   userRating.value = star
   isSubmitting.value = true
   try {
@@ -102,11 +106,11 @@ async function handleStarClick(star: number) {
       toast.success(detail.value?.myRating !== null ? '评分已更新' : '评分成功')
       await loadDetail()
     } else {
-      userRating.value = previousRating
+      userRating.value = serverRating
       toast.error(res.data.message || '评分失败')
     }
   } catch {
-    userRating.value = previousRating
+    userRating.value = serverRating
     toast.error('评分失败')
   } finally {
     isSubmitting.value = false

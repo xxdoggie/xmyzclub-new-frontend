@@ -46,7 +46,7 @@ const drawerSortBy = ref<'time' | 'hot'>('time')
 // 回复抽屉状态
 const replyDrawerComment = ref<Comment | null>(null)
 const isDrawerOpen = ref(false)
-const drawerReplyTarget = ref<{ nickname: string } | null>(null)
+const drawerReplyTarget = ref<{ commentId: number; nickname: string } | null>(null)
 const drawerReplyText = ref('')
 const isSubmittingDrawerReply = ref(false)
 
@@ -160,12 +160,12 @@ async function submitBottomComment() {
 }
 
 // 抽屉内开始回复
-function startDrawerReply(nickname: string) {
+function startDrawerReply(commentId: number, nickname: string) {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
     return
   }
-  drawerReplyTarget.value = { nickname }
+  drawerReplyTarget.value = { commentId, nickname }
 }
 
 // 取消抽屉内回复
@@ -179,7 +179,9 @@ async function submitDrawerReply() {
   if (!replyDrawerComment.value || !drawerReplyText.value.trim() || isSubmittingDrawerReply.value) return
 
   const commentText = drawerReplyText.value.trim()
-  const parentId = replyDrawerComment.value.id
+  // 如果有回复目标（点击了某条评论的回复按钮），使用该评论ID作为parentId
+  // 否则（直接在输入框输入），使用一级评论ID作为parentId
+  const parentId = drawerReplyTarget.value?.commentId ?? replyDrawerComment.value.id
 
   // 乐观更新：创建临时回复
   const tempReply: Comment = {
@@ -742,7 +744,7 @@ onMounted(() => {
                             </svg>
                             <span v-if="replyDrawerComment.likeCount > 0">{{ replyDrawerComment.likeCount }}</span>
                           </button>
-                          <button class="action-btn" @click="startDrawerReply(replyDrawerComment.nickname)">
+                          <button class="action-btn" @click="startDrawerReply(replyDrawerComment.id, replyDrawerComment.nickname)">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                             </svg>
@@ -802,7 +804,7 @@ onMounted(() => {
                               </svg>
                               <span v-if="reply.likeCount > 0">{{ reply.likeCount }}</span>
                             </button>
-                            <button class="action-btn" @click="startDrawerReply(reply.nickname)">
+                            <button class="action-btn" @click="startDrawerReply(reply.id, reply.nickname)">
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                               </svg>

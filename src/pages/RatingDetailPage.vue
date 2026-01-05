@@ -14,6 +14,11 @@ import type { RatingItemDetail, Comment } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
+// 扁平化的回复类型，包含被回复人信息
+interface FlattenedReply extends Comment {
+  replyToNickname?: string // 被回复人昵称
+}
+
 const route = useRoute()
 const toast = useToast()
 const userStore = useUserStore()
@@ -60,14 +65,33 @@ const sortedComments = computed(() => {
   return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 })
 
-// 排序后的抽屉回复列表
+// 递归扁平化回复列表，记录被回复人
+function flattenReplies(replies: Comment[] | null, parentNickname?: string): FlattenedReply[] {
+  if (!replies || replies.length === 0) return []
+  const result: FlattenedReply[] = []
+  for (const reply of replies) {
+    // 将当前回复添加到结果，并记录被回复人
+    result.push({
+      ...reply,
+      replyToNickname: parentNickname,
+    })
+    // 递归处理嵌套的回复
+    if (reply.replies && reply.replies.length > 0) {
+      result.push(...flattenReplies(reply.replies, reply.nickname))
+    }
+  }
+  return result
+}
+
+// 排序后的抽屉回复列表（扁平化处理嵌套回复）
 const sortedDrawerReplies = computed(() => {
   if (!replyDrawerComment.value?.replies) return []
-  const replies = [...replyDrawerComment.value.replies]
+  // 扁平化所有嵌套回复
+  const flatReplies = flattenReplies(replyDrawerComment.value.replies)
   if (drawerSortBy.value === 'hot') {
-    return replies.sort((a, b) => b.likeCount - a.likeCount)
+    return flatReplies.sort((a, b) => b.likeCount - a.likeCount)
   }
-  return replies.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  return flatReplies.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 })
 
 // 获取热门回复（按点赞数排序，取前2条）
@@ -266,6 +290,13 @@ async function loadDetail(silent = false) {
       if (detail.value?.myRating !== null && detail.value?.myRating !== undefined) {
         userRating.value = Math.round(detail.value.myRating / 2)
       }
+      // 如果抽屉打开着，同步更新抽屉中的评论数据
+      if (isDrawerOpen.value && replyDrawerComment.value && detail.value?.comments) {
+        const updatedComment = detail.value.comments.find(c => c.id === replyDrawerComment.value!.id)
+        if (updatedComment) {
+          replyDrawerComment.value = updatedComment
+        }
+      }
     } else if (!silent) {
       toast.error(res.data.message || '获取详情失败')
     }
@@ -407,7 +438,7 @@ async function handleSubmitReply() {
     if (res.data.code === 200) {
       toast.success('回复成功')
       cancelReply()
-      await loadDetail()
+      await loadDetail(true) // 静默重载数据
     } else {
       toast.error(res.data.message || '回复失败')
     }
@@ -425,7 +456,7 @@ async function handleDeleteComment(commentId: number) {
     const res = await deleteComment(commentId)
     if (res.data.code === 200) {
       toast.success('删除成功')
-      await loadDetail()
+      await loadDetail(true) // 静默重载数据
     } else {
       toast.error(res.data.message || '删除失败')
     }
@@ -790,7 +821,9 @@ onMounted(() => {
                         <div class="comment-header">
                           <span class="comment-nickname">{{ reply.nickname }}</span>
                         </div>
-                        <p class="comment-text">{{ reply.commentText }}</p>
+                        <p class="comment-text">
+                          <span v-if="reply.replyToNickname" class="reply-to">回复 @{{ reply.replyToNickname }}：</span>{{ reply.commentText }}
+                        </p>
                         <div class="comment-footer">
                           <span class="comment-time">{{ formatTime(reply.createdAt) }}</span>
                           <div class="comment-actions">
@@ -1250,6 +1283,11 @@ onMounted(() => {
   line-height: 1.6;
   color: var(--color-text);
   word-break: break-word;
+}
+
+.reply-to {
+  color: var(--color-primary);
+  font-weight: 500;
 }
 
 .comment-footer {

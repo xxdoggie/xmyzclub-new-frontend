@@ -65,16 +65,14 @@ const sortedComments = computed(() => {
   return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 })
 
-// 递归扁平化回复列表，记录被回复人
+// 递归扁平化回复列表，记录被回复人（直接修改原对象以保持引用，使点赞等操作能正确更新）
 function flattenReplies(replies: Comment[] | null, parentNickname?: string): FlattenedReply[] {
   if (!replies || replies.length === 0) return []
   const result: FlattenedReply[] = []
   for (const reply of replies) {
-    // 将当前回复添加到结果，并记录被回复人
-    result.push({
-      ...reply,
-      replyToNickname: parentNickname,
-    })
+    // 直接在原对象上添加 replyToNickname，保持引用以支持点赞等操作
+    (reply as FlattenedReply).replyToNickname = parentNickname
+    result.push(reply as FlattenedReply)
     // 递归处理嵌套的回复
     if (reply.replies && reply.replies.length > 0) {
       result.push(...flattenReplies(reply.replies, reply.nickname))
@@ -91,7 +89,8 @@ const sortedDrawerReplies = computed(() => {
   if (drawerSortBy.value === 'hot') {
     return flatReplies.sort((a, b) => b.likeCount - a.likeCount)
   }
-  return flatReplies.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  // 回复区按时间正序（早的在前面）
+  return flatReplies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 })
 
 // 获取热门回复（按点赞数排序，取前2条）

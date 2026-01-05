@@ -82,7 +82,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <PageHeader back-to="/community" />
+    <PageHeader />
 
     <main class="page-content">
       <!-- 骨架屏加载状态 -->

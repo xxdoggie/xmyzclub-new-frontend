@@ -60,7 +60,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <PageHeader back-to="/community" />
+    <PageHeader />
 
     <main class="page-content">
       <div class="content-container">

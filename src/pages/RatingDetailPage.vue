@@ -36,6 +36,32 @@ const replyTarget = ref<{ commentId: number; nickname: string } | null>(null)
 const replyText = ref('')
 const isReplying = ref(false)
 
+// 回复抽屉状态
+const replyDrawerComment = ref<Comment | null>(null)
+const isDrawerOpen = ref(false)
+
+// 获取热门回复（按点赞数排序，取前2条）
+function getHotReplies(replies: Comment[] | null): Comment[] {
+  if (!replies || replies.length === 0) return []
+  return [...replies].sort((a, b) => b.likeCount - a.likeCount).slice(0, 2)
+}
+
+// 打开回复抽屉
+function openReplyDrawer(comment: Comment) {
+  replyDrawerComment.value = comment
+  isDrawerOpen.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+// 关闭回复抽屉
+function closeReplyDrawer() {
+  isDrawerOpen.value = false
+  document.body.style.overflow = ''
+  setTimeout(() => {
+    replyDrawerComment.value = null
+  }, 300)
+}
+
 // 加载详情
 async function loadDetail(silent = false) {
   if (!silent) {
@@ -357,79 +383,68 @@ onMounted(() => {
 
           <!-- 评论列表 -->
           <div v-else-if="detail.comments" class="comment-list">
-            <div v-for="comment in detail.comments" :key="comment.id" class="comment-item">
+            <div v-for="comment in detail.comments" :key="comment.id" class="comment-card">
               <!-- 主评论 -->
               <div class="comment-main">
                 <div class="comment-avatar">
                   {{ comment.nickname.charAt(0) }}
                 </div>
-                <div class="comment-content">
+                <div class="comment-body">
                   <div class="comment-header">
                     <span class="comment-nickname">{{ comment.nickname }}</span>
-                    <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
                   </div>
                   <p class="comment-text">{{ comment.commentText }}</p>
-                  <div class="comment-actions">
-                    <button
-                      class="action-btn"
-                      :class="{ liked: comment.isLiked }"
-                      @click="handleLike(comment)"
-                    >
-                      <svg viewBox="0 0 24 24" :fill="comment.isLiked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                      </svg>
-                      <span v-if="comment.likeCount > 0">{{ comment.likeCount }}</span>
-                    </button>
-                    <button class="action-btn" @click="startReply(comment.id, comment.nickname)">
-                      回复
-                    </button>
-                    <button
-                      v-if="comment.isMyComment"
-                      class="action-btn delete"
-                      @click="handleDeleteComment(comment.id)"
-                    >
-                      删除
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 回复列表 -->
-              <div v-if="comment.replies && comment.replies.length > 0" class="reply-list">
-                <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
-                  <div class="comment-avatar small">
-                    {{ reply.nickname.charAt(0) }}
-                  </div>
-                  <div class="comment-content">
-                    <div class="comment-header">
-                      <span class="comment-nickname">{{ reply.nickname }}</span>
-                      <span class="comment-time">{{ formatTime(reply.createdAt) }}</span>
-                    </div>
-                    <p class="comment-text">{{ reply.commentText }}</p>
+                  <div class="comment-footer">
+                    <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
                     <div class="comment-actions">
                       <button
                         class="action-btn"
-                        :class="{ liked: reply.isLiked }"
-                        @click="handleLike(reply)"
+                        :class="{ liked: comment.isLiked }"
+                        @click="handleLike(comment)"
                       >
-                        <svg viewBox="0 0 24 24" :fill="reply.isLiked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                        <svg viewBox="0 0 24 24" :fill="comment.isLiked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
                           <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
                         </svg>
-                        <span v-if="reply.likeCount > 0">{{ reply.likeCount }}</span>
+                        <span v-if="comment.likeCount > 0">{{ comment.likeCount }}</span>
                       </button>
-                      <button class="action-btn" @click="startReply(comment.id, reply.nickname)">
+                      <button class="action-btn" @click="startReply(comment.id, comment.nickname)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        </svg>
                         回复
                       </button>
                       <button
-                        v-if="reply.isMyComment"
+                        v-if="comment.isMyComment"
                         class="action-btn delete"
-                        @click="handleDeleteComment(reply.id)"
+                        @click="handleDeleteComment(comment.id)"
                       >
                         删除
                       </button>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- 热门回复预览 -->
+              <div v-if="comment.replies && comment.replies.length > 0" class="replies-preview">
+                <div
+                  v-for="reply in getHotReplies(comment.replies)"
+                  :key="reply.id"
+                  class="reply-preview-item"
+                >
+                  <span class="reply-author">{{ reply.nickname }}</span>
+                  <span class="reply-text">{{ reply.commentText }}</span>
+                </div>
+                <button
+                  v-if="comment.replies.length > 0"
+                  class="view-replies-btn"
+                  @click="openReplyDrawer(comment)"
+                >
+                  查看全部 {{ comment.replies.length }} 条回复
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
               </div>
 
               <!-- 回复输入框 -->
@@ -454,6 +469,84 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
+        <!-- 回复抽屉 -->
+        <Teleport to="body">
+          <Transition name="drawer">
+            <div v-if="isDrawerOpen" class="drawer-overlay" @click="closeReplyDrawer">
+              <div class="drawer-container" @click.stop>
+                <div class="drawer-header">
+                  <h3>全部回复 ({{ replyDrawerComment?.replies?.length || 0 }})</h3>
+                  <button class="drawer-close" @click="closeReplyDrawer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+                <div class="drawer-content">
+                  <!-- 原评论 -->
+                  <div v-if="replyDrawerComment" class="drawer-original-comment">
+                    <div class="comment-avatar">
+                      {{ replyDrawerComment.nickname.charAt(0) }}
+                    </div>
+                    <div class="comment-body">
+                      <div class="comment-header">
+                        <span class="comment-nickname">{{ replyDrawerComment.nickname }}</span>
+                        <span class="comment-time">{{ formatTime(replyDrawerComment.createdAt) }}</span>
+                      </div>
+                      <p class="comment-text">{{ replyDrawerComment.commentText }}</p>
+                    </div>
+                  </div>
+
+                  <!-- 回复列表 -->
+                  <div class="drawer-replies">
+                    <div
+                      v-for="reply in replyDrawerComment?.replies"
+                      :key="reply.id"
+                      class="drawer-reply-item"
+                    >
+                      <div class="comment-avatar small">
+                        {{ reply.nickname.charAt(0) }}
+                      </div>
+                      <div class="comment-body">
+                        <div class="comment-header">
+                          <span class="comment-nickname">{{ reply.nickname }}</span>
+                          <span class="comment-time">{{ formatTime(reply.createdAt) }}</span>
+                        </div>
+                        <p class="comment-text">{{ reply.commentText }}</p>
+                        <div class="comment-footer">
+                          <div class="comment-actions">
+                            <button
+                              class="action-btn"
+                              :class="{ liked: reply.isLiked }"
+                              @click="handleLike(reply)"
+                            >
+                              <svg viewBox="0 0 24 24" :fill="reply.isLiked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                                <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                              </svg>
+                              <span v-if="reply.likeCount > 0">{{ reply.likeCount }}</span>
+                            </button>
+                            <button class="action-btn" @click="startReply(replyDrawerComment!.id, reply.nickname)">
+                              回复
+                            </button>
+                            <button
+                              v-if="reply.isMyComment"
+                              class="action-btn delete"
+                              @click="handleDeleteComment(reply.id)"
+                            >
+                              删除
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </Teleport>
       </template>
 
       <!-- 错误状态 -->
@@ -738,7 +831,7 @@ onMounted(() => {
 
 /* ===== Comments Section ===== */
 .comments-section {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   background: var(--color-card);
   border-radius: var(--radius-lg);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -753,17 +846,14 @@ onMounted(() => {
 .comment-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
-.comment-item {
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.comment-item:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
+/* ===== Comment Card ===== */
+.comment-card {
+  padding: var(--spacing-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
 }
 
 .comment-main {
@@ -778,7 +868,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
@@ -791,7 +881,7 @@ onMounted(() => {
   font-size: var(--text-xs);
 }
 
-.comment-content {
+.comment-body {
   flex: 1;
   min-width: 0;
 }
@@ -800,34 +890,32 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  flex-wrap: wrap;
   margin-bottom: 4px;
 }
 
 .comment-nickname {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-}
-
-.reply-to {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-.reply-target {
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 
 .comment-time {
-  font-size: var(--text-xs);
+  font-size: 11px;
   color: var(--color-text-placeholder);
 }
 
 .comment-text {
   font-size: var(--text-sm);
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-text);
-  margin-bottom: var(--spacing-xs);
+  word-break: break-word;
+}
+
+.comment-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-xs);
 }
 
 .comment-actions {
@@ -865,20 +953,60 @@ onMounted(() => {
   height: 14px;
 }
 
-/* ===== Reply List ===== */
-.reply-list {
-  margin-left: 44px;
+/* ===== Replies Preview ===== */
+.replies-preview {
   margin-top: var(--spacing-sm);
-  padding-left: var(--spacing-sm);
-  border-left: 2px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+  margin-left: 44px;
+  padding: var(--spacing-sm);
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: var(--radius-md);
 }
 
-.reply-item {
+.reply-preview-item {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reply-preview-item:last-of-type {
+  margin-bottom: 0;
+}
+
+.reply-author {
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+  margin-right: 6px;
+}
+
+.reply-text {
+  color: var(--color-text-secondary);
+}
+
+.view-replies-btn {
   display: flex;
-  gap: var(--spacing-xs);
+  align-items: center;
+  gap: 2px;
+  margin-top: var(--spacing-xs);
+  padding: 0;
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.view-replies-btn:hover {
+  opacity: 0.8;
+}
+
+.view-replies-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* ===== Reply Input ===== */
@@ -892,7 +1020,7 @@ onMounted(() => {
   padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--text-sm);
   color: var(--color-text);
-  background: var(--color-bg);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   resize: none;
@@ -922,6 +1050,111 @@ onMounted(() => {
 
 .cancel-btn:hover {
   border-color: var(--color-text-secondary);
+}
+
+/* ===== Drawer ===== */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.drawer-container {
+  width: 100%;
+  max-height: 80vh;
+  background: var(--color-card);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.drawer-header h3 {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin: 0;
+}
+
+.drawer-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
+
+.drawer-close:hover {
+  background: var(--color-bg);
+}
+
+.drawer-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+}
+
+.drawer-original-comment {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.drawer-replies {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.drawer-reply-item {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Drawer Transition */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.drawer-enter-active .drawer-container,
+.drawer-leave-active .drawer-container {
+  transition: transform 0.3s ease;
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+}
+
+.drawer-enter-from .drawer-container,
+.drawer-leave-to .drawer-container {
+  transform: translateY(100%);
 }
 
 /* ===== Error State ===== */
@@ -1110,12 +1343,18 @@ onMounted(() => {
     font-size: var(--text-base);
   }
 
-  .reply-list {
+  .replies-preview {
     margin-left: 52px;
   }
 
   .reply-input-wrapper {
     margin-left: 52px;
+  }
+
+  .drawer-container {
+    max-width: 600px;
+    margin: 0 auto;
+    max-height: 70vh;
   }
 }
 </style>

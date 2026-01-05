@@ -130,6 +130,7 @@ function goToBanner(index: number) {
           <router-link to="/" class="nav-link active">首页</router-link>
           <router-link to="/ticket" class="nav-link">活动抢票</router-link>
           <router-link to="/ringtone" class="nav-link">宿舍铃声</router-link>
+          <router-link to="/grade" class="nav-link">分数查询</router-link>
           <router-link to="/community" class="nav-link">评分社区</router-link>
         </nav>
 
@@ -220,6 +221,18 @@ function goToBanner(index: number) {
                 </svg>
               </div>
               <span>宿舍铃声</span>
+            </a>
+            <a class="drawer-nav-item" @click="navigateTo('/grade')">
+              <div class="drawer-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+              <span>分数查询</span>
             </a>
             <a class="drawer-nav-item" @click="navigateTo('/community')">
               <div class="drawer-nav-icon">
@@ -336,7 +349,7 @@ function goToBanner(index: number) {
           <!-- Quick Actions - Mobile First -->
           <div class="bento-quick-actions">
             <h3 class="section-label">快捷入口</h3>
-            <div class="quick-grid three-cols">
+            <div class="quick-grid">
               <router-link to="/ticket" class="quick-card">
                 <div class="quick-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -356,6 +369,18 @@ function goToBanner(index: number) {
                   </svg>
                 </div>
                 <span class="quick-label">宿舍铃声</span>
+              </router-link>
+              <router-link to="/grade" class="quick-card">
+                <div class="quick-icon info">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </div>
+                <span class="quick-label">分数查询</span>
               </router-link>
               <router-link to="/community" class="quick-card">
                 <div class="quick-icon accent">
@@ -422,6 +447,16 @@ function goToBanner(index: number) {
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   </svg>
                   <span>宿舍铃声</span>
+                </router-link>
+                <router-link to="/grade" class="function-item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  <span>分数查询</span>
                 </router-link>
                 <router-link to="/community" class="function-item">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -36,9 +36,16 @@ const replyTarget = ref<{ commentId: number; nickname: string } | null>(null)
 const replyText = ref('')
 const isReplying = ref(false)
 
+// 底部评论输入状态
+const bottomCommentText = ref('')
+const isSubmittingComment = ref(false)
+
 // 回复抽屉状态
 const replyDrawerComment = ref<Comment | null>(null)
 const isDrawerOpen = ref(false)
+const drawerReplyTarget = ref<{ nickname: string } | null>(null)
+const drawerReplyText = ref('')
+const isSubmittingDrawerReply = ref(false)
 
 // 获取热门回复（按点赞数排序，取前2条）
 function getHotReplies(replies: Comment[] | null): Comment[] {
@@ -50,6 +57,8 @@ function getHotReplies(replies: Comment[] | null): Comment[] {
 function openReplyDrawer(comment: Comment) {
   replyDrawerComment.value = comment
   isDrawerOpen.value = true
+  drawerReplyTarget.value = null
+  drawerReplyText.value = ''
   document.body.style.overflow = 'hidden'
 }
 
@@ -57,9 +66,83 @@ function openReplyDrawer(comment: Comment) {
 function closeReplyDrawer() {
   isDrawerOpen.value = false
   document.body.style.overflow = ''
+  drawerReplyTarget.value = null
+  drawerReplyText.value = ''
   setTimeout(() => {
     replyDrawerComment.value = null
   }, 300)
+}
+
+// 底部评论框提交
+async function submitBottomComment() {
+  if (!userStore.isLoggedIn) {
+    userStore.openLoginModal()
+    return
+  }
+  if (!bottomCommentText.value.trim() || isSubmittingComment.value) return
+
+  isSubmittingComment.value = true
+  try {
+    const res = await createComment(itemId, {
+      commentText: bottomCommentText.value.trim(),
+    })
+    if (res.data.code === 200) {
+      bottomCommentText.value = ''
+      await loadDetail(true)
+    } else {
+      toast.error(res.data.message || '评论失败')
+    }
+  } catch {
+    toast.error('评论失败')
+  } finally {
+    isSubmittingComment.value = false
+  }
+}
+
+// 抽屉内开始回复
+function startDrawerReply(nickname: string) {
+  if (!userStore.isLoggedIn) {
+    userStore.openLoginModal()
+    return
+  }
+  drawerReplyTarget.value = { nickname }
+}
+
+// 取消抽屉内回复
+function cancelDrawerReply() {
+  drawerReplyTarget.value = null
+  drawerReplyText.value = ''
+}
+
+// 提交抽屉内回复
+async function submitDrawerReply() {
+  if (!replyDrawerComment.value || !drawerReplyText.value.trim() || isSubmittingDrawerReply.value) return
+
+  isSubmittingDrawerReply.value = true
+  try {
+    const res = await createComment(itemId, {
+      commentText: drawerReplyText.value.trim(),
+      parentCommentId: replyDrawerComment.value.id,
+    })
+    if (res.data.code === 200) {
+      drawerReplyTarget.value = null
+      drawerReplyText.value = ''
+      await loadDetail(true)
+      // 更新抽屉中的评论数据
+      if (detail.value?.comments) {
+        const updatedComment = detail.value.comments.find(c => c.id === replyDrawerComment.value?.id)
+        if (updatedComment) {
+          replyDrawerComment.value = updatedComment
+        }
+      }
+    } else {
+      toast.error(res.data.message || '回复失败')
+    }
+  } catch {
+    toast.error('回复失败')
+  } finally {
+    isSubmittingDrawerReply.value = false
+  }
 }
 
 // 加载详情
@@ -432,7 +515,7 @@ onMounted(() => {
                   :key="reply.id"
                   class="reply-preview-item"
                 >
-                  <span class="reply-author">{{ reply.nickname }}</span>
+                  <span class="reply-author">{{ reply.nickname }}：</span>
                   <span class="reply-text">{{ reply.commentText }}</span>
                 </div>
                 <button
@@ -468,6 +551,24 @@ onMounted(() => {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- 底部评论输入栏 -->
+        <div class="bottom-input-bar">
+          <input
+            v-model="bottomCommentText"
+            type="text"
+            class="bottom-input"
+            placeholder="写评论..."
+            @keyup.enter="submitBottomComment"
+          />
+          <button
+            class="bottom-send-btn"
+            :disabled="isSubmittingComment || !bottomCommentText.trim()"
+            @click="submitBottomComment"
+          >
+            {{ isSubmittingComment ? '...' : '发送' }}
+          </button>
         </div>
 
         <!-- 回复抽屉 -->
@@ -527,7 +628,7 @@ onMounted(() => {
                               </svg>
                               <span v-if="reply.likeCount > 0">{{ reply.likeCount }}</span>
                             </button>
-                            <button class="action-btn" @click="startReply(replyDrawerComment!.id, reply.nickname)">
+                            <button class="action-btn" @click="startDrawerReply(reply.nickname)">
                               回复
                             </button>
                             <button
@@ -543,6 +644,31 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
+
+                <!-- 抽屉底部回复输入栏 -->
+                <div class="drawer-input-bar">
+                  <input
+                    v-model="drawerReplyText"
+                    type="text"
+                    class="bottom-input"
+                    :placeholder="drawerReplyTarget ? `回复 @${drawerReplyTarget.nickname}...` : '写回复...'"
+                    @keyup.enter="submitDrawerReply"
+                  />
+                  <button
+                    v-if="drawerReplyTarget"
+                    class="cancel-reply-btn"
+                    @click="cancelDrawerReply"
+                  >
+                    取消
+                  </button>
+                  <button
+                    class="bottom-send-btn"
+                    :disabled="isSubmittingDrawerReply || !drawerReplyText.trim()"
+                    @click="submitDrawerReply"
+                  >
+                    {{ isSubmittingDrawerReply ? '...' : '发送' }}
+                  </button>
+                </div>
               </div>
             </div>
           </Transition>
@@ -556,8 +682,6 @@ onMounted(() => {
         <button class="retry-btn" @click="loadDetail">重试</button>
       </div>
     </main>
-
-    <PageFooter />
   </div>
 </template>
 
@@ -575,6 +699,7 @@ onMounted(() => {
 .page-content {
   flex: 1;
   padding: var(--spacing-sm);
+  padding-bottom: 70px;
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
@@ -862,23 +987,23 @@ onMounted(() => {
 }
 
 .comment-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-bold);
   border-radius: var(--radius-full);
 }
 
 .comment-avatar.small {
-  width: 28px;
-  height: 28px;
-  font-size: var(--text-xs);
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
 }
 
 .comment-body {
@@ -956,7 +1081,7 @@ onMounted(() => {
 /* ===== Replies Preview ===== */
 .replies-preview {
   margin-top: var(--spacing-sm);
-  margin-left: 44px;
+  margin-left: 40px;
   padding: var(--spacing-sm);
   background: rgba(0, 0, 0, 0.02);
   border-radius: var(--radius-md);
@@ -1011,7 +1136,7 @@ onMounted(() => {
 
 /* ===== Reply Input ===== */
 .reply-input-wrapper {
-  margin-left: 44px;
+  margin-left: 40px;
   margin-top: var(--spacing-sm);
 }
 
@@ -1064,7 +1189,8 @@ onMounted(() => {
 
 .drawer-container {
   width: 100%;
-  max-height: 80vh;
+  min-height: 80vh;
+  max-height: 90vh;
   background: var(--color-card);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   display: flex;
@@ -1155,6 +1281,87 @@ onMounted(() => {
 .drawer-enter-from .drawer-container,
 .drawer-leave-to .drawer-container {
   transform: translateY(100%);
+}
+
+/* ===== Bottom Input Bar ===== */
+.bottom-input-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+  z-index: 100;
+}
+
+.bottom-input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.bottom-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.bottom-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.bottom-send-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+  white-space: nowrap;
+}
+
+.bottom-send-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.bottom-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-reply-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cancel-reply-btn:hover {
+  border-color: var(--color-text-secondary);
+}
+
+/* Drawer Input Bar */
+.drawer-input-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 /* ===== Error State ===== */
@@ -1338,23 +1545,37 @@ onMounted(() => {
   }
 
   .comment-avatar {
-    width: 44px;
-    height: 44px;
-    font-size: var(--text-base);
+    width: 36px;
+    height: 36px;
+    font-size: var(--text-sm);
+  }
+
+  .comment-avatar.small {
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-xs);
   }
 
   .replies-preview {
-    margin-left: 52px;
+    margin-left: 44px;
   }
 
   .reply-input-wrapper {
-    margin-left: 52px;
+    margin-left: 44px;
+  }
+
+  .bottom-input-bar {
+    max-width: 900px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 
   .drawer-container {
     max-width: 600px;
     margin: 0 auto;
-    max-height: 70vh;
+    min-height: 70vh;
+    max-height: 85vh;
   }
 }
 </style>

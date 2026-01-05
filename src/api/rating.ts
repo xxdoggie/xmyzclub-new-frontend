@@ -83,12 +83,12 @@ export function getMyComments(itemId: number) {
  * 点赞评论
  */
 export function likeComment(commentId: number) {
-  return api.post<ApiResponse<null>>(`/rating-community/comments/${commentId}/likes`)
+  return api.post<ApiResponse<null>>('/rating-community/likes', { commentId })
 }
 
 /**
  * 取消点赞评论
  */
 export function unlikeComment(commentId: number) {
-  return api.delete<ApiResponse<null>>(`/rating-community/comments/${commentId}/likes`)
+  return api.delete<ApiResponse<null>>(`/rating-community/likes/${commentId}`)
 }

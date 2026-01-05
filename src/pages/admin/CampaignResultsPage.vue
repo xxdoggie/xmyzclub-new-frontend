@@ -17,6 +17,7 @@ const toast = useToast()
 // ==================== 状态 ====================
 const campaignId = computed(() => Number(route.params.id))
 const isLoading = ref(true)
+const isExporting = ref(false)
 const campaign = ref<Campaign | null>(null)
 const timePeriodResults = ref<TimePeriodVotingResult[]>([])
 
@@ -145,6 +146,50 @@ async function loadResults() {
   }
 }
 
+// 导出投票结果
+async function exportResults() {
+  if (isExporting.value) return
+
+  isExporting.value = true
+  try {
+    const response = await fetch(`/api/v2/admin/voting/campaigns/${campaignId.value}/export`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      throw new Error('导出失败')
+    }
+
+    // 从响应头获取文件名
+    const contentDisposition = response.headers.get('Content-Disposition')
+    let filename = `voting-results-${campaignId.value}.xlsx`
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^;\r\n"']*)['"]?/i)
+      if (match && match[1]) {
+        filename = decodeURIComponent(match[1])
+      }
+    }
+
+    // 下载文件
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    toast.success('导出成功')
+  } catch (error) {
+    toast.error('导出失败，请稍后重试')
+  } finally {
+    isExporting.value = false
+  }
+}
+
 // ==================== 生命周期 ====================
 
 onMounted(() => {
@@ -175,6 +220,19 @@ onMounted(() => {
               <h1 class="page-title">投票结果</h1>
               <p class="page-subtitle" v-if="campaign">{{ campaign.title }}</p>
             </div>
+            <button
+              class="export-btn"
+              :disabled="isExporting || isLoading"
+              @click="exportResults"
+            >
+              <svg v-if="!isExporting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span v-if="isExporting" class="export-spinner"></span>
+              {{ isExporting ? '导出中...' : '导出表格' }}
+            </button>
           </div>
         </div>
 
@@ -360,12 +418,53 @@ onMounted(() => {
 
 .header-main {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--spacing-md);
 }
 
 .header-text {
   display: none;
+}
+
+/* ===== Export Button ===== */
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.export-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.export-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.export-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .page-title {

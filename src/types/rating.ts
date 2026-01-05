@@ -58,6 +58,13 @@ export interface RatingItem {
 }
 
 /**
+ * 随机推荐评分项目（包含面包屑）
+ */
+export interface RandomRatingItem extends RatingItem {
+  breadcrumb: Breadcrumb
+}
+
+/**
  * 面包屑导航
  */
 export interface Breadcrumb {

@@ -23,6 +23,15 @@ declare module 'vue-router' {
 
 const router = createRouter({
   history: createWebHistory(),
+  // 页面切换时的滚动行为
+  scrollBehavior(_to, _from, savedPosition) {
+    // 如果有保存的位置（比如浏览器后退/前进），则恢复到该位置
+    if (savedPosition) {
+      return savedPosition
+    }
+    // 否则滚动到页面顶部
+    return { top: 0 }
+  },
   routes: [
     // ==================== 一级页面 (level: 1) ====================
     {

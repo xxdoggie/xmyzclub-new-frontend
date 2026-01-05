@@ -96,6 +96,27 @@ const router = createRouter({
       },
     },
     {
+      path: '/grade',
+      name: 'grade',
+      component: () => import('../pages/GradePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 1,
+        title: '分数查询',
+      },
+    },
+    {
+      path: '/grade/:examId',
+      name: 'grade-exam-detail',
+      component: () => import('../pages/GradeExamDetailPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '考试详情',
+        parent: 'grade',
+      },
+    },
+    {
       path: '/community',
       name: 'community',
       component: () => import('../pages/CommunityPage.vue'),

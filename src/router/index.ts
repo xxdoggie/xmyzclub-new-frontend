@@ -125,6 +125,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/community/item/:itemId',
+      name: 'community-item',
+      component: () => import('../pages/RatingDetailPage.vue'),
+      meta: {
+        level: 4,
+        title: '评分详情',
+        parent: 'community-minor',
+      },
+    },
+    {
       path: '/design-system',
       name: 'design-system',
       component: () => import('../pages/DesignSystemPage.vue'),

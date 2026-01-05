@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { getRatingItems } from '@/api/rating'
 import type { RatingItem } from '@/types/rating'
@@ -8,6 +8,7 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
 const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 
 // 获取路由参数
@@ -62,10 +63,9 @@ function handleFilterChange(filter: 'hot' | 'high' | 'low') {
   currentFilter.value = filter
 }
 
-// 进入详情页面（暂时占位）
+// 进入详情页面
 function goToDetail(itemId: number) {
-  toast.info('详情页面开发中...')
-  console.log('Go to item detail:', itemId)
+  router.push(`/community/item/${itemId}`)
 }
 
 // 星星评分相关（预留）

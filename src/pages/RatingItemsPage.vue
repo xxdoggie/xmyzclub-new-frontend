@@ -85,7 +85,7 @@ function handleStarLeave(itemId: number) {
 // 获取显示的星数（悬停优先，否则显示已评分数）
 function getDisplayStars(item: RatingItem): number {
   if (hoverStars.value[item.id]) {
-    return hoverStars.value[item.id]
+    return hoverStars.value[item.id] ?? 0
   }
   return item.myStars || 0
 }

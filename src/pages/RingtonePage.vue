@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import { getCampaigns } from '@/api/campaign'
-import type { Campaign, StageType } from '@/types/campaign'
+import type { Campaign } from '@/types/campaign'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 

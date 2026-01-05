@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import { getCampaignDetail, getVotingResults } from '@/api/campaign'
-import type { Campaign, TimePeriodVotingResult, BuildingVotingResult, VotingOption } from '@/types/campaign'
+import type { Campaign, TimePeriodVotingResult } from '@/types/campaign'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -127,12 +127,13 @@ async function loadResults() {
     if (resultsRes.data.code === 200) {
       timePeriodResults.value = resultsRes.data.data
       // 默认展开第一个时段和其第一个宿舍楼
-      if (timePeriodResults.value.length > 0) {
-        const firstPeriod = timePeriodResults.value[0]
+      const firstPeriod = timePeriodResults.value[0]
+      if (firstPeriod) {
         expandedPeriodIds.value.add(firstPeriod.timePeriod.id)
-        if (firstPeriod.buildingResults.length > 0) {
+        const firstBuilding = firstPeriod.buildingResults[0]
+        if (firstBuilding) {
           expandedBuildings.value.add(
-            getBuildingKey(firstPeriod.timePeriod.id, firstPeriod.buildingResults[0].buildingCode)
+            getBuildingKey(firstPeriod.timePeriod.id, firstBuilding.buildingCode)
           )
         }
       }

@@ -1,54 +1,27 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
-import { getSchools, getMajorSections } from '@/api/rating'
-import type { School, MajorSection } from '@/types/rating'
+import { getMajorSections } from '@/api/rating'
+import type { MajorSection } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
 const router = useRouter()
 const toast = useToast()
 
+// 固定学校ID
+const SCHOOL_ID = 1
+
 // 状态
-const isLoadingSchools = ref(true)
-const isLoadingSections = ref(false)
-const schools = ref<School[]>([])
+const isLoading = ref(true)
 const majorSections = ref<MajorSection[]>([])
-const selectedSchoolId = ref<number | null>(null)
-
-// 当前选中的学校
-const selectedSchool = computed(() => {
-  return schools.value.find((s) => s.id === selectedSchoolId.value)
-})
-
-// 加载学校列表
-async function loadSchools() {
-  isLoadingSchools.value = true
-  try {
-    const res = await getSchools()
-    if (res.data.code === 200) {
-      schools.value = res.data.data
-      // 如果只有一个学校，自动选中
-      if (schools.value.length === 1 && schools.value[0]) {
-        selectedSchoolId.value = schools.value[0].id
-      }
-    } else {
-      toast.error(res.data.message || '获取学校列表失败')
-    }
-  } catch {
-    toast.error('获取学校列表失败')
-  } finally {
-    isLoadingSchools.value = false
-  }
-}
 
 // 加载大分区列表
-async function loadMajorSections(schoolId: number) {
-  isLoadingSections.value = true
-  majorSections.value = []
+async function loadMajorSections() {
+  isLoading.value = true
   try {
-    const res = await getMajorSections(schoolId)
+    const res = await getMajorSections(SCHOOL_ID)
     if (res.data.code === 200) {
       majorSections.value = res.data.data
     } else {
@@ -57,13 +30,8 @@ async function loadMajorSections(schoolId: number) {
   } catch {
     toast.error('获取分区列表失败')
   } finally {
-    isLoadingSections.value = false
+    isLoading.value = false
   }
-}
-
-// 选择学校
-function selectSchool(schoolId: number) {
-  selectedSchoolId.value = schoolId
 }
 
 // 进入大分区
@@ -71,61 +39,59 @@ function goToMajorSection(section: MajorSection) {
   router.push(`/community/major/${section.id}`)
 }
 
-// 获取分区图标（根据分区名称返回不同图标）
-function getSectionIcon(name: string): string {
+// 获取分区配置（图标、颜色等）
+function getSectionConfig(name: string) {
   if (name.includes('食堂') || name.includes('档口') || name.includes('餐')) {
-    return 'utensils'
+    return {
+      icon: 'utensils',
+      gradient: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+      emoji: '🍜',
+    }
   }
   if (name.includes('建筑') || name.includes('楼') || name.includes('馆')) {
-    return 'building'
+    return {
+      icon: 'building',
+      gradient: 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)',
+      emoji: '🏛️',
+    }
   }
-  if (name.includes('考试') || name.includes('测验')) {
-    return 'clipboard'
-  }
-  if (name.includes('活动') || name.includes('社团')) {
-    return 'users'
-  }
-  if (name.includes('图书') || name.includes('阅读')) {
-    return 'book'
-  }
-  if (name.includes('运动') || name.includes('体育')) {
-    return 'trophy'
-  }
-  return 'star'
-}
-
-// 获取分区渐变色（根据分区名称返回不同颜色）
-function getSectionGradient(name: string): string {
-  if (name.includes('食堂') || name.includes('档口') || name.includes('餐')) {
-    return 'linear-gradient(135deg, #FF6B6B, #E74C3C)'
-  }
-  if (name.includes('建筑') || name.includes('楼') || name.includes('馆')) {
-    return 'linear-gradient(135deg, #4ECDC4, #2ECC71)'
-  }
-  if (name.includes('考试') || name.includes('测验')) {
-    return 'linear-gradient(135deg, #A29BFE, #6C5CE7)'
+  if (name.includes('考试') || name.includes('测验') || name.includes('课程')) {
+    return {
+      icon: 'clipboard',
+      gradient: 'linear-gradient(135deg, #A29BFE 0%, #6C5CE7 100%)',
+      emoji: '📝',
+    }
   }
   if (name.includes('活动') || name.includes('社团')) {
-    return 'linear-gradient(135deg, #FDCB6E, #F39C12)'
+    return {
+      icon: 'users',
+      gradient: 'linear-gradient(135deg, #FDCB6E 0%, #F39C12 100%)',
+      emoji: '🎉',
+    }
   }
   if (name.includes('图书') || name.includes('阅读')) {
-    return 'linear-gradient(135deg, #74B9FF, #3498DB)'
+    return {
+      icon: 'book',
+      gradient: 'linear-gradient(135deg, #74B9FF 0%, #0984E3 100%)',
+      emoji: '📚',
+    }
   }
   if (name.includes('运动') || name.includes('体育')) {
-    return 'linear-gradient(135deg, #55EFC4, #00B894)'
+    return {
+      icon: 'trophy',
+      gradient: 'linear-gradient(135deg, #55EFC4 0%, #00B894 100%)',
+      emoji: '⚽',
+    }
   }
-  return 'linear-gradient(135deg, #FD79A8, #E84393)'
+  return {
+    icon: 'star',
+    gradient: 'linear-gradient(135deg, #FD79A8 0%, #E84393 100%)',
+    emoji: '⭐',
+  }
 }
-
-// 监听学校选择变化
-watch(selectedSchoolId, (newId) => {
-  if (newId) {
-    loadMajorSections(newId)
-  }
-})
 
 onMounted(() => {
-  loadSchools()
+  loadMajorSections()
 })
 </script>
 
@@ -134,153 +100,106 @@ onMounted(() => {
     <PageHeader back-to="/" />
 
     <main class="page-content">
+      <!-- Hero Banner -->
+      <div class="hero-banner">
+        <div class="hero-bg">
+          <div class="hero-pattern"></div>
+        </div>
+        <div class="hero-content">
+          <div class="hero-badge">校园评分</div>
+          <h1 class="hero-title">发现 · 评价 · 分享</h1>
+          <p class="hero-subtitle">和同学们一起探索校园的每一个角落</p>
+        </div>
+        <div class="hero-decoration">
+          <span class="float-emoji" style="--delay: 0s; --x: 10%; --y: 20%;">⭐</span>
+          <span class="float-emoji" style="--delay: 0.5s; --x: 85%; --y: 15%;">🎯</span>
+          <span class="float-emoji" style="--delay: 1s; --x: 75%; --y: 70%;">💬</span>
+          <span class="float-emoji" style="--delay: 1.5s; --x: 20%; --y: 75%;">👍</span>
+        </div>
+      </div>
+
+      <!-- 快捷提示 -->
+      <div class="quick-tips">
+        <div class="tip-item">
+          <span class="tip-icon">👆</span>
+          <span class="tip-text">点击分区探索更多</span>
+        </div>
+        <div class="tip-divider"></div>
+        <div class="tip-item">
+          <span class="tip-icon">⭐</span>
+          <span class="tip-text">给你喜欢的打分</span>
+        </div>
+      </div>
+
       <!-- 加载状态 -->
-      <div v-if="isLoadingSchools" class="loading-container">
-        <div class="loading-spinner"></div>
-        <p>加载中...</p>
+      <div v-if="isLoading" class="loading-state">
+        <div class="skeleton-grid">
+          <div v-for="i in 4" :key="i" class="skeleton-card">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-text"></div>
+          </div>
+        </div>
       </div>
 
-      <!-- 学校列表为空 -->
-      <div v-else-if="schools.length === 0" class="empty-container">
-        <div class="empty-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-          </svg>
-        </div>
-        <h2>暂无学校</h2>
-        <p>目前没有可用的学校</p>
+      <!-- 空状态 -->
+      <div v-else-if="majorSections.length === 0" class="empty-state">
+        <div class="empty-icon">😅</div>
+        <h3>暂无分区</h3>
+        <p>稍后再来看看吧</p>
       </div>
 
-      <template v-else>
-        <!-- Hero Section -->
-        <div class="hero-section">
-          <div class="hero-content">
-            <h1 class="hero-title">评分社区</h1>
-            <p class="hero-desc">探索校园，分享你的评价</p>
-          </div>
-          <div class="hero-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-          </div>
+      <!-- 分区列表 -->
+      <div v-else class="sections-wrapper">
+        <div class="section-header">
+          <h2 class="section-title">选择分区</h2>
+          <span class="section-count">{{ majorSections.length }} 个分区</span>
         </div>
 
-        <!-- 学校选择 Tabs -->
-        <div class="school-tabs" v-if="schools.length > 1">
-          <span class="tabs-label desktop-only">选择学校</span>
-          <div class="tabs-list">
-            <button
-              v-for="school in schools"
-              :key="school.id"
-              class="tab-item"
-              :class="{ active: selectedSchoolId === school.id }"
-              @click="selectSchool(school.id)"
-            >
-              {{ school.name }}
-            </button>
-          </div>
-        </div>
-
-        <!-- 大分区网格 -->
-        <div class="sections-container">
-          <h2 class="sections-title desktop-only">
-            {{ selectedSchool?.name ? `${selectedSchool.name} · 分区` : '选择分区' }}
-          </h2>
-
-          <!-- 加载大分区 -->
-          <div v-if="isLoadingSections" class="loading-container small">
-            <div class="loading-spinner"></div>
-            <p>加载中...</p>
-          </div>
-
-          <!-- 未选择学校提示 -->
-          <div v-else-if="!selectedSchoolId" class="hint-container">
-            <p>请先选择学校</p>
-          </div>
-
-          <!-- 大分区为空 -->
-          <div v-else-if="majorSections.length === 0" class="empty-container small">
-            <p>该学校暂无分区</p>
-          </div>
-
-          <!-- 大分区网格 -->
-          <div v-else class="section-grid">
+        <div class="section-grid">
+          <div
+            v-for="section in majorSections"
+            :key="section.id"
+            class="section-card"
+            @click="goToMajorSection(section)"
+          >
+            <!-- 卡片背景 -->
             <div
-              v-for="section in majorSections"
-              :key="section.id"
-              class="section-card"
-              @click="goToMajorSection(section)"
+              class="card-bg"
+              :style="{ background: section.url ? 'none' : getSectionConfig(section.name).gradient }"
             >
-              <!-- 封面图 -->
-              <div class="section-cover">
-                <img
-                  v-if="section.url"
-                  :src="section.url"
-                  :alt="section.name"
-                  loading="lazy"
-                />
-                <div
-                  v-else
-                  class="section-placeholder"
-                  :style="{ background: getSectionGradient(section.name) }"
-                >
-                  <!-- 餐厅图标 -->
-                  <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-                    <path d="M7 2v20"></path>
-                    <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
-                  </svg>
-                  <!-- 建筑图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                    <line x1="9" y1="22" x2="9" y2="2"></line>
-                    <line x1="15" y1="22" x2="15" y2="2"></line>
-                    <line x1="4" y1="12" x2="20" y2="12"></line>
-                  </svg>
-                  <!-- 考试图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                    <line x1="8" y1="10" x2="16" y2="10"></line>
-                    <line x1="8" y1="14" x2="16" y2="14"></line>
-                    <line x1="8" y1="18" x2="12" y2="18"></line>
-                  </svg>
-                  <!-- 活动图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                  <!-- 图书图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                  </svg>
-                  <!-- 运动图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'trophy'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                    <path d="M4 22h16"></path>
-                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-                  </svg>
-                  <!-- 默认星星图标 -->
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                </div>
+              <img
+                v-if="section.url"
+                :src="section.url"
+                :alt="section.name"
+                class="card-image"
+                loading="lazy"
+              />
+            </div>
+
+            <!-- 卡片内容 -->
+            <div class="card-content">
+              <div class="card-icon">
+                {{ getSectionConfig(section.name).emoji }}
               </div>
-              <!-- 信息 -->
-              <div class="section-info">
-                <h3 class="section-name">{{ section.name }}</h3>
-                <p v-if="section.description" class="section-desc">{{ section.description }}</p>
+              <div class="card-info">
+                <h3 class="card-title">{{ section.name }}</h3>
+                <p v-if="section.description" class="card-desc">{{ section.description }}</p>
+                <p v-else class="card-desc">点击探索更多内容</p>
+              </div>
+              <div class="card-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
               </div>
             </div>
           </div>
         </div>
-      </template>
+      </div>
+
+      <!-- 底部提示 -->
+      <div class="footer-hint">
+        <p>💡 你的每一个评分都在帮助其他同学做出更好的选择</p>
+      </div>
     </main>
 
     <PageFooter />
@@ -301,339 +220,395 @@ onMounted(() => {
 .page-content {
   flex: 1;
   padding: var(--spacing-sm);
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
   width: 100%;
 }
 
-.desktop-only {
-  display: none;
+/* ===== Hero Banner ===== */
+.hero-banner {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  min-height: 140px;
 }
 
-/* ===== Hero Section ===== */
-.hero-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-md);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  border-radius: var(--radius-xl);
-  margin-bottom: var(--spacing-md);
-  color: white;
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #6366F1 50%, #8B5CF6 100%);
+}
+
+.hero-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 40%);
 }
 
 .hero-content {
-  flex: 1;
+  position: relative;
+  z-index: 1;
+  color: white;
+}
+
+.hero-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  margin-bottom: var(--spacing-sm);
 }
 
 .hero-title {
   font-size: var(--text-xl);
   font-weight: var(--font-bold);
   margin-bottom: var(--spacing-xs);
+  letter-spacing: -0.02em;
 }
 
-.hero-desc {
+.hero-subtitle {
   font-size: var(--text-sm);
   opacity: 0.9;
 }
 
-.hero-icon {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-lg);
-  flex-shrink: 0;
+.hero-decoration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-.hero-icon svg {
-  width: 28px;
-  height: 28px;
+.float-emoji {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  font-size: 20px;
+  animation: float 3s ease-in-out infinite;
+  animation-delay: var(--delay);
+  opacity: 0.7;
 }
 
-/* ===== School Tabs ===== */
-.school-tabs {
-  margin-bottom: var(--spacing-md);
-}
-
-.tabs-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.tabs-list {
-  display: flex;
-  gap: var(--spacing-sm);
-  overflow-x: auto;
-  padding-bottom: var(--spacing-xs);
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.tabs-list::-webkit-scrollbar {
-  display: none;
-}
-
-.tab-item {
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
-  background: var(--color-card);
-  border: 2px solid transparent;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.tab-item:hover {
-  border-color: var(--color-border);
-}
-
-.tab-item.active {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border-color: var(--color-primary);
-}
-
-/* ===== Sections Container ===== */
-.sections-container {
-  flex: 1;
-}
-
-.sections-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  margin-bottom: var(--spacing-md);
-}
-
-/* ===== Loading ===== */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-2xl);
-  color: var(--color-text-secondary);
-}
-
-.loading-container.small {
-  padding: var(--spacing-xl);
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: var(--spacing-md);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(5deg);
   }
 }
 
-/* ===== Empty & Hint ===== */
-.empty-container,
-.hint-container {
-  text-align: center;
-  padding: var(--spacing-xl) var(--spacing-md);
-  color: var(--color-text-secondary);
-}
-
-.empty-container.small {
-  padding: var(--spacing-lg);
-}
-
-.empty-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto var(--spacing-lg);
+/* ===== Quick Tips ===== */
+.quick-tips {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-border);
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.tip-icon {
+  font-size: 16px;
+}
+
+.tip-text {
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  border-radius: var(--radius-xl);
 }
 
-.empty-icon svg {
-  width: 40px;
-  height: 40px;
+.tip-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
 }
 
-.empty-container h2 {
+/* ===== Loading State ===== */
+.loading-state {
+  padding: var(--spacing-md) 0;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm);
+}
+
+.skeleton-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-text {
+  flex: 1;
+  height: 20px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-state h3 {
   font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-xs);
 }
 
-.empty-container p,
-.hint-container p {
+.empty-state p {
+  color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 
-/* ===== Section Grid ===== */
+/* ===== Sections ===== */
+.sections-wrapper {
+  margin-bottom: var(--spacing-lg);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.section-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+}
+
+.section-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-card);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
 .section-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--spacing-sm);
 }
 
 .section-card {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-card);
+  position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all var(--transition-normal);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .section-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .section-card:active {
   transform: translateY(0);
 }
 
-.section-cover {
-  position: relative;
-  aspect-ratio: 16 / 10;
-  overflow: hidden;
+.card-bg {
+  position: absolute;
+  inset: 0;
 }
 
-.section-cover img {
+.card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.section-placeholder {
-  width: 100%;
-  height: 100%;
+.card-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-card);
+  border-left: 4px solid transparent;
+  border-image: var(--card-gradient, linear-gradient(135deg, var(--color-primary), #8B5CF6)) 1;
+}
+
+.section-card:nth-child(1) .card-content { --card-gradient: linear-gradient(135deg, #FF6B6B, #FF8E53); }
+.section-card:nth-child(2) .card-content { --card-gradient: linear-gradient(135deg, #4ECDC4, #44A08D); }
+.section-card:nth-child(3) .card-content { --card-gradient: linear-gradient(135deg, #A29BFE, #6C5CE7); }
+.section-card:nth-child(4) .card-content { --card-gradient: linear-gradient(135deg, #FDCB6E, #F39C12); }
+.section-card:nth-child(5) .card-content { --card-gradient: linear-gradient(135deg, #74B9FF, #0984E3); }
+.section-card:nth-child(6) .card-content { --card-gradient: linear-gradient(135deg, #55EFC4, #00B894); }
+
+.card-icon {
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  font-size: 24px;
+  flex-shrink: 0;
 }
 
-.section-placeholder svg {
-  width: 36px;
-  height: 36px;
-  color: white;
-  opacity: 0.9;
-}
-
-.section-info {
+.card-info {
   flex: 1;
-  padding: var(--spacing-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  min-width: 0;
 }
 
-.section-name {
-  font-size: var(--text-sm);
+.card-title {
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
-  line-height: 1.3;
+  margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.section-desc {
+.card-desc {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.card-arrow {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
+}
+
+.card-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== Footer Hint ===== */
+.footer-hint {
+  text-align: center;
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.footer-hint p {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 /* ===== Desktop ===== */
-@media (min-width: 1024px) {
-  .desktop-only {
-    display: block;
-  }
-
+@media (min-width: 768px) {
   .page-content {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    max-width: 900px;
   }
 
-  .hero-section {
-    padding: var(--spacing-xl) var(--spacing-2xl);
-    margin-bottom: var(--spacing-lg);
+  .hero-banner {
+    padding: var(--spacing-2xl);
+    min-height: 180px;
   }
 
   .hero-title {
     font-size: var(--text-2xl);
   }
 
-  .hero-desc {
+  .hero-subtitle {
     font-size: var(--text-base);
   }
 
-  .hero-icon {
-    width: 80px;
-    height: 80px;
+  .float-emoji {
+    font-size: 28px;
   }
 
-  .hero-icon svg {
-    width: 40px;
-    height: 40px;
+  .quick-tips {
+    gap: var(--spacing-xl);
   }
 
-  .school-tabs {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .tabs-label {
-    display: inline-block;
-    margin-right: var(--spacing-md);
-    margin-bottom: 0;
-  }
-
-  .tabs-list {
-    display: inline-flex;
-  }
-
-  .tab-item {
-    padding: var(--spacing-sm) var(--spacing-lg);
+  .tip-text {
+    font-size: var(--text-sm);
   }
 
   .section-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-md);
   }
 
-  .section-placeholder svg {
-    width: 48px;
-    height: 48px;
+  .card-content {
+    padding: var(--spacing-lg);
   }
 
-  .section-info {
-    padding: var(--spacing-md);
+  .card-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
   }
 
-  .section-name {
-    font-size: var(--text-base);
+  .card-title {
+    font-size: var(--text-lg);
   }
 
-  .section-desc {
+  .card-desc {
     font-size: var(--text-sm);
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-content {
+    padding: var(--spacing-xl);
+    max-width: 1000px;
+  }
+
+  .hero-banner {
+    padding: var(--spacing-2xl) var(--spacing-3xl);
+    min-height: 200px;
+  }
+
+  .section-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 </style>

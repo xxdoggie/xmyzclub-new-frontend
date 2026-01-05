@@ -287,8 +287,9 @@ onMounted(() => {
           <div class="score-content">
             <div class="score-main">
               <div class="score-value">{{ detail.averageScore.toFixed(1) }}</div>
-              <div class="rating-count">{{ detail.ratingCount }} 人评分</div>
+              <div class="rating-count">{{ detail.ratingCount }}人评分</div>
             </div>
+            <div class="score-divider-vertical"></div>
             <div v-if="scoreDistributionList.length > 0" class="score-distribution">
               <div
                 v-for="dist in scoreDistributionList"
@@ -300,10 +301,11 @@ onMounted(() => {
                     v-for="s in 5"
                     :key="s"
                     class="dist-star-icon"
+                    :class="{ inactive: s > dist.star }"
                     viewBox="0 0 24 24"
-                    :fill="s <= dist.star ? 'currentColor' : 'none'"
+                    fill="currentColor"
                     stroke="currentColor"
-                    stroke-width="1.5"
+                    stroke-width="1"
                   >
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
@@ -495,23 +497,23 @@ onMounted(() => {
 
 /* ===== Item Header Card ===== */
 .item-header-card {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .item-header {
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .item-image-wrapper {
-  width: 100px;
-  height: 100px;
+  width: 56px;
+  height: 56px;
   flex-shrink: 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -532,8 +534,8 @@ onMounted(() => {
 }
 
 .item-image-placeholder svg {
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
   opacity: 0.8;
 }
 
@@ -542,18 +544,19 @@ onMounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  justify-content: center;
+  gap: 2px;
 }
 
 .item-name {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
   line-height: 1.3;
 }
 
 .item-breadcrumb {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
+  font-size: 11px;
+  color: var(--color-primary);
 }
 
 .item-desc {
@@ -568,16 +571,17 @@ onMounted(() => {
 
 /* ===== Score Card ===== */
 .score-card {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .score-content {
   display: flex;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
+  align-items: stretch;
 }
 
 .score-main {
@@ -585,11 +589,12 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 70px;
+  min-width: 60px;
+  padding-right: var(--spacing-sm);
 }
 
 .score-value {
-  font-size: var(--text-3xl);
+  font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   color: var(--color-accent);
   line-height: 1;
@@ -598,37 +603,50 @@ onMounted(() => {
 .rating-count {
   font-size: 10px;
   color: var(--color-text-placeholder);
-  margin-top: var(--spacing-xs);
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+/* 垂直分隔线 */
+.score-divider-vertical {
+  width: 1px;
+  background: var(--color-border);
+  align-self: stretch;
 }
 
 .score-distribution {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  justify-content: center;
 }
 
 .dist-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 6px;
 }
 
 .dist-stars {
   display: flex;
-  gap: 1px;
+  gap: 0;
   flex-shrink: 0;
 }
 
 .dist-star-icon {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   color: var(--color-accent);
+}
+
+.dist-star-icon.inactive {
+  opacity: 0.2;
 }
 
 .dist-bar-wrapper {
   flex: 1;
-  height: 8px;
+  height: 6px;
   background: var(--color-border);
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -641,11 +659,11 @@ onMounted(() => {
   transition: width 0.3s ease;
 }
 
-/* 分隔线 */
+/* 水平分隔线 */
 .score-divider {
   height: 1px;
   background: var(--color-border);
-  margin: var(--spacing-md) 0;
+  margin: var(--spacing-sm) 0;
 }
 
 /* 用户评分行 */
@@ -656,19 +674,19 @@ onMounted(() => {
 }
 
 .user-rating-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
 .user-rating-stars {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 2px;
 }
 
 .submit-rating-btn {
-  padding: 4px 12px;
-  font-size: var(--text-xs);
+  padding: 2px 8px;
+  font-size: 10px;
   font-weight: var(--font-medium);
   color: white;
   background: var(--color-primary);
@@ -676,7 +694,7 @@ onMounted(() => {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
-  margin-left: var(--spacing-xs);
+  margin-left: 4px;
 }
 
 .submit-rating-btn:hover:not(:disabled) {
@@ -695,8 +713,8 @@ onMounted(() => {
 }
 
 .star-btn {
-  width: 28px;
-  height: 28px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   background: transparent;
   border: none;
@@ -966,15 +984,18 @@ onMounted(() => {
 /* ===== Skeleton Loading ===== */
 .skeleton-header {
   display: flex;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
 }
 
 .skeleton-image {
-  width: 100px;
-  height: 100px;
+  width: 56px;
+  height: 56px;
   background: var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
@@ -982,12 +1003,13 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  justify-content: center;
+  gap: 6px;
 }
 
 .skeleton-title {
   width: 60%;
-  height: 24px;
+  height: 18px;
   background: var(--color-border);
   border-radius: var(--radius-sm);
   animation: skeleton-pulse 1.5s ease-in-out infinite;
@@ -995,17 +1017,17 @@ onMounted(() => {
 
 .skeleton-breadcrumb {
   width: 80%;
-  height: 16px;
+  height: 14px;
   background: var(--color-border);
   border-radius: var(--radius-sm);
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-score-card {
-  height: 150px;
+  height: 120px;
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
@@ -1039,20 +1061,21 @@ onMounted(() => {
   }
 
   .item-header-card {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
   }
 
   .item-header {
-    gap: var(--spacing-lg);
+    gap: var(--spacing-md);
   }
 
   .item-image-wrapper {
-    width: 140px;
-    height: 140px;
+    width: 80px;
+    height: 80px;
   }
 
   .item-name {
-    font-size: var(--text-2xl);
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
   }
 
   .item-breadcrumb {
@@ -1060,42 +1083,54 @@ onMounted(() => {
   }
 
   .item-desc {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
   }
 
   .score-card {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
   }
 
   .score-content {
-    gap: var(--spacing-xl);
+    gap: var(--spacing-lg);
+  }
+
+  .score-main {
+    min-width: 80px;
   }
 
   .score-value {
-    font-size: 48px;
+    font-size: var(--text-3xl);
   }
 
   .rating-count {
     font-size: var(--text-xs);
   }
 
+  .score-distribution {
+    gap: 6px;
+  }
+
   .dist-star-icon {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
   }
 
   .dist-bar-wrapper {
-    height: 10px;
+    height: 8px;
+  }
+
+  .user-rating-label {
+    font-size: var(--text-sm);
   }
 
   .star-btn {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
   }
 
   .submit-rating-btn {
-    padding: 6px 16px;
-    font-size: var(--text-sm);
+    padding: 4px 12px;
+    font-size: var(--text-xs);
   }
 
   .comment-avatar {

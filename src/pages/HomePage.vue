@@ -48,7 +48,7 @@ const currentBanner = computed(() => {
 onMounted(() => {
   setInterval(() => {
     currentBannerIndex.value = (currentBannerIndex.value + 1) % banners.length
-  }, 5000)
+  }, 10000)
 })
 
 function toggleTheme() {
@@ -765,9 +765,14 @@ function goToBanner(index: number) {
 
 /* 导航区域 */
 .drawer-nav-section {
-  flex: 1;
   padding: var(--spacing-md);
+  padding-bottom: var(--spacing-xs);
+}
+
+.drawer-nav-section:first-of-type {
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .drawer-section-title {
@@ -1024,9 +1029,9 @@ function goToBanner(index: number) {
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg) var(--spacing-md);
   overflow: hidden;
-  min-height: 160px;
+  min-height: 220px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .hero-banner.from-primary {
@@ -1418,7 +1423,7 @@ function goToBanner(index: number) {
   }
 
   .hero-banner {
-    min-height: 200px;
+    min-height: 240px;
     padding: var(--spacing-2xl) var(--spacing-xl);
   }
 

@@ -39,55 +39,27 @@ function goToMajorSection(section: MajorSection) {
   router.push(`/community/major/${section.id}`)
 }
 
-// 获取分区配置（图标、颜色等）
-function getSectionConfig(name: string) {
+// 获取分区图标类型
+function getSectionIcon(name: string): string {
   if (name.includes('食堂') || name.includes('档口') || name.includes('餐')) {
-    return {
-      icon: 'utensils',
-      gradient: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
-      emoji: '🍜',
-    }
+    return 'utensils'
   }
   if (name.includes('建筑') || name.includes('楼') || name.includes('馆')) {
-    return {
-      icon: 'building',
-      gradient: 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)',
-      emoji: '🏛️',
-    }
+    return 'building'
   }
   if (name.includes('考试') || name.includes('测验') || name.includes('课程')) {
-    return {
-      icon: 'clipboard',
-      gradient: 'linear-gradient(135deg, #A29BFE 0%, #6C5CE7 100%)',
-      emoji: '📝',
-    }
+    return 'clipboard'
   }
   if (name.includes('活动') || name.includes('社团')) {
-    return {
-      icon: 'users',
-      gradient: 'linear-gradient(135deg, #FDCB6E 0%, #F39C12 100%)',
-      emoji: '🎉',
-    }
+    return 'users'
   }
   if (name.includes('图书') || name.includes('阅读')) {
-    return {
-      icon: 'book',
-      gradient: 'linear-gradient(135deg, #74B9FF 0%, #0984E3 100%)',
-      emoji: '📚',
-    }
+    return 'book'
   }
   if (name.includes('运动') || name.includes('体育')) {
-    return {
-      icon: 'trophy',
-      gradient: 'linear-gradient(135deg, #55EFC4 0%, #00B894 100%)',
-      emoji: '⚽',
-    }
+    return 'trophy'
   }
-  return {
-    icon: 'star',
-    gradient: 'linear-gradient(135deg, #FD79A8 0%, #E84393 100%)',
-    emoji: '⭐',
-  }
+  return 'star'
 }
 
 onMounted(() => {
@@ -111,22 +83,36 @@ onMounted(() => {
           <p class="hero-subtitle">和同学们一起探索校园的每一个角落</p>
         </div>
         <div class="hero-decoration">
-          <span class="float-emoji" style="--delay: 0s; --x: 10%; --y: 20%;">⭐</span>
-          <span class="float-emoji" style="--delay: 0.5s; --x: 85%; --y: 15%;">🎯</span>
-          <span class="float-emoji" style="--delay: 1s; --x: 75%; --y: 70%;">💬</span>
-          <span class="float-emoji" style="--delay: 1.5s; --x: 20%; --y: 75%;">👍</span>
+          <svg class="float-icon" style="--delay: 0s; --x: 10%; --y: 20%;" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <svg class="float-icon" style="--delay: 0.5s; --x: 85%; --y: 15%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <svg class="float-icon" style="--delay: 1s; --x: 75%; --y: 70%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+          </svg>
+          <svg class="float-icon" style="--delay: 1.5s; --x: 20%; --y: 75%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+          </svg>
         </div>
       </div>
 
       <!-- 快捷提示 -->
       <div class="quick-tips">
         <div class="tip-item">
-          <span class="tip-icon">👆</span>
+          <svg class="tip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
           <span class="tip-text">点击分区探索更多</span>
         </div>
         <div class="tip-divider"></div>
         <div class="tip-item">
-          <span class="tip-icon">⭐</span>
+          <svg class="tip-icon" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
           <span class="tip-text">给你喜欢的打分</span>
         </div>
       </div>
@@ -143,18 +129,20 @@ onMounted(() => {
 
       <!-- 空状态 -->
       <div v-else-if="majorSections.length === 0" class="empty-state">
-        <div class="empty-icon">😅</div>
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M8 15h8"></path>
+            <circle cx="9" cy="9" r="1" fill="currentColor"></circle>
+            <circle cx="15" cy="9" r="1" fill="currentColor"></circle>
+          </svg>
+        </div>
         <h3>暂无分区</h3>
         <p>稍后再来看看吧</p>
       </div>
 
       <!-- 分区列表 -->
       <div v-else class="sections-wrapper">
-        <div class="section-header">
-          <h2 class="section-title">选择分区</h2>
-          <span class="section-count">{{ majorSections.length }} 个分区</span>
-        </div>
-
         <div class="section-grid">
           <div
             v-for="section in majorSections"
@@ -162,24 +150,52 @@ onMounted(() => {
             class="section-card"
             @click="goToMajorSection(section)"
           >
-            <!-- 卡片背景 -->
-            <div
-              class="card-bg"
-              :style="{ background: section.url ? 'none' : getSectionConfig(section.name).gradient }"
-            >
-              <img
-                v-if="section.url"
-                :src="section.url"
-                :alt="section.name"
-                class="card-image"
-                loading="lazy"
-              />
-            </div>
-
             <!-- 卡片内容 -->
             <div class="card-content">
               <div class="card-icon">
-                {{ getSectionConfig(section.name).emoji }}
+                <!-- 餐厅图标 -->
+                <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                  <path d="M7 2v20"></path>
+                  <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
+                </svg>
+                <!-- 建筑图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                  <path d="M9 22v-4h6v4"></path>
+                  <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"></path>
+                </svg>
+                <!-- 考试图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                  <path d="M9 12h6M9 16h6"></path>
+                </svg>
+                <!-- 活动图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <!-- 图书图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                <!-- 运动图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'trophy'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                  <path d="M4 22h16"></path>
+                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                </svg>
+                <!-- 默认星星图标 -->
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
               </div>
               <div class="card-info">
                 <h3 class="card-title">{{ section.name }}</h3>
@@ -198,7 +214,12 @@ onMounted(() => {
 
       <!-- 底部提示 -->
       <div class="footer-hint">
-        <p>💡 你的每一个评分都在帮助其他同学做出更好的选择</p>
+        <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <p>你的每一个评分都在帮助其他同学做出更好的选择</p>
       </div>
     </main>
 
@@ -284,14 +305,15 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.float-emoji {
+.float-icon {
   position: absolute;
   left: var(--x);
   top: var(--y);
-  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.6);
   animation: float 3s ease-in-out infinite;
   animation-delay: var(--delay);
-  opacity: 0.7;
 }
 
 @keyframes float {
@@ -322,7 +344,9 @@ onMounted(() => {
 }
 
 .tip-icon {
-  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary);
 }
 
 .tip-text {
@@ -389,8 +413,15 @@ onMounted(() => {
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: var(--spacing-md);
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--spacing-md);
+  color: var(--color-text-placeholder);
+}
+
+.empty-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .empty-state h3 {
@@ -407,26 +438,6 @@ onMounted(() => {
 /* ===== Sections ===== */
 .sections-wrapper {
   margin-bottom: var(--spacing-lg);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-md);
-}
-
-.section-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-}
-
-.section-count {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  background: var(--color-card);
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
 }
 
 .section-grid {
@@ -451,17 +462,6 @@ onMounted(() => {
 
 .section-card:active {
   transform: translateY(0);
-}
-
-.card-bg {
-  position: absolute;
-  inset: 0;
-}
-
-.card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .card-content {
@@ -490,8 +490,13 @@ onMounted(() => {
   justify-content: center;
   background: var(--color-bg);
   border-radius: var(--radius-md);
-  font-size: 24px;
   flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.card-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .card-info {
@@ -530,9 +535,20 @@ onMounted(() => {
 
 /* ===== Footer Hint ===== */
 .footer-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
   text-align: center;
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
+}
+
+.hint-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
 }
 
 .footer-hint p {
@@ -560,8 +576,9 @@ onMounted(() => {
     font-size: var(--text-base);
   }
 
-  .float-emoji {
-    font-size: 28px;
+  .float-icon {
+    width: 28px;
+    height: 28px;
   }
 
   .quick-tips {
@@ -584,7 +601,11 @@ onMounted(() => {
   .card-icon {
     width: 56px;
     height: 56px;
-    font-size: 28px;
+  }
+
+  .card-icon svg {
+    width: 28px;
+    height: 28px;
   }
 
   .card-title {

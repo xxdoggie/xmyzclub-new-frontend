@@ -105,6 +105,36 @@ const router = createRouter({
       },
     },
     {
+      path: '/community/major/:majorId',
+      name: 'community-major',
+      component: () => import('../pages/MinorSectionPage.vue'),
+      meta: {
+        level: 2,
+        title: '选择区域',
+        parent: 'community',
+      },
+    },
+    {
+      path: '/community/minor/:minorId',
+      name: 'community-minor',
+      component: () => import('../pages/RatingItemsPage.vue'),
+      meta: {
+        level: 3,
+        title: '评分列表',
+        parent: 'community-major',
+      },
+    },
+    {
+      path: '/community/item/:itemId',
+      name: 'community-item',
+      component: () => import('../pages/RatingDetailPage.vue'),
+      meta: {
+        level: 4,
+        title: '评分详情',
+        parent: 'community-minor',
+      },
+    },
+    {
       path: '/design-system',
       name: 'design-system',
       component: () => import('../pages/DesignSystemPage.vue'),

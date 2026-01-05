@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -43,11 +43,19 @@ const currentStep = ref<'building' | 'voting' | 'result'>('building')
 // 选择的宿舍楼
 const selectedBuildingCode = ref<string | null>(null)
 
-// 用户的投票选择：timePeriodId -> votingOptionId
-const voteSelections = ref<Map<number, number>>(new Map())
+// 用户的投票选择：timePeriodId -> Set<votingOptionId>（支持多选）
+const voteSelections = ref<Map<number, Set<number>>>(new Map())
 
 // 提交状态
 const isSubmitting = ref(false)
+
+// 时段折叠状态：timePeriodId -> boolean（true = 展开）
+const periodExpanded = reactive<Record<number, boolean>>({})
+
+// 每个时段显示的选项数量（用于懒加载）
+const INITIAL_SHOW_COUNT = 12
+const LOAD_MORE_COUNT = 12
+const periodVisibleCount = reactive<Record<number, number>>({})
 
 // 获取投票规则配置
 const votingStageConfig = computed<VotingStageConfig | null>(() => {
@@ -57,12 +65,10 @@ const votingStageConfig = computed<VotingStageConfig | null>(() => {
 
 // 投票模式（优先从 currentStage.config 获取）
 const votingMode = computed(() => {
-  // 优先从阶段配置中获取
   const stageVotingMode = votingStageConfig.value?.voting_mode
   if (stageVotingMode) {
     return stageVotingMode
   }
-  // 否则从投票配置接口获取
   return votingConfig.value?.votingMode || 'unified'
 })
 
@@ -72,22 +78,36 @@ const isByBuilding = computed(() => votingMode.value === 'per_building' || votin
 // 可选宿舍楼列表
 const buildings = computed(() => votingConfig.value?.buildings || [])
 
+// 投票规则
+const votingRules = computed(() => {
+  const config = votingStageConfig.value
+  if (!config?.rules?.has_limit) {
+    return { hasLimit: false, limitScope: 'period' as const, minCount: 1, maxCount: 1 }
+  }
+  return {
+    hasLimit: true,
+    limitScope: config.rules.limit_scope || 'period',
+    minCount: config.rules.min_count || 1,
+    maxCount: config.rules.max_count || 1,
+  }
+})
+
 // 规则说明
 const rulesDescription = computed(() => {
-  const config = votingStageConfig.value
-  if (!config?.rules?.has_limit) return '每个时段选择一首歌曲'
+  const { hasLimit, limitScope, minCount, maxCount } = votingRules.value
+  if (!hasLimit) return '每个时段选择一首歌曲'
 
-  const { limit_scope, max_count, min_count } = config.rules
-  if (limit_scope === 'period') {
-    if (min_count && max_count && min_count === max_count) {
-      return `每个时段必须选择 ${max_count} 首歌曲`
-    } else if (min_count && max_count) {
-      return `每个时段选择 ${min_count}-${max_count} 首歌曲`
-    } else if (max_count) {
-      return `每个时段最多选择 ${max_count} 首歌曲`
+  if (limitScope === 'period') {
+    if (minCount === maxCount) {
+      return `每个时段选择 ${maxCount} 首`
     }
+    return `每个时段选择 ${minCount}-${maxCount} 首`
+  } else {
+    if (minCount === maxCount) {
+      return `总共选择 ${maxCount} 首`
+    }
+    return `总共选择 ${minCount}-${maxCount} 首`
   }
-  return '每个时段选择一首歌曲'
 })
 
 // 格式化阶段结束时间
@@ -164,6 +184,12 @@ async function loadVotingOptions(buildingCode?: string) {
     const res = await getVotingOptions(campaignId.value, buildingCode)
     if (res.data.code === 200) {
       votingOptions.value = res.data.data
+      // 初始化每个时段的展开状态和可见数量
+      votingOptions.value.forEach((period, index) => {
+        // 默认第一个时段展开
+        periodExpanded[period.timePeriod.id] = index === 0
+        periodVisibleCount[period.timePeriod.id] = INITIAL_SHOW_COUNT
+      })
     } else {
       toast.error(res.data.message || '获取投票选项失败')
     }
@@ -186,17 +212,14 @@ async function initData() {
     await loadVotingConfig()
     await loadMyVotes()
 
-    // 如果已经投过票，直接显示结果
     if (myVotes.value) {
       currentStep.value = 'result'
-      // 加载投票选项以显示完整信息
       if (isByBuilding.value && myVotes.value.buildingChoice) {
         await loadVotingOptions(myVotes.value.buildingChoice)
       } else if (!isByBuilding.value) {
         await loadVotingOptions()
       }
     } else if (!isByBuilding.value) {
-      // 统一投票模式，直接加载选项
       await loadVotingOptions()
       currentStep.value = 'voting'
     }
@@ -225,13 +248,101 @@ function backToBuilding() {
   votingOptions.value = []
 }
 
+// 切换时段折叠状态
+function togglePeriod(periodId: number) {
+  periodExpanded[periodId] = !periodExpanded[periodId]
+}
+
+// 加载更多选项
+function loadMoreOptions(periodId: number) {
+  periodVisibleCount[periodId] = (periodVisibleCount[periodId] || INITIAL_SHOW_COUNT) + LOAD_MORE_COUNT
+}
+
+// 获取时段可见的选项
+function getVisibleOptions(periodData: TimePeriodVotingOptions): VotingOptionItem[] {
+  const count = periodVisibleCount[periodData.timePeriod.id] || INITIAL_SHOW_COUNT
+  return periodData.options.slice(0, count)
+}
+
+// 是否还有更多选项可加载
+function hasMoreOptions(periodData: TimePeriodVotingOptions): boolean {
+  const count = periodVisibleCount[periodData.timePeriod.id] || INITIAL_SHOW_COUNT
+  return periodData.options.length > count
+}
+
+// 获取剩余选项数量
+function getRemainingCount(periodData: TimePeriodVotingOptions): number {
+  const count = periodVisibleCount[periodData.timePeriod.id] || INITIAL_SHOW_COUNT
+  return periodData.options.length - count
+}
+
+// 获取时段已选数量
+function getSelectedCount(timePeriodId: number): number {
+  return voteSelections.value.get(timePeriodId)?.size || 0
+}
+
+// 获取总选择数量
+const totalSelectedCount = computed(() => {
+  let count = 0
+  voteSelections.value.forEach((set) => {
+    count += set.size
+  })
+  return count
+})
+
+// 检查时段是否可以继续选择
+function canSelectMore(timePeriodId: number): boolean {
+  const { hasLimit, limitScope, maxCount } = votingRules.value
+  if (!hasLimit) return getSelectedCount(timePeriodId) < 1
+
+  if (limitScope === 'period') {
+    return getSelectedCount(timePeriodId) < maxCount
+  } else {
+    return totalSelectedCount.value < maxCount
+  }
+}
+
+// 检查时段是否满足最小选择要求
+function periodMeetsMinimum(timePeriodId: number): boolean {
+  const { hasLimit, limitScope, minCount } = votingRules.value
+  if (!hasLimit) return getSelectedCount(timePeriodId) >= 1
+
+  if (limitScope === 'period') {
+    return getSelectedCount(timePeriodId) >= minCount
+  }
+  return true
+}
+
 // 选择投票选项
 function selectOption(timePeriodId: number, optionId: number) {
-  // 如果已选中，取消选择
-  if (voteSelections.value.get(timePeriodId) === optionId) {
-    voteSelections.value.delete(timePeriodId)
+  let periodSet = voteSelections.value.get(timePeriodId)
+  if (!periodSet) {
+    periodSet = new Set()
+    voteSelections.value.set(timePeriodId, periodSet)
+  }
+
+  if (periodSet.has(optionId)) {
+    // 取消选择
+    periodSet.delete(optionId)
+    if (periodSet.size === 0) {
+      voteSelections.value.delete(timePeriodId)
+    }
   } else {
-    voteSelections.value.set(timePeriodId, optionId)
+    // 检查是否可以继续选择
+    if (!canSelectMore(timePeriodId)) {
+      // 如果 limit_scope 是 period 且 maxCount 是 1，替换选择
+      if (votingRules.value.limitScope === 'period' && votingRules.value.maxCount === 1) {
+        periodSet.clear()
+        periodSet.add(optionId)
+      } else {
+        toast.warning(votingRules.value.limitScope === 'period'
+          ? `该时段最多选择 ${votingRules.value.maxCount} 首`
+          : `总共最多选择 ${votingRules.value.maxCount} 首`)
+        return
+      }
+    } else {
+      periodSet.add(optionId)
+    }
   }
   // 触发响应式更新
   voteSelections.value = new Map(voteSelections.value)
@@ -239,50 +350,67 @@ function selectOption(timePeriodId: number, optionId: number) {
 
 // 检查是否选中
 function isOptionSelected(timePeriodId: number, optionId: number): boolean {
-  return voteSelections.value.get(timePeriodId) === optionId
+  return voteSelections.value.get(timePeriodId)?.has(optionId) || false
 }
 
-// 获取时段已选数量
-function getSelectedCount(timePeriodId: number): number {
-  return voteSelections.value.has(timePeriodId) ? 1 : 0
-}
-
-// 已选择的时段数量
-const selectedPeriodsCount = computed(() => voteSelections.value.size)
+// 已选择的时段数量（满足最小要求的时段数）
+const completedPeriodsCount = computed(() => {
+  let count = 0
+  votingOptions.value.forEach((period) => {
+    if (periodMeetsMinimum(period.timePeriod.id)) {
+      count++
+    }
+  })
+  return count
+})
 
 // 总时段数量
 const totalPeriodsCount = computed(() => votingOptions.value.length)
 
 // 是否可以提交
 const canSubmit = computed(() => {
-  const config = votingStageConfig.value
-  if (!config?.rules?.has_limit) {
-    // 没有限制，但至少要选一个
-    return selectedPeriodsCount.value > 0
-  }
+  const { hasLimit, limitScope, minCount } = votingRules.value
 
-  const { limit_scope, min_count } = config.rules
-  if (limit_scope === 'period' && min_count) {
-    // 每个时段都需要选择
-    return selectedPeriodsCount.value === totalPeriodsCount.value
+  if (limitScope === 'activity') {
+    // 活动级别限制：检查总选择数量
+    return totalSelectedCount.value >= minCount
+  } else {
+    // 时段级别限制：每个时段都要满足最小要求
+    return completedPeriodsCount.value === totalPeriodsCount.value
   }
+})
 
-  return selectedPeriodsCount.value > 0
+// 提交按钮文字
+const submitButtonText = computed(() => {
+  if (isSubmitting.value) return '提交中...'
+
+  const { limitScope } = votingRules.value
+  if (limitScope === 'activity') {
+    return `确认投票 (${totalSelectedCount.value}首)`
+  }
+  return `确认投票 (${completedPeriodsCount.value}/${totalPeriodsCount.value})`
 })
 
 // 提交投票
 async function handleSubmit() {
   if (!canSubmit.value) {
-    toast.error('请完成所有时段的投票')
+    const { limitScope, minCount } = votingRules.value
+    if (limitScope === 'activity') {
+      toast.error(`请至少选择 ${minCount} 首歌曲`)
+    } else {
+      toast.error('请完成所有时段的投票')
+    }
     return
   }
 
   isSubmitting.value = true
   try {
-    const votes = Array.from(voteSelections.value.entries()).map(([timePeriodId, votingOptionId]) => ({
-      timePeriodId,
-      votingOptionId,
-    }))
+    const votes: { timePeriodId: number; votingOptionId: number }[] = []
+    voteSelections.value.forEach((optionIds, timePeriodId) => {
+      optionIds.forEach((optionId) => {
+        votes.push({ timePeriodId, votingOptionId: optionId })
+      })
+    })
 
     const res = await submitVote({
       campaignId: campaignId.value,
@@ -292,7 +420,6 @@ async function handleSubmit() {
 
     if (res.data.code === 200) {
       toast.success('投票成功')
-      // 重新加载我的投票
       await loadMyVotes()
       currentStep.value = 'result'
     } else {
@@ -416,23 +543,13 @@ onMounted(() => {
 
           <!-- 步骤2：投票选择 -->
           <section v-if="currentStep === 'voting'" class="step-section">
-            <div class="section-header">
-              <div class="header-left">
-                <button v-if="isByBuilding" class="back-link" @click="backToBuilding">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                  </svg>
-                  更换宿舍楼
-                </button>
-                <h2 class="section-title">
-                  选择您喜欢的铃声
-                  <span v-if="isByBuilding && selectedBuildingCode" class="building-badge">
-                    {{ getBuildingName(selectedBuildingCode) }}
-                  </span>
-                </h2>
-              </div>
-              <span class="progress-text">{{ selectedPeriodsCount }}/{{ totalPeriodsCount }}</span>
-            </div>
+            <!-- 返回宿舍楼选择 -->
+            <button v-if="isByBuilding" class="back-link" @click="backToBuilding">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              更换宿舍楼
+            </button>
 
             <!-- 按时段显示投票选项 -->
             <div class="voting-periods">
@@ -440,61 +557,97 @@ onMounted(() => {
                 v-for="periodData in votingOptions"
                 :key="periodData.timePeriod.id"
                 class="period-group"
+                :class="{ collapsed: !periodExpanded[periodData.timePeriod.id] }"
               >
-                <div class="period-header">
-                  <span class="period-name">{{ periodData.timePeriod.name }}</span>
-                  <span class="period-status" :class="{ completed: getSelectedCount(periodData.timePeriod.id) > 0 }">
-                    {{ getSelectedCount(periodData.timePeriod.id) > 0 ? '已选择' : '未选择' }}
-                  </span>
-                </div>
+                <button class="period-header" @click="togglePeriod(periodData.timePeriod.id)">
+                  <div class="period-left">
+                    <span class="period-name">{{ periodData.timePeriod.name }}</span>
+                    <span class="period-count">{{ periodData.options.length }}首可选</span>
+                  </div>
+                  <div class="period-right">
+                    <span
+                      class="period-status"
+                      :class="{
+                        completed: periodMeetsMinimum(periodData.timePeriod.id),
+                        partial: getSelectedCount(periodData.timePeriod.id) > 0 && !periodMeetsMinimum(periodData.timePeriod.id)
+                      }"
+                    >
+                      {{ getSelectedCount(periodData.timePeriod.id) }}/{{ votingRules.minCount }}
+                    </span>
+                    <svg class="period-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                </button>
 
-                <div v-if="periodData.options.length === 0" class="period-empty">
-                  <span>暂无投票选项</span>
-                </div>
+                <div v-show="periodExpanded[periodData.timePeriod.id]" class="period-content">
+                  <div v-if="periodData.options.length === 0" class="period-empty">
+                    <span>暂无投票选项</span>
+                  </div>
 
-                <div v-else class="options-grid">
-                  <div
-                    v-for="option in periodData.options"
-                    :key="option.id"
-                    class="music-card"
-                    :class="{ selected: isOptionSelected(periodData.timePeriod.id, option.id) }"
-                    @click="selectOption(periodData.timePeriod.id, option.id)"
-                  >
-                    <div class="card-cover-wrapper">
-                      <img
-                        :src="option.music.cover"
-                        :alt="option.music.song"
-                        class="card-cover"
-                      />
-                      <div class="card-check">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
+                  <div v-else class="options-grid">
+                    <div
+                      v-for="option in getVisibleOptions(periodData)"
+                      :key="option.id"
+                      class="music-card"
+                      :class="{ selected: isOptionSelected(periodData.timePeriod.id, option.id) }"
+                      @click="selectOption(periodData.timePeriod.id, option.id)"
+                    >
+                      <div class="card-cover-wrapper">
+                        <img
+                          :src="option.music.cover"
+                          :alt="option.music.song"
+                          class="card-cover"
+                          loading="lazy"
+                        />
+                        <div class="card-check">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </div>
+                        <div v-if="option.voteCount" class="card-votes">
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                          </svg>
+                          <span>{{ option.voteCount }}</span>
+                        </div>
                       </div>
-                      <div v-if="option.voteCount" class="card-votes">
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                        </svg>
-                        <span>{{ option.voteCount }}</span>
+                      <div class="card-info">
+                        <h4 class="card-title">{{ option.music.song }}</h4>
+                        <p class="card-artist">{{ option.music.singer }}</p>
                       </div>
-                    </div>
-                    <div class="card-info">
-                      <h4 class="card-title">{{ option.music.song }}</h4>
-                      <p class="card-artist">{{ option.music.singer }}</p>
                     </div>
                   </div>
+
+                  <!-- 加载更多按钮 -->
+                  <button
+                    v-if="hasMoreOptions(periodData)"
+                    class="load-more-btn"
+                    @click.stop="loadMoreOptions(periodData.timePeriod.id)"
+                  >
+                    加载更多 ({{ getRemainingCount(periodData) }}首)
+                  </button>
                 </div>
               </div>
             </div>
 
-            <!-- 提交按钮 -->
-            <div class="submit-area">
+            <!-- 底部提交栏 -->
+            <div class="submit-bar">
+              <div class="submit-info">
+                <span class="submit-progress">
+                  {{ votingRules.limitScope === 'activity'
+                    ? `已选 ${totalSelectedCount} 首`
+                    : `${completedPeriodsCount}/${totalPeriodsCount} 时段`
+                  }}
+                </span>
+              </div>
               <button
                 class="submit-btn"
+                :class="{ ready: canSubmit }"
                 :disabled="!canSubmit || isSubmitting"
                 @click="handleSubmit"
               >
-                {{ isSubmitting ? '提交中...' : `确认投票 (${selectedPeriodsCount}/${totalPeriodsCount})` }}
+                {{ isSubmitting ? '提交中...' : '确认投票' }}
               </button>
             </div>
           </section>
@@ -575,6 +728,7 @@ onMounted(() => {
 .page-content {
   flex: 1;
   padding: var(--spacing-sm);
+  padding-bottom: 80px; /* 为底部提交栏留空间 */
 }
 
 .content-container {
@@ -663,46 +817,18 @@ onMounted(() => {
 }
 
 .section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
   margin-bottom: var(--spacing-md);
-  gap: var(--spacing-sm);
-}
-
-.header-left {
-  flex: 1;
 }
 
 .section-title {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
 }
 
 .section-desc {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   margin-top: var(--spacing-xs);
-}
-
-.building-badge {
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  padding: 2px var(--spacing-sm);
-  border-radius: var(--radius-full);
-}
-
-.progress-text {
-  font-size: var(--text-sm);
-  color: var(--color-primary);
-  font-weight: var(--font-medium);
-  flex-shrink: 0;
 }
 
 .back-link {
@@ -715,7 +841,7 @@ onMounted(() => {
   background: none;
   border: none;
   cursor: pointer;
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
   transition: color var(--transition-fast);
 }
 
@@ -791,7 +917,7 @@ onMounted(() => {
 .voting-periods {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .period-group {
@@ -804,23 +930,73 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.period-header:hover {
   background: var(--color-bg);
+}
+
+.period-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .period-name {
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+.period-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+}
+
+.period-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .period-status {
   font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
   font-weight: var(--font-medium);
+  color: var(--color-text-placeholder);
+  padding: 2px 8px;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+}
+
+.period-status.partial {
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
 }
 
 .period-status.completed {
   color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.period-arrow {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-placeholder);
+  transition: transform var(--transition-fast);
+}
+
+.period-group.collapsed .period-arrow {
+  transform: rotate(-90deg);
+}
+
+.period-content {
+  border-top: 1px solid var(--color-border);
 }
 
 .period-empty {
@@ -948,40 +1124,73 @@ onMounted(() => {
   margin-top: 2px;
 }
 
-/* ===== Submit Area ===== */
-.submit-area {
-  position: sticky;
-  bottom: 0;
-  padding: var(--spacing-md);
-  background: linear-gradient(transparent, var(--color-bg) 20%);
-  margin: 0 calc(-1 * var(--spacing-sm));
-  margin-top: var(--spacing-md);
-}
-
-.submit-btn {
-  width: 100%;
-  padding: var(--spacing-md);
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: white;
-  background: var(--color-primary);
+/* ===== Load More Button ===== */
+.load-more-btn {
+  display: block;
+  width: calc(100% - var(--spacing-md) * 2);
+  margin: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+  padding: var(--spacing-sm);
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.submit-btn:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
+.load-more-btn:hover {
+  background: var(--color-primary);
+  color: white;
 }
 
-.submit-btn:active:not(:disabled) {
-  transform: translateY(0);
+/* ===== Submit Bar (Fixed Bottom) ===== */
+.submit-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+  z-index: 100;
+}
+
+.submit-info {
+  flex: 1;
+}
+
+.submit-progress {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.submit-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: white;
+  background: var(--color-text-placeholder);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.submit-btn.ready {
+  background: var(--color-primary);
+}
+
+.submit-btn:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 .submit-btn:disabled {
-  opacity: 0.6;
   cursor: not-allowed;
 }
 
@@ -1143,6 +1352,19 @@ onMounted(() => {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .options-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .submit-bar {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 800px;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -1152,6 +1374,7 @@ onMounted(() => {
 
   .page-content {
     padding: var(--spacing-xl);
+    padding-bottom: 100px;
   }
 
   .content-container {
@@ -1175,17 +1398,13 @@ onMounted(() => {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .submit-area {
-    position: static;
-    padding: var(--spacing-md) 0;
-    background: transparent;
-    margin: var(--spacing-md) 0 0 0;
+  .options-grid {
+    grid-template-columns: repeat(5, 1fr);
   }
 
-  .submit-btn {
-    max-width: 300px;
-    margin: 0 auto;
-    display: block;
+  .submit-bar {
+    max-width: 900px;
+    padding: var(--spacing-md) var(--spacing-lg);
   }
 }
 </style>

@@ -794,24 +794,24 @@ onMounted(() => {
 /* 评分标签 */
 .score-badge {
   position: absolute;
-  top: var(--spacing-xs);
-  right: var(--spacing-xs);
+  bottom: var(--spacing-xs);
+  left: var(--spacing-xs);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   padding: 4px 8px;
-  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
-  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-sm);
   font-size: var(--text-sm);
-  font-weight: var(--font-bold);
-  color: #1a1a1a;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  font-weight: var(--font-semibold);
+  color: white;
 }
 
 .score-badge svg {
-  width: 14px;
-  height: 14px;
-  color: #1a1a1a;
+  width: 12px;
+  height: 12px;
+  color: #FBBF24;
 }
 
 /* 信息区 */

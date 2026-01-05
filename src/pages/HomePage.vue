@@ -23,17 +23,17 @@ const banners: Array<{
 }> = [
   {
     title: '欢迎来到厦门一中学生社区',
-    subtitle: '连接校园，分享青春',
+    subtitle: '厦门一中学生社区，又名文园九四三站台，于2023年底启用，是厦门一中最大的非官方学生社区，集成宿舍铃声投稿投票、活动抢票、评分社区、成绩查询等功能为一体，为所有厦门一中学生提供便捷的一站式服务。',
     gradient: 'from-primary to-primary-dark',
   },
   {
-    title: '社团招新季火热进行中',
-    subtitle: '发现你的热爱，加入精彩社团',
+    title: '评分社区重新上线',
+    subtitle: '评分社区于2024年首次公开测试，模仿虎扑平台评分模式，一经推出便受到广泛好评。后续将开放用户自主上传评分项目功能，更多评分由你做主！',
     gradient: 'from-secondary to-info',
   },
   {
-    title: '失物招领平台已上线',
-    subtitle: '帮助同学找回遗失物品',
+    title: '这是一张轮播图',
+    subtitle: '不要看了，这真的只是一张轮播图，只是我不知道放什么。或许你会对厦门高中生王者荣耀电竞联赛感兴趣吗？可以访问 xmkhsl.com 看看哦。',
     gradient: 'from-accent to-warning',
   },
 ]
@@ -343,197 +343,109 @@ function goToBanner(index: number) {
         </div>
       </section>
 
-      <!-- Bento Grid Section -->
-      <section class="bento-section">
-        <div class="bento-container">
-          <!-- Quick Actions - Mobile First -->
-          <div class="bento-quick-actions">
-            <h3 class="section-label">快捷入口</h3>
-            <div class="quick-grid">
-              <router-link to="/ticket" class="quick-card">
-                <div class="quick-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                </div>
-                <span class="quick-label">活动抢票</span>
-              </router-link>
-              <router-link to="/ringtone" class="quick-card">
-                <div class="quick-icon secondary">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                  </svg>
-                </div>
-                <span class="quick-label">宿舍铃声</span>
-              </router-link>
-              <router-link to="/grade" class="quick-card">
-                <div class="quick-icon info">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                  </svg>
-                </div>
-                <span class="quick-label">分数查询</span>
-              </router-link>
-              <router-link to="/community" class="quick-card">
-                <div class="quick-icon accent">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                </div>
-                <span class="quick-label">评分社区</span>
-              </router-link>
-            </div>
+      <!-- Quick Actions Section -->
+      <section class="quick-section">
+        <div class="quick-container">
+          <h3 class="section-label">快捷入口</h3>
+          <div class="quick-actions-grid">
+            <router-link to="/ticket" class="action-card">
+              <div class="action-icon-wrapper primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <div class="action-content">
+                <span class="action-title">活动抢票</span>
+                <span class="action-desc">校园活动门票预约</span>
+              </div>
+              <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </router-link>
+
+            <router-link to="/ringtone" class="action-card">
+              <div class="action-icon-wrapper secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+              </div>
+              <div class="action-content">
+                <span class="action-title">宿舍铃声</span>
+                <span class="action-desc">投稿投票你喜欢的歌</span>
+              </div>
+              <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </router-link>
+
+            <router-link to="/grade" class="action-card">
+              <div class="action-icon-wrapper info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </div>
+              <div class="action-content">
+                <span class="action-title">分数查询</span>
+                <span class="action-desc">查看好分数考试成绩</span>
+              </div>
+              <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </router-link>
+
+            <router-link to="/community" class="action-card">
+              <div class="action-icon-wrapper accent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+              <div class="action-content">
+                <span class="action-title">评分社区</span>
+                <span class="action-desc">万物皆可评分</span>
+              </div>
+              <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </router-link>
           </div>
+        </div>
+      </section>
 
-          <!-- Main Content Grid - Desktop -->
-          <div class="bento-grid">
-            <!-- Feed Card - Large -->
-            <div class="bento-card bento-feed">
-              <div class="card-header">
-                <h3 class="card-title">最新动态</h3>
-                <button class="btn-text">查看全部</button>
-              </div>
-              <div class="feed-list">
-                <div class="feed-item feed-placeholder">
-                  <div class="feed-avatar"></div>
-                  <div class="feed-body">
-                    <div class="feed-line feed-line-short"></div>
-                    <div class="feed-line"></div>
-                    <div class="feed-line feed-line-medium"></div>
-                  </div>
-                </div>
-                <div class="feed-item feed-placeholder">
-                  <div class="feed-avatar"></div>
-                  <div class="feed-body">
-                    <div class="feed-line feed-line-short"></div>
-                    <div class="feed-line"></div>
-                  </div>
-                </div>
-                <div class="feed-item feed-placeholder">
-                  <div class="feed-avatar"></div>
-                  <div class="feed-body">
-                    <div class="feed-line feed-line-short"></div>
-                    <div class="feed-line feed-line-medium"></div>
-                  </div>
-                </div>
-              </div>
-              <p class="placeholder-hint">动态功能开发中...</p>
-            </div>
-
-            <!-- Quick Functions - Desktop -->
-            <div class="bento-card bento-functions desktop-only">
-              <h3 class="card-title">快捷功能</h3>
-              <div class="function-list">
-                <router-link to="/ticket" class="function-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                  <span>活动抢票</span>
-                </router-link>
-                <router-link to="/ringtone" class="function-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                  </svg>
-                  <span>宿舍铃声</span>
-                </router-link>
-                <router-link to="/grade" class="function-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                  </svg>
-                  <span>分数查询</span>
-                </router-link>
-                <router-link to="/community" class="function-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                  <span>评分社区</span>
-                </router-link>
-              </div>
-            </div>
-
-            <!-- Hot Topics -->
-            <div class="bento-card bento-topics">
-              <h3 class="card-title">热门话题</h3>
-              <div class="topic-list">
-                <div class="topic-item placeholder">
-                  <span class="topic-rank hot">1</span>
-                  <div class="topic-line"></div>
-                </div>
-                <div class="topic-item placeholder">
-                  <span class="topic-rank">2</span>
-                  <div class="topic-line"></div>
-                </div>
-                <div class="topic-item placeholder">
-                  <span class="topic-rank">3</span>
-                  <div class="topic-line"></div>
-                </div>
-                <div class="topic-item placeholder">
-                  <span class="topic-rank">4</span>
-                  <div class="topic-line"></div>
-                </div>
-                <div class="topic-item placeholder">
-                  <span class="topic-rank">5</span>
-                  <div class="topic-line"></div>
-                </div>
-              </div>
-              <p class="placeholder-hint-sm">话题功能开发中...</p>
-            </div>
-
-            <!-- Dev Resources -->
-            <div class="bento-card bento-resources desktop-only">
-              <h3 class="card-title">开发资源</h3>
-              <div class="resource-list">
-                <router-link to="/design-system" class="resource-item">
-                  <div class="resource-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="13.5" cy="6.5" r="2.5"></circle>
-                      <path d="M22 17l-3.5-2-1.5 1-4-2"></path>
-                      <path d="M2 17l3.5-2 1.5 1 4-2"></path>
-                      <path d="M10 21l2-4 2 4"></path>
-                    </svg>
-                  </div>
-                  <div class="resource-info">
-                    <span class="resource-name">设计系统</span>
-                    <span class="resource-desc">UI 组件库</span>
-                  </div>
-                  <svg class="resource-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </router-link>
-                <router-link to="/auth" class="resource-item">
-                  <div class="resource-icon secondary">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                      <polyline points="10 17 15 12 10 7"></polyline>
-                      <line x1="15" y1="12" x2="3" y2="12"></line>
-                    </svg>
-                  </div>
-                  <div class="resource-info">
-                    <span class="resource-name">登录页面</span>
-                    <span class="resource-desc">大屏设计</span>
-                  </div>
-                  <svg class="resource-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </router-link>
-              </div>
-            </div>
+      <!-- Update Log Section -->
+      <section class="changelog-section">
+        <div class="changelog-container">
+          <h3 class="section-label">更新日志</h3>
+          <div class="changelog-card">
+            <ul class="changelog-list">
+              <li class="changelog-item">
+                <div class="changelog-dot"></div>
+                <span>重新设计网站视觉效果，移动端体验更佳</span>
+              </li>
+              <li class="changelog-item">
+                <div class="changelog-dot"></div>
+                <span>重新设计宿舍铃声投稿/投票功能，修复投票时在部分设备上可能存在的歌曲重叠问题，并优化投稿时歌曲搜索相关逻辑</span>
+              </li>
+              <li class="changelog-item">
+                <div class="changelog-dot"></div>
+                <span>重新开放好分数账号绑定及成绩查询功能</span>
+              </li>
+              <li class="changelog-item">
+                <div class="changelog-dot"></div>
+                <span>重新开放评分社区，后续将启用用户自主上传功能</span>
+              </li>
+              <li class="changelog-item">
+                <div class="changelog-dot"></div>
+                <span>重新设计活动抢票视觉效果，优化操作逻辑</span>
+              </li>
+            </ul>
           </div>
         </div>
       </section>
@@ -1246,18 +1158,18 @@ function goToBanner(index: number) {
   border-radius: var(--radius-full);
 }
 
-/* Bento Section */
-.bento-section {
+/* ===== Quick Actions Section ===== */
+.quick-section {
   padding: var(--spacing-md) 10px;
 }
 
-.bento-container {
-  max-width: 1400px;
+.quick-container {
+  max-width: 800px;
   margin: 0 auto;
 }
 
 .section-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-md);
@@ -1265,364 +1177,145 @@ function goToBanner(index: number) {
   letter-spacing: 0.5px;
 }
 
-/* Quick Actions - Mobile */
-.bento-quick-actions {
-  margin-bottom: var(--spacing-lg);
-}
-
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.quick-actions-grid {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
 }
 
-.quick-grid.three-cols {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.quick-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-sm);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.quick-card:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
-  transform: translateY(-2px);
-}
-
-.quick-card:active {
-  transform: scale(0.96);
-}
-
-.quick-icon {
-  width: 44px;
-  height: 44px;
+.action-card {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-lg);
-}
-
-.quick-icon.secondary {
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--color-secondary);
-}
-
-.quick-icon.accent {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--color-accent);
-}
-
-.quick-icon.info {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
-.quick-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.quick-label {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  font-weight: var(--font-medium);
-}
-
-/* Bento Grid */
-.bento-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.bento-card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-md);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-md);
-}
-
-.card-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-}
-
-/* User Card */
-.user-card-content {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.user-card-avatar {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  flex-shrink: 0;
-}
-
-.user-card-avatar.large {
-  width: 56px;
-  height: 56px;
-  font-size: var(--text-xl);
-}
-
-.user-card-avatar.guest {
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-}
-
-.user-card-name {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-}
-
-.user-card-meta {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.user-card-signature {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  font-style: italic;
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 180px;
-}
-
-/* Feed */
-.feed-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.feed-item {
-  display: flex;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-}
-
-.feed-placeholder .feed-avatar {
-  width: 40px;
-  height: 40px;
-  background: var(--color-border);
-  border-radius: 50%;
-  flex-shrink: 0;
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
-
-.feed-placeholder .feed-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.feed-placeholder .feed-line {
-  height: 12px;
-  background: var(--color-border);
-  border-radius: var(--radius-sm);
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
-
-.feed-placeholder .feed-line-short {
-  width: 30%;
-}
-
-.feed-placeholder .feed-line-medium {
-  width: 60%;
-}
-
-@keyframes skeleton-pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.placeholder-hint {
-  text-align: center;
-  color: var(--color-text-placeholder);
-  font-size: var(--text-sm);
-  margin-top: var(--spacing-md);
-}
-
-.placeholder-hint-sm {
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
-  margin-top: var(--spacing-sm);
-}
-
-/* Function List - Desktop */
-.function-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.function-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: left;
-}
-
-.function-item:hover {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
-
-.function-item svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* Topics */
-.topic-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.topic-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.topic-rank {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
-}
-
-.topic-rank.hot {
-  background: var(--color-primary);
-  color: white;
-}
-
-.topic-item.placeholder .topic-line {
-  flex: 1;
-  height: 14px;
-  background: var(--color-border);
-  border-radius: var(--radius-sm);
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
-
-/* Resources */
-.resource-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.resource-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   text-decoration: none;
   color: inherit;
   transition: all var(--transition-fast);
 }
 
-.resource-item:hover {
-  background: var(--color-bg);
+.action-card:hover {
+  border-color: var(--color-primary);
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
 }
 
-.resource-icon {
-  width: 40px;
-  height: 40px;
+.action-card:active {
+  transform: scale(0.98);
+}
+
+.action-icon-wrapper {
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   flex-shrink: 0;
 }
 
-.resource-icon.secondary {
+.action-icon-wrapper.primary {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.action-icon-wrapper.secondary {
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-secondary);
+}
+
+.action-icon-wrapper.info {
   background: var(--color-info-bg);
   color: var(--color-info);
 }
 
-.resource-icon svg {
-  width: 20px;
-  height: 20px;
+.action-icon-wrapper.accent {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-accent);
 }
 
-.resource-info {
+.action-icon-wrapper svg {
+  width: 24px;
+  height: 24px;
+}
+
+.action-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  min-width: 0;
 }
 
-.resource-name {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+.action-title {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+  margin-bottom: 2px;
 }
 
-.resource-desc {
+.action-desc {
+  display: block;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
-.resource-arrow {
-  width: 16px;
-  height: 16px;
+.action-arrow {
+  width: 20px;
+  height: 20px;
   color: var(--color-text-placeholder);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.action-card:hover .action-arrow {
+  transform: translateX(4px);
+  color: var(--color-primary);
+}
+
+/* ===== Changelog Section ===== */
+.changelog-section {
+  padding: var(--spacing-md) 10px;
+  padding-bottom: var(--spacing-lg);
+}
+
+.changelog-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.changelog-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-md);
+}
+
+.changelog-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.changelog-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.changelog-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 7px;
 }
 
 /* ===== Footer ===== */
@@ -1729,18 +1422,14 @@ function goToBanner(index: number) {
     padding: var(--spacing-2xl) var(--spacing-xl);
   }
 
-  .quick-icon {
+  .action-icon-wrapper {
     width: 52px;
     height: 52px;
   }
 
-  .quick-icon svg {
+  .action-icon-wrapper svg {
     width: 26px;
     height: 26px;
-  }
-
-  .quick-label {
-    font-size: var(--text-sm);
   }
 
   .decoration-circle-1 {
@@ -1806,45 +1495,24 @@ function goToBanner(index: number) {
     font-size: var(--text-lg);
   }
 
-  .bento-section {
+  .quick-section,
+  .changelog-section {
     padding: var(--spacing-xl);
   }
 
-  .bento-quick-actions {
-    display: none;
+  .quick-container,
+  .changelog-container {
+    max-width: 900px;
   }
 
-  /* Desktop Bento Grid Layout */
-  .bento-grid {
+  .quick-actions-grid {
     display: grid;
-    grid-template-columns: 280px 1fr 300px;
-    grid-template-rows: auto auto;
-    gap: var(--spacing-lg);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
   }
 
-  .bento-user {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .bento-functions {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .bento-feed {
-    grid-column: 2;
-    grid-row: 1 / 3;
-  }
-
-  .bento-topics {
-    grid-column: 3;
-    grid-row: 1;
-  }
-
-  .bento-resources {
-    grid-column: 3;
-    grid-row: 2;
+  .changelog-card {
+    padding: var(--spacing-lg);
   }
 
   .footer {
@@ -1871,14 +1539,11 @@ function goToBanner(index: number) {
 @media (min-width: 1280px) {
   .header-container,
   .hero-container,
-  .bento-container,
+  .quick-container,
+  .changelog-container,
   .footer-container {
     padding-left: var(--spacing-2xl);
     padding-right: var(--spacing-2xl);
-  }
-
-  .bento-grid {
-    grid-template-columns: 300px 1fr 320px;
   }
 }
 

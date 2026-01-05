@@ -6,7 +6,6 @@ import type {
   MinorSection,
   RatingItem,
   RatingItemDetail,
-  MyRating,
   Comment,
 } from '@/types/rating'
 
@@ -49,14 +48,14 @@ export function getRatingItemDetail(itemId: number) {
  * 提交评分（创建或更新）
  */
 export function submitRating(itemId: number, data: { score: number; commentText?: string }) {
-  return api.post<ApiResponse<MyRating>>(`/rating-community/rating-items/${itemId}/ratings`, data)
+  return api.post<ApiResponse<number>>(`/rating-community/rating-items/${itemId}/ratings`, data)
 }
 
 /**
  * 获取我的评分
  */
 export function getMyRating(itemId: number) {
-  return api.get<ApiResponse<MyRating | null>>(`/rating-community/rating-items/${itemId}/my-rating`)
+  return api.get<ApiResponse<number | null>>(`/rating-community/rating-items/${itemId}/my-rating`)
 }
 
 /**

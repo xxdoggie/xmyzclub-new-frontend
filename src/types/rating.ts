@@ -57,37 +57,25 @@ export interface RatingItem {
  * 面包屑导航
  */
 export interface Breadcrumb {
-  schoolId: number
-  schoolName: string
-  majorSectionId: number
-  majorSectionName: string
-  minorSectionId: number
-  minorSectionName: string
+  school: School
+  majorSection: MajorSection
+  minorSection: MinorSection
 }
 
 /**
  * 评分分布
  */
 export interface ScoreDistribution {
-  score: number
-  count: number
-  percentage: number
-}
-
-/**
- * 评论回复
- */
-export interface CommentReply {
-  id: number
-  commentText: string
-  username: string
-  nickname: string
-  createdAt: string
-  likeCount: number
-  isLiked: boolean
-  isMyComment: boolean
-  replyToUsername: string | null
-  replyToNickname: string | null
+  oneStar: number
+  twoStar: number
+  threeStar: number
+  fourStar: number
+  fiveStar: number
+  oneStarPercent: number
+  twoStarPercent: number
+  threeStarPercent: number
+  fourStarPercent: number
+  fiveStarPercent: number
 }
 
 /**
@@ -102,18 +90,7 @@ export interface Comment {
   likeCount: number
   isLiked: boolean
   isMyComment: boolean
-  replies: CommentReply[] | null
-}
-
-/**
- * 我的评分
- */
-export interface MyRating {
-  id: number
-  score: number
-  commentText: string | null
-  createdAt: string
-  updatedAt: string
+  replies: Comment[] | null
 }
 
 /**
@@ -127,7 +104,7 @@ export interface RatingItemDetail {
   averageScore: number
   ratingCount: number
   breadcrumb: Breadcrumb
-  scoreDistribution: ScoreDistribution[] | null
+  scoreDistribution: ScoreDistribution | null
   comments: Comment[] | null
-  myRating: MyRating | null
+  myRating: number | null
 }

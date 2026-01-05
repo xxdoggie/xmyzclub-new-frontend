@@ -11,7 +11,7 @@ import {
   likeComment,
   unlikeComment,
 } from '@/api/rating'
-import type { RatingItemDetail, Comment, CommentReply } from '@/types/rating'
+import type { RatingItemDetail, Comment } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
@@ -44,10 +44,10 @@ async function loadDetail() {
     const res = await getRatingItemDetail(itemId)
     if (res.data.code === 200) {
       detail.value = res.data.data
-      // 如果已有评分，初始化用户评分
-      if (detail.value?.myRating) {
-        userRating.value = detail.value.myRating.score
-        userComment.value = detail.value.myRating.commentText || ''
+      // 如果已有评分，初始化用户评分（myRating 现在是数字）
+      if (detail.value?.myRating !== null && detail.value?.myRating !== undefined) {
+        // 将 10 分制转换为 5 星
+        userRating.value = Math.round(detail.value.myRating / 2)
       }
     } else {
       toast.error(res.data.message || '获取详情失败')
@@ -63,7 +63,20 @@ async function loadDetail() {
 const breadcrumbText = computed(() => {
   if (!detail.value?.breadcrumb) return ''
   const b = detail.value.breadcrumb
-  return `${b.schoolName} / ${b.majorSectionName} / ${b.minorSectionName}`
+  return `${b.school.name} / ${b.majorSection.name} / ${b.minorSection.name}`
+})
+
+// 评分分布数组（从对象转换为数组便于渲染）
+const scoreDistributionList = computed(() => {
+  if (!detail.value?.scoreDistribution) return []
+  const dist = detail.value.scoreDistribution
+  return [
+    { star: 5, count: dist.fiveStar, percent: dist.fiveStarPercent },
+    { star: 4, count: dist.fourStar, percent: dist.fourStarPercent },
+    { star: 3, count: dist.threeStar, percent: dist.threeStarPercent },
+    { star: 2, count: dist.twoStar, percent: dist.twoStarPercent },
+    { star: 1, count: dist.oneStar, percent: dist.oneStarPercent },
+  ]
 })
 
 // 显示的评分（悬停时显示悬停值）
@@ -102,12 +115,13 @@ async function handleSubmitRating() {
   }
   isSubmitting.value = true
   try {
+    // 将 5 星评分转换为 10 分制
     const res = await submitRating(itemId, {
-      score: userRating.value,
+      score: userRating.value * 2,
       commentText: userComment.value.trim() || undefined,
     })
     if (res.data.code === 200) {
-      toast.success(detail.value?.myRating ? '评分已更新' : '评分成功')
+      toast.success(detail.value?.myRating !== null ? '评分已更新' : '评分成功')
       // 重新加载详情
       await loadDetail()
     } else {
@@ -121,7 +135,7 @@ async function handleSubmitRating() {
 }
 
 // 点赞评论
-async function handleLike(comment: Comment | CommentReply) {
+async function handleLike(comment: Comment) {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
     return
@@ -275,20 +289,20 @@ onMounted(() => {
             <div class="score-label">综合评分</div>
             <div class="rating-count">{{ detail.ratingCount }} 人评分</div>
           </div>
-          <div v-if="detail.scoreDistribution" class="score-distribution">
+          <div v-if="scoreDistributionList.length > 0" class="score-distribution">
             <div
-              v-for="dist in detail.scoreDistribution"
-              :key="dist.score"
+              v-for="dist in scoreDistributionList"
+              :key="dist.star"
               class="dist-row"
             >
-              <span class="dist-score">{{ dist.score }}分</span>
+              <span class="dist-score">{{ dist.star }}星</span>
               <div class="dist-bar-wrapper">
                 <div
                   class="dist-bar"
-                  :style="{ width: getScoreBarWidth(dist.percentage) }"
+                  :style="{ width: getScoreBarWidth(dist.percent) }"
                 ></div>
               </div>
-              <span class="dist-percent">{{ dist.percentage }}%</span>
+              <span class="dist-percent">{{ dist.percent.toFixed(1) }}%</span>
             </div>
           </div>
         </div>
@@ -324,12 +338,11 @@ onMounted(() => {
               :disabled="isSubmitting || userRating === 0"
               @click="handleSubmitRating"
             >
-              {{ isSubmitting ? '提交中...' : (detail.myRating ? '更新评分' : '提交评分') }}
+              {{ isSubmitting ? '提交中...' : (detail.myRating !== null ? '更新评分' : '提交评分') }}
             </button>
           </div>
-          <p v-if="detail.myRating" class="my-rating-info">
-            您已评分：{{ detail.myRating.score }}分
-            <span v-if="detail.myRating.commentText">「{{ detail.myRating.commentText }}」</span>
+          <p v-if="detail.myRating !== null" class="my-rating-info">
+            您已评分：{{ detail.myRating }}分
           </p>
         </div>
 
@@ -390,9 +403,6 @@ onMounted(() => {
                   <div class="comment-content">
                     <div class="comment-header">
                       <span class="comment-nickname">{{ reply.nickname }}</span>
-                      <span v-if="reply.replyToNickname" class="reply-to">
-                        回复 <span class="reply-target">@{{ reply.replyToNickname }}</span>
-                      </span>
                       <span class="comment-time">{{ formatTime(reply.createdAt) }}</span>
                     </div>
                     <p class="comment-text">{{ reply.commentText }}</p>

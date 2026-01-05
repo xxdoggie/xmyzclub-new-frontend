@@ -47,8 +47,8 @@ export function getRatingItemDetail(itemId: number) {
 /**
  * 提交评分（创建或更新）
  */
-export function submitRating(itemId: number, data: { score: number; commentText?: string }) {
-  return api.post<ApiResponse<number>>(`/rating-community/rating-items/${itemId}/ratings`, data)
+export function submitRating(data: { ratingItemId: number; stars: number }) {
+  return api.post<ApiResponse<null>>('/rating-community/ratings', data)
 }
 
 /**

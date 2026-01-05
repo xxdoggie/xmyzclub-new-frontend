@@ -152,9 +152,15 @@ async function exportResults() {
 
   isExporting.value = true
   try {
+    const token = localStorage.getItem('token')
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`/api/v2/admin/voting/campaigns/${campaignId.value}/export`, {
       method: 'GET',
-      credentials: 'include',
+      headers,
     })
 
     if (!response.ok) {

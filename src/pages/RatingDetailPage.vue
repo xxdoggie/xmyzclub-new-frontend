@@ -83,13 +83,31 @@ const displayRating = computed(() => {
   return hoverRating.value || userRating.value
 })
 
-// 星星点击
-function handleStarClick(star: number) {
+// 星星点击 - 直接提交评分
+async function handleStarClick(star: number) {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
     return
   }
+  if (isSubmitting.value) return
+
   userRating.value = star
+  isSubmitting.value = true
+  try {
+    const res = await submitRating(itemId, {
+      score: star * 2,
+    })
+    if (res.data.code === 200) {
+      toast.success(detail.value?.myRating !== null ? '评分已更新' : '评分成功')
+      await loadDetail()
+    } else {
+      toast.error(res.data.message || '评分失败')
+    }
+  } catch {
+    toast.error('评分失败')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 // 星星悬停
@@ -100,36 +118,6 @@ function handleStarHover(star: number) {
 // 星星离开
 function handleStarLeave() {
   hoverRating.value = 0
-}
-
-// 提交评分
-async function handleSubmitRating() {
-  if (!userStore.isLoggedIn) {
-    userStore.openLoginModal()
-    return
-  }
-  if (userRating.value === 0) {
-    toast.warning('请先选择评分')
-    return
-  }
-  isSubmitting.value = true
-  try {
-    // 将 5 星评分转换为 10 分制
-    const res = await submitRating(itemId, {
-      score: userRating.value * 2,
-    })
-    if (res.data.code === 200) {
-      toast.success(detail.value?.myRating !== null ? '评分已更新' : '评分成功')
-      // 重新加载详情
-      await loadDetail()
-    } else {
-      toast.error(res.data.message || '评分失败')
-    }
-  } catch {
-    toast.error('评分失败')
-  } finally {
-    isSubmitting.value = false
-  }
 }
 
 // 点赞评论
@@ -333,7 +321,7 @@ onMounted(() => {
                 v-for="star in 5"
                 :key="star"
                 class="star-btn"
-                :class="{ active: star <= displayRating }"
+                :class="{ active: star <= displayRating, submitting: isSubmitting }"
                 @click="handleStarClick(star)"
                 @mouseenter="handleStarHover(star)"
                 @mouseleave="handleStarLeave"
@@ -341,14 +329,6 @@ onMounted(() => {
                 <svg viewBox="0 0 24 24" :fill="star <= displayRating ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
-              </button>
-              <button
-                v-if="userRating > 0 && userRating !== Math.round((detail.myRating || 0) / 2)"
-                class="submit-rating-btn"
-                :disabled="isSubmitting"
-                @click="handleSubmitRating"
-              >
-                {{ isSubmitting ? '...' : '确认' }}
               </button>
             </div>
           </div>
@@ -685,28 +665,6 @@ onMounted(() => {
   gap: 4px;
 }
 
-.submit-rating-btn {
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: var(--font-medium);
-  color: white;
-  background: var(--color-primary);
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  margin-left: 4px;
-}
-
-.submit-rating-btn:hover:not(:disabled) {
-  background: var(--color-primary-dark);
-}
-
-.submit-rating-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .section-title {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
@@ -728,6 +686,11 @@ onMounted(() => {
 .star-btn.active {
   color: #ffc94d;
   transform: scale(1.1);
+}
+
+.star-btn.submitting {
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 .star-btn svg {
@@ -1127,11 +1090,6 @@ onMounted(() => {
   .star-btn {
     width: 20px;
     height: 20px;
-  }
-
-  .submit-rating-btn {
-    padding: 4px 12px;
-    font-size: var(--text-xs);
   }
 
   .comment-avatar {

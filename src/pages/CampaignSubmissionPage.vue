@@ -357,7 +357,8 @@ async function submitSubmission() {
 
   isSubmitting.value = true
   try {
-    const musicId = selectedMusic.value.mid || selectedMusic.value.id
+    // 使用数字ID，不是MID，不带前缀
+    const musicId = selectedMusic.value.id
 
     // 构建用户信息
     const userInfo: Record<string, string> = {}
@@ -372,7 +373,7 @@ async function submitSubmission() {
 
     const res = await createSubmission({
       campaignId: campaignId.value,
-      musicServiceId: `qq_${musicId}`,
+      musicServiceId: musicId,
       timePeriodIds: selectedPeriodIds.value,
       userInfo: Object.keys(userInfo).length > 0 ? userInfo : undefined,
     })

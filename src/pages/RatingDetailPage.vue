@@ -39,12 +39,36 @@ const isReplying = ref(false)
 const bottomCommentText = ref('')
 const isSubmittingComment = ref(false)
 
+// 排序状态
+const commentSortBy = ref<'time' | 'hot'>('time')
+const drawerSortBy = ref<'time' | 'hot'>('time')
+
 // 回复抽屉状态
 const replyDrawerComment = ref<Comment | null>(null)
 const isDrawerOpen = ref(false)
 const drawerReplyTarget = ref<{ nickname: string } | null>(null)
 const drawerReplyText = ref('')
 const isSubmittingDrawerReply = ref(false)
+
+// 排序后的评论列表
+const sortedComments = computed(() => {
+  if (!detail.value?.comments) return []
+  const comments = [...detail.value.comments]
+  if (commentSortBy.value === 'hot') {
+    return comments.sort((a, b) => b.likeCount - a.likeCount)
+  }
+  return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+})
+
+// 排序后的抽屉回复列表
+const sortedDrawerReplies = computed(() => {
+  if (!replyDrawerComment.value?.replies) return []
+  const replies = [...replyDrawerComment.value.replies]
+  if (drawerSortBy.value === 'hot') {
+    return replies.sort((a, b) => b.likeCount - a.likeCount)
+  }
+  return replies.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+})
 
 // 获取热门回复（按点赞数排序，取前2条）
 function getHotReplies(replies: Comment[] | null): Comment[] {
@@ -72,7 +96,7 @@ function closeReplyDrawer() {
   }, 300)
 }
 
-// 底部评论框提交
+// 底部评论框提交（乐观更新）
 async function submitBottomComment() {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
@@ -80,19 +104,55 @@ async function submitBottomComment() {
   }
   if (!bottomCommentText.value.trim() || isSubmittingComment.value) return
 
+  const commentText = bottomCommentText.value.trim()
+
+  // 乐观更新：创建临时评论
+  const tempComment: Comment = {
+    id: Date.now(), // 临时 ID
+    commentText,
+    username: userStore.user?.username || '',
+    nickname: userStore.user?.nickname || '我',
+    createdAt: new Date().toISOString(),
+    likeCount: 0,
+    isLiked: false,
+    isMyComment: true,
+    replies: null,
+  }
+
+  // 添加到评论列表最前面
+  if (detail.value) {
+    if (!detail.value.comments) {
+      detail.value.comments = []
+    }
+    detail.value.comments.unshift(tempComment)
+  }
+
+  bottomCommentText.value = ''
+
+  // 滚动到页面顶部
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+
   isSubmittingComment.value = true
   try {
     const res = await createComment({
       ratingItemId: itemId,
-      commentText: bottomCommentText.value.trim(),
+      commentText,
     })
     if (res.data.code === 200) {
-      bottomCommentText.value = ''
+      // 成功后静默刷新获取真实数据
       await loadDetail(true)
     } else {
+      // 失败：移除临时评论
+      if (detail.value?.comments) {
+        detail.value.comments = detail.value.comments.filter(c => c.id !== tempComment.id)
+      }
       toast.error(res.data.message || '评论失败')
     }
   } catch {
+    // 失败：移除临时评论
+    if (detail.value?.comments) {
+      detail.value.comments = detail.value.comments.filter(c => c.id !== tempComment.id)
+    }
     toast.error('评论失败')
   } finally {
     isSubmittingComment.value = false
@@ -114,32 +174,77 @@ function cancelDrawerReply() {
   drawerReplyText.value = ''
 }
 
-// 提交抽屉内回复
+// 提交抽屉内回复（乐观更新）
 async function submitDrawerReply() {
   if (!replyDrawerComment.value || !drawerReplyText.value.trim() || isSubmittingDrawerReply.value) return
+
+  const commentText = drawerReplyText.value.trim()
+  const parentId = replyDrawerComment.value.id
+
+  // 乐观更新：创建临时回复
+  const tempReply: Comment = {
+    id: Date.now(),
+    commentText,
+    username: userStore.user?.username || '',
+    nickname: userStore.user?.nickname || '我',
+    createdAt: new Date().toISOString(),
+    likeCount: 0,
+    isLiked: false,
+    isMyComment: true,
+    replies: null,
+  }
+
+  // 添加到抽屉的回复列表
+  if (!replyDrawerComment.value.replies) {
+    replyDrawerComment.value.replies = []
+  }
+  replyDrawerComment.value.replies.unshift(tempReply)
+
+  // 同步更新主列表中的评论
+  if (detail.value?.comments) {
+    const mainComment = detail.value.comments.find(c => c.id === parentId)
+    if (mainComment) {
+      if (!mainComment.replies) {
+        mainComment.replies = []
+      }
+      mainComment.replies.unshift(tempReply)
+    }
+  }
+
+  drawerReplyTarget.value = null
+  drawerReplyText.value = ''
 
   isSubmittingDrawerReply.value = true
   try {
     const res = await createComment({
       ratingItemId: itemId,
-      commentText: drawerReplyText.value.trim(),
-      parentId: replyDrawerComment.value.id,
+      commentText,
+      parentId,
     })
-    if (res.data.code === 200) {
-      drawerReplyTarget.value = null
-      drawerReplyText.value = ''
-      await loadDetail(true)
-      // 更新抽屉中的评论数据
+    if (res.data.code !== 200) {
+      // 失败：移除临时回复
+      if (replyDrawerComment.value?.replies) {
+        replyDrawerComment.value.replies = replyDrawerComment.value.replies.filter(r => r.id !== tempReply.id)
+      }
       if (detail.value?.comments) {
-        const updatedComment = detail.value.comments.find(c => c.id === replyDrawerComment.value?.id)
-        if (updatedComment) {
-          replyDrawerComment.value = updatedComment
+        const mainComment = detail.value.comments.find(c => c.id === parentId)
+        if (mainComment?.replies) {
+          mainComment.replies = mainComment.replies.filter(r => r.id !== tempReply.id)
         }
       }
-    } else {
       toast.error(res.data.message || '回复失败')
     }
   } catch {
+    // 失败：移除临时回复
+    if (replyDrawerComment.value?.replies) {
+      replyDrawerComment.value.replies = replyDrawerComment.value.replies.filter(r => r.id !== tempReply.id)
+    }
+    if (detail.value?.comments) {
+      const mainComment = detail.value.comments.find(c => c.id === parentId)
+      if (mainComment?.replies) {
+        mainComment.replies = mainComment.replies.filter(r => r.id !== tempReply.id)
+      }
+    }
     toast.error('回复失败')
   } finally {
     isSubmittingDrawerReply.value = false
@@ -242,23 +347,31 @@ function handleStarLeave() {
   hoverRating.value = 0
 }
 
-// 点赞评论
+// 点赞评论（乐观更新）
 async function handleLike(comment: Comment) {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
     return
   }
+
+  // 乐观更新：先切换状态
+  const wasLiked = comment.isLiked
+  const prevCount = comment.likeCount
+  comment.isLiked = !wasLiked
+  comment.likeCount = wasLiked ? prevCount - 1 : prevCount + 1
+
   try {
-    await toggleLike(comment.id)
-    // Toggle 操作，切换状态
-    if (comment.isLiked) {
-      comment.isLiked = false
-      comment.likeCount--
-    } else {
-      comment.isLiked = true
-      comment.likeCount++
+    const res = await toggleLike(comment.id)
+    if (res.data.code !== 200) {
+      // 失败：恢复状态
+      comment.isLiked = wasLiked
+      comment.likeCount = prevCount
+      toast.error(res.data.message || '操作失败')
     }
   } catch {
+    // 失败：恢复状态
+    comment.isLiked = wasLiked
+    comment.likeCount = prevCount
     toast.error('操作失败')
   }
 }
@@ -459,7 +572,25 @@ onMounted(() => {
 
         <!-- 评论区域 -->
         <div class="comments-section">
-          <h2 class="section-title">全部评论 ({{ detail.comments?.length || 0 }})</h2>
+          <div class="comments-header">
+            <span class="comments-count">全部评论 ({{ detail.comments?.length || 0 }})</span>
+            <div class="sort-tabs">
+              <button
+                class="sort-tab"
+                :class="{ active: commentSortBy === 'time' }"
+                @click="commentSortBy = 'time'"
+              >
+                按时间
+              </button>
+              <button
+                class="sort-tab"
+                :class="{ active: commentSortBy === 'hot' }"
+                @click="commentSortBy = 'hot'"
+              >
+                按热度
+              </button>
+            </div>
+          </div>
 
           <!-- 空评论状态 -->
           <div v-if="!detail.comments || detail.comments.length === 0" class="empty-comments">
@@ -468,7 +599,7 @@ onMounted(() => {
 
           <!-- 评论列表 -->
           <div v-else-if="detail.comments" class="comment-list">
-            <div v-for="comment in detail.comments" :key="comment.id" class="comment-card">
+            <div v-for="comment in sortedComments" :key="comment.id" class="comment-card">
               <!-- 主评论 -->
               <div class="comment-main">
                 <div class="comment-avatar">
@@ -579,7 +710,7 @@ onMounted(() => {
             <div v-if="isDrawerOpen" class="drawer-overlay" @click="closeReplyDrawer">
               <div class="drawer-container" @click.stop>
                 <div class="drawer-header">
-                  <h3>全部回复 ({{ replyDrawerComment?.replies?.length || 0 }})</h3>
+                  <h3>回复详情</h3>
                   <button class="drawer-close" @click="closeReplyDrawer">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -596,16 +727,57 @@ onMounted(() => {
                     <div class="comment-body">
                       <div class="comment-header">
                         <span class="comment-nickname">{{ replyDrawerComment.nickname }}</span>
-                        <span class="comment-time">{{ formatTime(replyDrawerComment.createdAt) }}</span>
                       </div>
                       <p class="comment-text">{{ replyDrawerComment.commentText }}</p>
+                      <div class="comment-footer">
+                        <span class="comment-time">{{ formatTime(replyDrawerComment.createdAt) }}</span>
+                        <div class="comment-actions">
+                          <button
+                            class="action-btn"
+                            :class="{ liked: replyDrawerComment.isLiked }"
+                            @click="handleLike(replyDrawerComment)"
+                          >
+                            <svg viewBox="0 0 24 24" :fill="replyDrawerComment.isLiked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                              <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                            </svg>
+                            <span v-if="replyDrawerComment.likeCount > 0">{{ replyDrawerComment.likeCount }}</span>
+                          </button>
+                          <button class="action-btn" @click="startDrawerReply(replyDrawerComment.nickname)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            </svg>
+                            回复
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 回复列表标题和排序 -->
+                  <div class="drawer-replies-header">
+                    <span class="drawer-replies-count">相关回复共 {{ replyDrawerComment?.replies?.length || 0 }} 条</span>
+                    <div class="sort-tabs">
+                      <button
+                        class="sort-tab"
+                        :class="{ active: drawerSortBy === 'time' }"
+                        @click="drawerSortBy = 'time'"
+                      >
+                        按时间
+                      </button>
+                      <button
+                        class="sort-tab"
+                        :class="{ active: drawerSortBy === 'hot' }"
+                        @click="drawerSortBy = 'hot'"
+                      >
+                        按热度
+                      </button>
                     </div>
                   </div>
 
                   <!-- 回复列表 -->
                   <div class="drawer-replies">
                     <div
-                      v-for="reply in replyDrawerComment?.replies"
+                      v-for="reply in sortedDrawerReplies"
                       :key="reply.id"
                       class="drawer-reply-item"
                     >
@@ -615,10 +787,10 @@ onMounted(() => {
                       <div class="comment-body">
                         <div class="comment-header">
                           <span class="comment-nickname">{{ reply.nickname }}</span>
-                          <span class="comment-time">{{ formatTime(reply.createdAt) }}</span>
                         </div>
                         <p class="comment-text">{{ reply.commentText }}</p>
                         <div class="comment-footer">
+                          <span class="comment-time">{{ formatTime(reply.createdAt) }}</span>
                           <div class="comment-actions">
                             <button
                               class="action-btn"
@@ -631,6 +803,9 @@ onMounted(() => {
                               <span v-if="reply.likeCount > 0">{{ reply.likeCount }}</span>
                             </button>
                             <button class="action-btn" @click="startDrawerReply(reply.nickname)">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                              </svg>
                               回复
                             </button>
                             <button
@@ -964,6 +1139,43 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+.comments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.comments-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.sort-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.sort-tab {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.sort-tab:hover {
+  color: var(--color-text);
+}
+
+.sort-tab.active {
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+}
+
 .empty-comments {
   text-align: center;
   padding: var(--spacing-xl);
@@ -1249,8 +1461,20 @@ onMounted(() => {
   display: flex;
   gap: var(--spacing-sm);
   padding-bottom: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   border-bottom: 1px solid var(--color-border);
+}
+
+.drawer-replies-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.drawer-replies-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 .drawer-replies {

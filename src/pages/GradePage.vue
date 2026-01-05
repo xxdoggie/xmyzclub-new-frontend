@@ -297,6 +297,25 @@ onMounted(() => {
                   {{ isBinding ? '绑定中...' : '绑定账号' }}
                 </button>
               </form>
+
+              <!-- 提示信息 -->
+              <div class="bind-tips">
+                <div class="tips-header">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span>温馨提示</span>
+                </div>
+                <ul class="tips-list">
+                  <li>好分数账号是厦门一中平时考试时使用的第三方平台，账号所有权均属于好分数。</li>
+                  <li>你无法在这里修改好分数密码，如果遗忘了账号密码，请前往<strong>好分数官方 App</strong> 处理。</li>
+                  <li>如果提示"密码过于简单"，也请前往好分数 App 进行更改。</li>
+                  <li>好分数账号仅用于查分，只有拥有<strong>好分数会员</strong>的账号可以查看排名。</li>
+                  <li>我们无法从好分数会员中获得任何收益，好分数与我们没有任何关系。</li>
+                </ul>
+              </div>
             </div>
           </section>
 
@@ -646,6 +665,60 @@ onMounted(() => {
 .bind-submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ===== Bind Tips ===== */
+.bind-tips {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  text-align: left;
+}
+
+.tips-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.tips-header svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-info);
+}
+
+.tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.tips-list li {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  padding-left: var(--spacing-md);
+  position: relative;
+}
+
+.tips-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--color-text-placeholder);
+}
+
+.tips-list li strong {
+  color: var(--color-text);
+  font-weight: var(--font-medium);
 }
 
 /* ===== Binding Info Section ===== */

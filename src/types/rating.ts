@@ -102,7 +102,7 @@ export interface Comment {
   likeCount: number
   isLiked: boolean
   isMyComment: boolean
-  replies: CommentReply[]
+  replies: CommentReply[] | null
 }
 
 /**
@@ -127,7 +127,7 @@ export interface RatingItemDetail {
   averageScore: number
   ratingCount: number
   breadcrumb: Breadcrumb
-  scoreDistribution: ScoreDistribution[]
-  comments: Comment[]
+  scoreDistribution: ScoreDistribution[] | null
+  comments: Comment[] | null
   myRating: MyRating | null
 }

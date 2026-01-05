@@ -275,7 +275,7 @@ onMounted(() => {
             <div class="score-label">综合评分</div>
             <div class="rating-count">{{ detail.ratingCount }} 人评分</div>
           </div>
-          <div class="score-distribution">
+          <div v-if="detail.scoreDistribution" class="score-distribution">
             <div
               v-for="dist in detail.scoreDistribution"
               :key="dist.score"
@@ -335,15 +335,15 @@ onMounted(() => {
 
         <!-- 评论区域 -->
         <div class="comments-section">
-          <h2 class="section-title">全部评论 ({{ detail.comments.length }})</h2>
+          <h2 class="section-title">全部评论 ({{ detail.comments?.length || 0 }})</h2>
 
           <!-- 空评论状态 -->
-          <div v-if="detail.comments.length === 0" class="empty-comments">
+          <div v-if="!detail.comments || detail.comments.length === 0" class="empty-comments">
             <p>暂无评论，快来发表第一条评论吧~</p>
           </div>
 
           <!-- 评论列表 -->
-          <div v-else class="comment-list">
+          <div v-else-if="detail.comments" class="comment-list">
             <div v-for="comment in detail.comments" :key="comment.id" class="comment-item">
               <!-- 主评论 -->
               <div class="comment-main">
@@ -382,7 +382,7 @@ onMounted(() => {
               </div>
 
               <!-- 回复列表 -->
-              <div v-if="comment.replies.length > 0" class="reply-list">
+              <div v-if="comment.replies && comment.replies.length > 0" class="reply-list">
                 <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
                   <div class="comment-avatar small">
                     {{ reply.nickname.charAt(0) }}

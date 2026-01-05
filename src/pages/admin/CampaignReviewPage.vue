@@ -6,7 +6,6 @@ import { useToast } from '@/composables/useToast'
 import {
   getCampaignDetail,
   getReviewSubmissions,
-  reviewSubmissions,
   deleteSubmissions,
 } from '@/api/campaign'
 import type { Campaign, TimePeriodSubmissions, SubmissionItem } from '@/types/campaign'
@@ -33,11 +32,6 @@ const isProcessing = ref(false)
 
 // 展开的时段
 const expandedPeriodIds = ref<Set<number>>(new Set())
-
-// 审核确认弹窗
-const showReviewConfirm = ref(false)
-const reviewAction = ref<'approved' | 'rejected'>('approved')
-const reviewNote = ref('')
 
 // 删除确认弹窗
 const showDeleteConfirm = ref(false)
@@ -132,6 +126,23 @@ function deselectAll() {
   selectedSubmissions.value.clear()
 }
 
+function invertSelection() {
+  const allIds = new Set<number>()
+  timePeriodSubmissions.value.forEach(period => {
+    period.submissions.forEach(item => {
+      item.submissionIds.forEach(id => allIds.add(id))
+    })
+  })
+
+  allIds.forEach(id => {
+    if (selectedSubmissions.value.has(id)) {
+      selectedSubmissions.value.delete(id)
+    } else {
+      selectedSubmissions.value.add(id)
+    }
+  })
+}
+
 const selectedCount = computed(() => selectedSubmissions.value.size)
 
 // 计算总投稿数
@@ -144,48 +155,6 @@ const totalSubmissions = computed(() => {
   })
   return count
 })
-
-// ==================== 审核操作 ====================
-
-function openReviewConfirm(action: 'approved' | 'rejected') {
-  if (selectedCount.value === 0) {
-    toast.warning('请先选择要审核的投稿')
-    return
-  }
-  reviewAction.value = action
-  reviewNote.value = ''
-  showReviewConfirm.value = true
-}
-
-async function confirmReview() {
-  if (selectedCount.value === 0) return
-
-  isProcessing.value = true
-  try {
-    const res = await reviewSubmissions({
-      submissionIds: Array.from(selectedSubmissions.value),
-      action: reviewAction.value,
-      note: reviewNote.value || undefined,
-    })
-
-    if (res.data.code === 200) {
-      toast.success(reviewAction.value === 'approved' ? '已批准选中投稿' : '已拒绝选中投稿')
-      showReviewConfirm.value = false
-      selectedSubmissions.value.clear()
-      await loadData()
-    } else {
-      toast.error(res.data.message || '审核操作失败')
-    }
-  } catch (error) {
-    toast.error('审核操作失败')
-  } finally {
-    isProcessing.value = false
-  }
-}
-
-function cancelReview() {
-  showReviewConfirm.value = false
-}
 
 // ==================== 删除操作 ====================
 
@@ -270,23 +239,13 @@ onMounted(() => {
             <div class="selection-info">
               <span v-if="selectedCount > 0">已选择 {{ selectedCount }} / {{ totalSubmissions }} 条</span>
               <span v-else>共 {{ totalSubmissions }} 条投稿</span>
-              <button v-if="selectedCount > 0" class="text-btn" @click="deselectAll">取消全选</button>
-              <button v-else class="text-btn" @click="selectAll">全选</button>
             </div>
             <div class="action-buttons">
-              <button
-                class="action-btn approve"
-                :disabled="selectedCount === 0 || isProcessing"
-                @click="openReviewConfirm('approved')"
-              >
-                批量通过
+              <button class="action-btn select" @click="selectAll">
+                全选
               </button>
-              <button
-                class="action-btn reject"
-                :disabled="selectedCount === 0 || isProcessing"
-                @click="openReviewConfirm('rejected')"
-              >
-                批量拒绝
+              <button class="action-btn select" @click="invertSelection">
+                反选
               </button>
               <button
                 class="action-btn delete"
@@ -391,40 +350,6 @@ onMounted(() => {
     </main>
 
     <PageFooter />
-
-    <!-- ==================== 审核确认 Modal ==================== -->
-    <Transition name="modal-fade">
-      <div v-if="showReviewConfirm" class="modal-overlay" @click.self="cancelReview">
-        <Transition name="modal-scale" appear>
-          <div v-if="showReviewConfirm" class="modal-content" @click.stop>
-            <h3 class="modal-title">{{ reviewAction === 'approved' ? '批准投稿' : '拒绝投稿' }}</h3>
-            <p class="modal-desc">
-              确定要{{ reviewAction === 'approved' ? '批准' : '拒绝' }}选中的 {{ selectedCount }} 条投稿吗？
-            </p>
-            <div class="form-group">
-              <label class="form-label">审核备注（可选）</label>
-              <textarea
-                v-model="reviewNote"
-                class="form-textarea"
-                placeholder="可填写审核备注..."
-                rows="2"
-              ></textarea>
-            </div>
-            <div class="modal-actions">
-              <button class="modal-btn cancel" @click="cancelReview" :disabled="isProcessing">取消</button>
-              <button
-                class="modal-btn confirm"
-                :class="{ danger: reviewAction === 'rejected' }"
-                @click="confirmReview"
-                :disabled="isProcessing"
-              >
-                {{ isProcessing ? '处理中...' : '确定' }}
-              </button>
-            </div>
-          </div>
-        </Transition>
-      </div>
-    </Transition>
 
     <!-- ==================== 删除确认 Modal ==================== -->
     <Transition name="modal-fade">
@@ -581,19 +506,6 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-.text-btn {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  padding: 0;
-}
-
-.text-btn:hover {
-  text-decoration: underline;
-}
-
 .text-btn-sm {
   background: none;
   border: none;
@@ -628,23 +540,13 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.action-btn.approve {
-  background: var(--color-success-bg);
-  color: var(--color-success);
+.action-btn.select {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
-.action-btn.approve:hover:not(:disabled) {
-  background: var(--color-success);
-  color: white;
-}
-
-.action-btn.reject {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.action-btn.reject:hover:not(:disabled) {
-  background: var(--color-warning);
+.action-btn.select:hover:not(:disabled) {
+  background: var(--color-primary);
   color: white;
 }
 
@@ -915,34 +817,6 @@ onMounted(() => {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-md);
-}
-
-.form-group {
-  margin-bottom: var(--spacing-md);
-}
-
-.form-label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  margin-bottom: var(--spacing-xs);
-}
-
-.form-textarea {
-  width: 100%;
-  padding: var(--spacing-sm);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  resize: vertical;
-  min-height: 60px;
-}
-
-.form-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
 }
 
 .modal-actions {

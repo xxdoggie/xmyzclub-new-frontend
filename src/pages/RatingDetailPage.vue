@@ -91,6 +91,7 @@ async function handleStarClick(star: number) {
   }
   if (isSubmitting.value) return
 
+  const previousRating = userRating.value
   userRating.value = star
   isSubmitting.value = true
   try {
@@ -101,9 +102,11 @@ async function handleStarClick(star: number) {
       toast.success(detail.value?.myRating !== null ? '评分已更新' : '评分成功')
       await loadDetail()
     } else {
+      userRating.value = previousRating
       toast.error(res.data.message || '评分失败')
     }
   } catch {
+    userRating.value = previousRating
     toast.error('评分失败')
   } finally {
     isSubmitting.value = false

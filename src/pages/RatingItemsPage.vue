@@ -62,17 +62,17 @@ function handleFilterChange(filter: 'hot' | 'high' | 'low') {
   currentFilter.value = filter
 }
 
-// 获取分数颜色
-function getScoreColor(score: number): string {
-  if (score >= 8) return 'high'
-  if (score >= 6) return 'medium'
-  return 'low'
-}
-
 // 进入详情页面（暂时占位）
 function goToDetail(itemId: number) {
   toast.info('详情页面开发中...')
   console.log('Go to item detail:', itemId)
+}
+
+// 星星评分相关（预留）
+function handleStarClick(itemId: number, star: number, event: Event) {
+  event.stopPropagation()
+  toast.info(`评分功能开发中... (${star}星)`)
+  console.log('Rate item:', itemId, 'stars:', star)
 }
 
 onMounted(() => {
@@ -162,8 +162,21 @@ onMounted(() => {
             <div class="item-details">
               <div class="item-header">
                 <h3 class="item-name">{{ item.name }}</h3>
-                <div class="item-score" :class="getScoreColor(item.averageScore)">
-                  {{ item.averageScore.toFixed(1) }}
+                <div class="item-rating">
+                  <span class="item-score">{{ item.averageScore.toFixed(1) }}分</span>
+                  <!-- 星星评分 -->
+                  <div class="star-rating">
+                    <button
+                      v-for="star in 5"
+                      :key="star"
+                      class="star-btn"
+                      @click="handleStarClick(item.id, star, $event)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="item-meta">
@@ -177,13 +190,6 @@ onMounted(() => {
               <div class="hot-comment empty" v-else>
                 <span class="comment-text">"TA还在等着你评论呢！"</span>
               </div>
-            </div>
-
-            <!-- 箭头 -->
-            <div class="item-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
             </div>
           </div>
         </div>
@@ -337,22 +343,45 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.item-score {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
+.item-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
   flex-shrink: 0;
 }
 
-.item-score.high {
-  color: #10B981;
+.item-score {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-accent);
 }
 
-.item-score.medium {
-  color: #F59E0B;
+/* ===== Star Rating ===== */
+.star-rating {
+  display: flex;
+  gap: 2px;
 }
 
-.item-score.low {
-  color: #EF4444;
+.star-btn {
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.star-btn:hover {
+  color: var(--color-accent);
+  transform: scale(1.1);
+}
+
+.star-btn svg {
+  width: 100%;
+  height: 100%;
 }
 
 .item-meta {
@@ -393,20 +422,6 @@ onMounted(() => {
 .comment-author {
   font-size: 10px;
   color: var(--color-text-placeholder);
-}
-
-/* ===== Item Arrow ===== */
-.item-arrow {
-  display: flex;
-  align-items: center;
-  color: var(--color-text-placeholder);
-  flex-shrink: 0;
-  align-self: center;
-}
-
-.item-arrow svg {
-  width: 18px;
-  height: 18px;
 }
 
 /* ===== Empty State ===== */
@@ -570,6 +585,11 @@ onMounted(() => {
 
   .item-score {
     font-size: var(--text-xl);
+  }
+
+  .star-btn {
+    width: 20px;
+    height: 20px;
   }
 
   .rating-count {

@@ -16,6 +16,11 @@ import type {
   TimePeriodUserSubmissions,
   CreateSubmissionRequest,
   CreateSubmissionResponse,
+  VotingConfigResponse,
+  TimePeriodVotingOptions,
+  SubmitVoteRequest,
+  SubmitVoteResponse,
+  MyVotesResponse,
 } from '@/types/campaign'
 
 // ==================== 用户端 API ====================
@@ -171,4 +176,36 @@ export function getUserSubmissions(campaignId: number) {
  */
 export function createSubmission(data: CreateSubmissionRequest) {
   return api.post<ApiResponse<CreateSubmissionResponse>>('/submissions', data)
+}
+
+// ==================== 用户端投票 API ====================
+
+/**
+ * 获取投票配置
+ */
+export function getVotingConfig(campaignId: number) {
+  return api.get<ApiResponse<VotingConfigResponse>>(`/voting/campaigns/${campaignId}/config`)
+}
+
+/**
+ * 获取投票选项
+ */
+export function getVotingOptions(campaignId: number, buildingCode?: string) {
+  return api.get<ApiResponse<TimePeriodVotingOptions[]>>(`/voting/campaigns/${campaignId}/options`, {
+    params: buildingCode ? { buildingCode } : undefined,
+  })
+}
+
+/**
+ * 提交投票
+ */
+export function submitVote(data: SubmitVoteRequest) {
+  return api.post<ApiResponse<SubmitVoteResponse>>('/voting/vote', data)
+}
+
+/**
+ * 获取我的投票
+ */
+export function getMyVotes(campaignId: number) {
+  return api.get<ApiResponse<MyVotesResponse | null>>(`/voting/campaigns/${campaignId}/my-votes`)
 }

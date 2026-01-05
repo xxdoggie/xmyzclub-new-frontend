@@ -221,7 +221,7 @@ onMounted(() => {
               <p class="page-subtitle" v-if="campaign">{{ campaign.title }}</p>
             </div>
             <button
-              class="export-btn"
+              class="export-btn desktop-only"
               :disabled="isExporting || isLoading"
               @click="exportResults"
             >
@@ -258,6 +258,21 @@ onMounted(() => {
               <div class="stat-label">候选音乐</div>
             </div>
           </div>
+
+          <!-- 移动端导出按钮 -->
+          <button
+            class="export-btn mobile-only"
+            :disabled="isExporting || isLoading"
+            @click="exportResults"
+          >
+            <svg v-if="!isExporting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span v-if="isExporting" class="export-spinner"></span>
+            {{ isExporting ? '导出中...' : '导出表格' }}
+          </button>
 
           <!-- 空状态 -->
           <div v-if="timePeriodResults.length === 0" class="empty-container">
@@ -442,6 +457,17 @@ onMounted(() => {
   cursor: pointer;
   transition: all var(--transition-fast);
   flex-shrink: 0;
+}
+
+.export-btn.desktop-only {
+  display: none;
+}
+
+.export-btn.mobile-only {
+  width: 100%;
+  justify-content: center;
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .export-btn:hover:not(:disabled) {
@@ -925,6 +951,14 @@ onMounted(() => {
 
   .header-text {
     display: block;
+  }
+
+  .export-btn.desktop-only {
+    display: inline-flex;
+  }
+
+  .export-btn.mobile-only {
+    display: none;
   }
 
   .page-title {

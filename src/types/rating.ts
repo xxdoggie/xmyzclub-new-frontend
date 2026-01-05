@@ -25,3 +25,30 @@ export interface MinorSection {
   description: string
   url: string | null
 }
+
+/**
+ * 热门评论
+ */
+export interface TopComment {
+  id: number
+  commentText: string
+  username: string
+  nickname: string
+  createdAt: string
+  likeCount: number
+  isLiked: boolean
+  isMyComment: boolean
+}
+
+/**
+ * 评分项目
+ */
+export interface RatingItem {
+  id: number
+  name: string
+  description: string
+  url: string | null
+  averageScore: number
+  ratingCount: number
+  topComment: TopComment | null
+}

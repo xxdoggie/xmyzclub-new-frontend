@@ -1,6 +1,6 @@
 import api from './index'
 import type { ApiResponse } from './index'
-import type { School, MajorSection, MinorSection } from '@/types/rating'
+import type { School, MajorSection, MinorSection, RatingItem } from '@/types/rating'
 
 /**
  * 获取学校列表
@@ -21,4 +21,11 @@ export function getMajorSections(schoolId: number) {
  */
 export function getMinorSections(majorSectionId: number) {
   return api.get<ApiResponse<MinorSection[]>>(`/rating-community/major-sections/${majorSectionId}/minor-sections`)
+}
+
+/**
+ * 获取小分区的评分项目列表
+ */
+export function getRatingItems(minorSectionId: number) {
+  return api.get<ApiResponse<RatingItem[]>>(`/rating-community/minor-sections/${minorSectionId}/rating-items`)
 }

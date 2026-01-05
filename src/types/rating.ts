@@ -38,6 +38,8 @@ export interface TopComment {
   likeCount: number
   isLiked: boolean
   isMyComment: boolean
+  commenterScore: number | null // 评论者对该项目的评分（10分制）
+  commenterStars: number | null // 评论者对该项目的评分（5星制）
 }
 
 /**
@@ -50,6 +52,8 @@ export interface RatingItem {
   url: string | null
   averageScore: number
   ratingCount: number
+  myScore: number | null // 当前用户对该项目的评分（10分制）
+  myStars: number | null // 当前用户对该项目的评分（5星制）
   topComment: TopComment | null
 }
 

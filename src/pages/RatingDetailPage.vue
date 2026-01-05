@@ -45,7 +45,7 @@ const bottomCommentText = ref('')
 const isSubmittingComment = ref(false)
 
 // 排序状态
-const commentSortBy = ref<'time' | 'hot'>('time')
+const commentSortBy = ref<'time' | 'hot'>('hot')
 const drawerSortBy = ref<'time' | 'hot'>('time')
 
 // 回复抽屉状态

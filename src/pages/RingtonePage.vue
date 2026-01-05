@@ -50,37 +50,27 @@ function canEnterCampaign(campaign: Campaign): boolean {
   return stageType === 'submission' || stageType === 'voting'
 }
 
-// 获取活动入口文案
-function getEnterLabel(stageType: StageType): string {
-  const labels: Record<StageType, string> = {
-    submission: '去投稿',
-    voting: '去投票',
-    review: '审核中',
-    result: '查看结果',
-  }
-  return labels[stageType] || ''
-}
+// 5个阶段定义
+const stages = [
+  { key: 'pending', label: '未开始' },
+  { key: 'submission', label: '投稿' },
+  { key: 'review', label: '审核' },
+  { key: 'voting', label: '投票' },
+  { key: 'ended', label: '结束' },
+]
 
-// 获取阶段状态标签
-function getStageLabel(stageType: StageType): string {
-  const labels: Record<StageType, string> = {
-    submission: '投稿中',
-    review: '审核中',
-    voting: '投票中',
-    result: '已结束',
-  }
-  return labels[stageType] || ''
-}
+// 获取当前阶段索引 (0-4)
+function getCurrentStageIndex(campaign: Campaign): number {
+  if (!campaign.currentStage) return 0 // 未开始
 
-// 获取阶段状态样式
-function getStageClass(stageType: StageType): string {
-  const classes: Record<StageType, string> = {
-    submission: 'stage-submission',
-    review: 'stage-review',
-    voting: 'stage-voting',
-    result: 'stage-result',
+  const stageType = campaign.currentStage.stageType
+  switch (stageType) {
+    case 'submission': return 1
+    case 'review': return 2
+    case 'voting': return 3
+    case 'result': return 4
+    default: return 0
   }
-  return classes[stageType] || ''
 }
 
 // 跳转到活动详情
@@ -168,8 +158,9 @@ onMounted(() => {
 
         <!-- 活动列表 -->
         <div v-else class="campaigns-section">
-          <div class="section-header">
-            <span class="section-title">铃声征集活动</span>
+          <!-- 桌面端显示标题 -->
+          <div class="section-header desktop-only">
+            <span class="section-title">全部活动</span>
           </div>
 
           <div class="campaigns-list">
@@ -180,62 +171,52 @@ onMounted(() => {
               :class="{ clickable: canEnterCampaign(campaign) }"
               @click="canEnterCampaign(campaign) && goToCampaign(campaign)"
             >
-              <!-- 活动封面区域 -->
-              <div class="campaign-cover">
-                <div class="cover-content">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 18V5l12-2v13"></path>
-                    <circle cx="6" cy="18" r="3"></circle>
-                    <circle cx="18" cy="16" r="3"></circle>
-                  </svg>
+              <!-- 进度条区域 -->
+              <div class="campaign-steps">
+                <div class="steps-track">
+                  <div
+                    v-for="(stage, index) in stages"
+                    :key="stage.key"
+                    class="step-item"
+                    :class="{
+                      active: index === getCurrentStageIndex(campaign),
+                      completed: index < getCurrentStageIndex(campaign),
+                    }"
+                  >
+                    <div class="step-dot">
+                      <svg v-if="index < getCurrentStageIndex(campaign)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <span class="step-label">{{ stage.label }}</span>
+                  </div>
                 </div>
-                <!-- 状态标签 -->
-                <span
-                  v-if="campaign.currentStage"
-                  class="stage-badge"
-                  :class="getStageClass(campaign.currentStage.stageType)"
-                >
-                  {{ getStageLabel(campaign.currentStage.stageType) }}
-                </span>
+                <div class="steps-line">
+                  <div
+                    class="steps-line-fill"
+                    :style="{ width: `${(getCurrentStageIndex(campaign) / (stages.length - 1)) * 100}%` }"
+                  ></div>
+                </div>
               </div>
 
               <!-- 活动信息 -->
               <div class="campaign-info">
-                <h3 class="campaign-name">{{ campaign.title }}</h3>
+                <h3 class="campaign-title">{{ campaign.title }}</h3>
                 <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
                 <div class="campaign-meta">
-                  <span class="meta-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                      <circle cx="12" cy="10" r="3"></circle>
-                    </svg>
-                    {{ campaign.campus?.name || '未知校区' }}
-                  </span>
+                  <span class="meta-item">{{ campaign.campus?.name || '未知校区' }}</span>
+                  <span v-if="campaign.currentStage?.endTime" class="meta-divider">·</span>
                   <span v-if="campaign.currentStage?.endTime" class="meta-item countdown">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
                     {{ formatEndTime(campaign.currentStage.endTime) }}
                   </span>
                 </div>
               </div>
 
-              <!-- 操作区域 -->
-              <div class="campaign-action">
-                <button
-                  v-if="canEnterCampaign(campaign)"
-                  class="enter-btn"
-                  :class="campaign.currentStage?.stageType"
-                >
-                  {{ getEnterLabel(campaign.currentStage!.stageType) }}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </button>
-                <span v-else class="status-text">
-                  {{ campaign.currentStage ? getStageLabel(campaign.currentStage.stageType) : '未开始' }}
-                </span>
+              <!-- 箭头（桌面端显示） -->
+              <div class="campaign-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
               </div>
             </div>
           </div>
@@ -260,7 +241,7 @@ onMounted(() => {
 
 .page-content {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-sm);
+  padding: var(--spacing-sm);
 }
 
 .content-container {
@@ -306,8 +287,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--color-secondary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
   border-radius: var(--radius-xl);
 }
 
@@ -333,7 +314,7 @@ onMounted(() => {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: white;
-  background: var(--color-secondary);
+  background: var(--color-primary);
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -341,7 +322,7 @@ onMounted(() => {
 }
 
 .login-btn:hover {
-  opacity: 0.9;
+  background: var(--color-primary-dark);
 }
 
 /* ===== Loading ===== */
@@ -358,7 +339,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 3px solid var(--color-border);
-  border-top-color: var(--color-secondary);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: var(--spacing-md);
@@ -417,8 +398,8 @@ onMounted(() => {
   background: var(--color-card);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .campaign-card.clickable {
@@ -434,70 +415,99 @@ onMounted(() => {
   transform: translateY(0);
 }
 
-/* ===== Campaign Cover ===== */
-.campaign-cover {
+/* ===== Campaign Steps ===== */
+.campaign-steps {
   position: relative;
-  height: 100px;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+  padding: var(--spacing-md) var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+}
+
+.steps-track {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.step-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 4px;
+  transition: all var(--transition-fast);
 }
 
-.cover-content {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(6, 182, 212, 0.2);
-  color: var(--color-secondary);
-  border-radius: var(--radius-lg);
-}
-
-.cover-content svg {
-  width: 28px;
-  height: 28px;
-}
-
-.stage-badge {
-  position: absolute;
-  top: var(--spacing-sm);
-  left: var(--spacing-sm);
-  padding: 4px 10px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  border-radius: var(--radius-full);
+.step-dot svg {
+  width: 10px;
+  height: 10px;
   color: white;
-  backdrop-filter: blur(4px);
 }
 
-.stage-badge.stage-submission {
-  background: rgba(6, 182, 212, 0.9);
+.step-item.active .step-dot {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
-.stage-badge.stage-review {
-  background: rgba(245, 158, 11, 0.9);
+.step-item.completed .step-dot {
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 
-.stage-badge.stage-voting {
-  background: rgba(168, 85, 247, 0.9);
+.step-label {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+  white-space: nowrap;
+  transition: all var(--transition-fast);
 }
 
-.stage-badge.stage-result {
-  background: rgba(107, 114, 128, 0.9);
+.step-item.active .step-label {
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+}
+
+.step-item.completed .step-label {
+  color: var(--color-success);
+}
+
+.steps-line {
+  position: absolute;
+  top: calc(var(--spacing-md) + 9px);
+  left: calc(10% + 10px);
+  right: calc(10% + 10px);
+  height: 2px;
+  background: var(--color-border);
+}
+
+.steps-line-fill {
+  height: 100%;
+  background: var(--color-success);
+  transition: width 0.3s ease;
 }
 
 /* ===== Campaign Info ===== */
 .campaign-info {
   flex: 1;
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-top: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
 }
 
-.campaign-name {
+.campaign-title {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   line-height: 1.4;
@@ -512,86 +522,28 @@ onMounted(() => {
   line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
 }
 
 .campaign-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
   margin-top: var(--spacing-xs);
 }
 
-.meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-}
-
-.meta-item svg {
-  width: 12px;
-  height: 12px;
+.meta-divider {
+  color: var(--color-border);
 }
 
 .meta-item.countdown {
   color: var(--color-warning);
 }
 
-/* ===== Campaign Action ===== */
-.campaign-action {
-  padding: 0 var(--spacing-md) var(--spacing-md);
-}
-
-.enter-btn {
-  width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  border: none;
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.enter-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.enter-btn.submission {
-  background: rgba(6, 182, 212, 0.15);
-  color: var(--color-secondary);
-}
-
-.enter-btn.submission:hover {
-  background: var(--color-secondary);
-  color: white;
-}
-
-.enter-btn.voting {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
-}
-
-.enter-btn.voting:hover {
-  background: #a855f7;
-  color: white;
-}
-
-.status-text {
-  display: block;
-  text-align: center;
-  font-size: var(--text-sm);
-  color: var(--color-text-placeholder);
-  padding: var(--spacing-sm);
+.campaign-arrow {
+  display: none;
 }
 
 /* ===== Desktop ===== */
@@ -622,12 +574,31 @@ onMounted(() => {
 
   .campaign-card {
     flex-direction: row;
+    align-items: center;
   }
 
-  .campaign-cover {
-    width: 180px;
-    height: auto;
-    min-height: 140px;
+  .campaign-steps {
+    width: 280px;
+    flex-shrink: 0;
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .step-dot {
+    width: 24px;
+    height: 24px;
+  }
+
+  .step-dot svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .step-label {
+    font-size: var(--text-xs);
+  }
+
+  .steps-line {
+    top: calc(var(--spacing-lg) + 11px);
   }
 
   .campaign-info {
@@ -635,7 +606,7 @@ onMounted(() => {
     justify-content: center;
   }
 
-  .campaign-name {
+  .campaign-title {
     font-size: var(--text-lg);
   }
 
@@ -647,25 +618,16 @@ onMounted(() => {
     font-size: var(--text-sm);
   }
 
-  .meta-item {
-    font-size: var(--text-sm);
-  }
-
-  .meta-item svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .campaign-action {
+  .campaign-arrow {
     display: flex;
     align-items: center;
-    padding: var(--spacing-lg);
-    padding-left: 0;
+    padding: 0 var(--spacing-lg);
+    color: var(--color-text-placeholder);
   }
 
-  .enter-btn {
-    width: auto;
-    padding: var(--spacing-sm) var(--spacing-lg);
+  .campaign-arrow svg {
+    width: 20px;
+    height: 20px;
   }
 }
 </style>

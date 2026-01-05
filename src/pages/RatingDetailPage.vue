@@ -596,7 +596,7 @@ onMounted(() => {
 .score-value {
   font-size: 28px;
   font-weight: var(--font-bold);
-  color: #f5a623;
+  color: #ffc94d;
   line-height: 1;
 }
 
@@ -610,7 +610,7 @@ onMounted(() => {
 /* 垂直分隔线 */
 .score-divider-vertical {
   width: 1px;
-  background: var(--color-border);
+  background: rgba(0, 0, 0, 0.06);
   align-self: stretch;
 }
 
@@ -618,14 +618,15 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   justify-content: center;
+  padding-left: var(--spacing-sm);
 }
 
 .dist-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .dist-stars {
@@ -637,17 +638,17 @@ onMounted(() => {
 .dist-star-icon {
   width: 10px;
   height: 10px;
-  color: #f5a623;
+  color: #ffc94d;
 }
 
 .dist-star-icon.inactive {
-  opacity: 0.15;
+  opacity: 0.2;
 }
 
 .dist-bar-wrapper {
   flex: 1;
   height: 6px;
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.04);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
@@ -662,7 +663,7 @@ onMounted(() => {
 /* 水平分隔线 */
 .score-divider {
   height: 1px;
-  background: var(--color-border);
+  background: rgba(0, 0, 0, 0.06);
   margin: var(--spacing-sm) 0;
 }
 
@@ -713,8 +714,8 @@ onMounted(() => {
 }
 
 .star-btn {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   background: transparent;
   border: none;
@@ -725,7 +726,7 @@ onMounted(() => {
 
 .star-btn:hover,
 .star-btn.active {
-  color: #f5a623;
+  color: #ffc94d;
   transform: scale(1.1);
 }
 
@@ -1124,8 +1125,8 @@ onMounted(() => {
   }
 
   .star-btn {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
   }
 
   .submit-rating-btn {

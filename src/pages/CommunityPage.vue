@@ -798,20 +798,20 @@ onMounted(() => {
   right: var(--spacing-xs);
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: white;
+  gap: 4px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
 }
 
 .score-badge svg {
-  width: 10px;
-  height: 10px;
-  color: #FBBF24;
+  width: 14px;
+  height: 14px;
+  color: #1a1a1a;
 }
 
 /* 信息区 */

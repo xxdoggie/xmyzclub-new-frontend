@@ -29,7 +29,6 @@ const detail = ref<RatingItemDetail | null>(null)
 // 用户评分状态
 const userRating = ref(0)
 const hoverRating = ref(0)
-const userComment = ref('')
 const isSubmitting = ref(false)
 
 // 评论状态
@@ -59,11 +58,11 @@ async function loadDetail() {
   }
 }
 
-// 面包屑文本
+// 面包屑文本（只显示大分区和小分区）
 const breadcrumbText = computed(() => {
   if (!detail.value?.breadcrumb) return ''
   const b = detail.value.breadcrumb
-  return `${b.school.name} / ${b.majorSection.name} / ${b.minorSection.name}`
+  return `${b.majorSection.name} / ${b.minorSection.name}`
 })
 
 // 评分分布数组（从对象转换为数组便于渲染）
@@ -118,7 +117,6 @@ async function handleSubmitRating() {
     // 将 5 星评分转换为 10 分制
     const res = await submitRating(itemId, {
       score: userRating.value * 2,
-      commentText: userComment.value.trim() || undefined,
     })
     if (res.data.code === 200) {
       toast.success(detail.value?.myRating !== null ? '评分已更新' : '评分成功')
@@ -258,92 +256,100 @@ onMounted(() => {
 
       <!-- 正常内容 -->
       <template v-else-if="detail">
-        <!-- 项目头部 -->
-        <div class="item-header">
-          <div class="item-image-wrapper">
-            <img
-              v-if="detail.url"
-              :src="detail.url"
-              :alt="detail.name"
-              class="item-image"
-            />
-            <div v-else class="item-image-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
-              </svg>
+        <!-- 项目头部卡片 -->
+        <div class="item-header-card">
+          <div class="item-header">
+            <div class="item-image-wrapper">
+              <img
+                v-if="detail.url"
+                :src="detail.url"
+                :alt="detail.name"
+                class="item-image"
+              />
+              <div v-else class="item-image-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
             </div>
-          </div>
-          <div class="item-info">
-            <h1 class="item-name">{{ detail.name }}</h1>
-            <p v-if="breadcrumbText" class="item-breadcrumb">{{ breadcrumbText }}</p>
-            <p v-if="detail.description" class="item-desc">{{ detail.description }}</p>
+            <div class="item-info">
+              <h1 class="item-name">{{ detail.name }}</h1>
+              <p v-if="breadcrumbText" class="item-breadcrumb">{{ breadcrumbText }}</p>
+              <p v-if="detail.description" class="item-desc">{{ detail.description }}</p>
+            </div>
           </div>
         </div>
 
         <!-- 评分卡片 -->
         <div class="score-card">
-          <div class="score-main">
-            <div class="score-value">{{ detail.averageScore.toFixed(1) }}</div>
-            <div class="score-label">综合评分</div>
-            <div class="rating-count">{{ detail.ratingCount }} 人评分</div>
-          </div>
-          <div v-if="scoreDistributionList.length > 0" class="score-distribution">
-            <div
-              v-for="dist in scoreDistributionList"
-              :key="dist.star"
-              class="dist-row"
-            >
-              <span class="dist-score">{{ dist.star }}星</span>
-              <div class="dist-bar-wrapper">
-                <div
-                  class="dist-bar"
-                  :style="{ width: getScoreBarWidth(dist.percent) }"
-                ></div>
+          <div class="score-content">
+            <div class="score-main">
+              <div class="score-value">{{ detail.averageScore.toFixed(1) }}</div>
+              <div class="rating-count">{{ detail.ratingCount }} 人评分</div>
+            </div>
+            <div v-if="scoreDistributionList.length > 0" class="score-distribution">
+              <div
+                v-for="dist in scoreDistributionList"
+                :key="dist.star"
+                class="dist-row"
+              >
+                <div class="dist-stars">
+                  <svg
+                    v-for="s in 5"
+                    :key="s"
+                    class="dist-star-icon"
+                    viewBox="0 0 24 24"
+                    :fill="s <= dist.star ? 'currentColor' : 'none'"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <div class="dist-bar-wrapper">
+                  <div
+                    class="dist-bar"
+                    :style="{ width: getScoreBarWidth(dist.percent) }"
+                  ></div>
+                </div>
               </div>
-              <span class="dist-percent">{{ dist.percent.toFixed(1) }}%</span>
             </div>
           </div>
-        </div>
 
-        <!-- 用户评分区域 -->
-        <div class="user-rating-section">
-          <h2 class="section-title">我的评分</h2>
-          <div class="rating-stars">
-            <button
-              v-for="star in 5"
-              :key="star"
-              class="star-btn"
-              :class="{ active: star <= displayRating }"
-              @click="handleStarClick(star)"
-              @mouseenter="handleStarHover(star)"
-              @mouseleave="handleStarLeave"
-            >
-              <svg viewBox="0 0 24 24" :fill="star <= displayRating ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-            </button>
-            <span v-if="displayRating > 0" class="rating-text">{{ displayRating }}分</span>
+          <!-- 分隔线 -->
+          <div class="score-divider"></div>
+
+          <!-- 用户评分区域 -->
+          <div class="user-rating-row">
+            <span class="user-rating-label">
+              {{ detail.myRating !== null ? '已评分' : '未评分' }}
+            </span>
+            <div class="user-rating-stars">
+              <button
+                v-for="star in 5"
+                :key="star"
+                class="star-btn"
+                :class="{ active: star <= displayRating }"
+                @click="handleStarClick(star)"
+                @mouseenter="handleStarHover(star)"
+                @mouseleave="handleStarLeave"
+              >
+                <svg viewBox="0 0 24 24" :fill="star <= displayRating ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </button>
+              <button
+                v-if="userRating > 0 && userRating !== Math.round((detail.myRating || 0) / 2)"
+                class="submit-rating-btn"
+                :disabled="isSubmitting"
+                @click="handleSubmitRating"
+              >
+                {{ isSubmitting ? '...' : '确认' }}
+              </button>
+            </div>
           </div>
-          <div class="rating-comment">
-            <textarea
-              v-model="userComment"
-              class="comment-input"
-              placeholder="写点评价吧（可选）..."
-              rows="3"
-            ></textarea>
-            <button
-              class="submit-btn"
-              :disabled="isSubmitting || userRating === 0"
-              @click="handleSubmitRating"
-            >
-              {{ isSubmitting ? '提交中...' : (detail.myRating !== null ? '更新评分' : '提交评分') }}
-            </button>
-          </div>
-          <p v-if="detail.myRating !== null" class="my-rating-info">
-            您已评分：{{ detail.myRating }}分
-          </p>
         </div>
 
         <!-- 评论区域 -->
@@ -487,11 +493,18 @@ onMounted(() => {
   width: 100%;
 }
 
-/* ===== Item Header ===== */
+/* ===== Item Header Card ===== */
+.item-header-card {
+  padding: var(--spacing-lg);
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
 .item-header {
   display: flex;
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
 }
 
 .item-image-wrapper {
@@ -555,8 +568,6 @@ onMounted(() => {
 
 /* ===== Score Card ===== */
 .score-card {
-  display: flex;
-  gap: var(--spacing-lg);
   padding: var(--spacing-lg);
   background: var(--color-card);
   border-radius: var(--radius-lg);
@@ -564,12 +575,17 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+.score-content {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
 .score-main {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 80px;
+  min-width: 70px;
 }
 
 .score-value {
@@ -579,16 +595,10 @@ onMounted(() => {
   line-height: 1;
 }
 
-.score-label {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  margin-top: var(--spacing-xs);
-}
-
 .rating-count {
   font-size: 10px;
   color: var(--color-text-placeholder);
-  margin-top: 2px;
+  margin-top: var(--spacing-xs);
 }
 
 .score-distribution {
@@ -604,11 +614,16 @@ onMounted(() => {
   gap: var(--spacing-xs);
 }
 
-.dist-score {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  width: 28px;
+.dist-stars {
+  display: flex;
+  gap: 1px;
   flex-shrink: 0;
+}
+
+.dist-star-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--color-accent);
 }
 
 .dist-bar-wrapper {
@@ -626,21 +641,51 @@ onMounted(() => {
   transition: width 0.3s ease;
 }
 
-.dist-percent {
-  font-size: 10px;
-  color: var(--color-text-placeholder);
-  width: 32px;
-  text-align: right;
-  flex-shrink: 0;
+/* 分隔线 */
+.score-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--spacing-md) 0;
 }
 
-/* ===== User Rating Section ===== */
-.user-rating-section {
-  padding: var(--spacing-lg);
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-md);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+/* 用户评分行 */
+.user-rating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-rating-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.user-rating-stars {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.submit-rating-btn {
+  padding: 4px 12px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-left: var(--spacing-xs);
+}
+
+.submit-rating-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.submit-rating-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .section-title {
@@ -649,16 +694,9 @@ onMounted(() => {
   margin-bottom: var(--spacing-md);
 }
 
-.rating-stars {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-md);
-}
-
 .star-btn {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   background: transparent;
   border: none;
@@ -676,36 +714,6 @@ onMounted(() => {
 .star-btn svg {
   width: 100%;
   height: 100%;
-}
-
-.rating-text {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--color-accent);
-  margin-left: var(--spacing-sm);
-}
-
-.rating-comment {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.comment-input {
-  width: 100%;
-  padding: var(--spacing-sm);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  resize: none;
-  transition: border-color var(--transition-fast);
-}
-
-.comment-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
 }
 
 .submit-btn {
@@ -732,12 +740,6 @@ onMounted(() => {
 
 .submit-btn.small {
   padding: var(--spacing-xs) var(--spacing-md);
-}
-
-.my-rating-info {
-  margin-top: var(--spacing-sm);
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
 }
 
 /* ===== Comments Section ===== */
@@ -1036,9 +1038,12 @@ onMounted(() => {
     max-width: 900px;
   }
 
+  .item-header-card {
+    padding: var(--spacing-xl);
+  }
+
   .item-header {
     gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-lg);
   }
 
   .item-image-wrapper {
@@ -1060,6 +1065,9 @@ onMounted(() => {
 
   .score-card {
     padding: var(--spacing-xl);
+  }
+
+  .score-content {
     gap: var(--spacing-xl);
   }
 
@@ -1067,29 +1075,27 @@ onMounted(() => {
     font-size: 48px;
   }
 
-  .score-label {
-    font-size: var(--text-sm);
-  }
-
   .rating-count {
     font-size: var(--text-xs);
   }
 
-  .dist-score {
-    font-size: var(--text-sm);
+  .dist-star-icon {
+    width: 14px;
+    height: 14px;
   }
 
   .dist-bar-wrapper {
     height: 10px;
   }
 
-  .dist-percent {
-    font-size: var(--text-xs);
+  .star-btn {
+    width: 32px;
+    height: 32px;
   }
 
-  .star-btn {
-    width: 44px;
-    height: 44px;
+  .submit-rating-btn {
+    padding: 6px 16px;
+    font-size: var(--text-sm);
   }
 
   .comment-avatar {

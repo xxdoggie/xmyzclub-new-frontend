@@ -582,11 +582,6 @@ onMounted(() => {
 
           <!-- 步骤1：选择宿舍楼（分楼投票模式） -->
           <section v-if="currentStep === 'building' && isByBuilding" class="step-section">
-            <div class="section-header">
-              <h2 class="section-title">选择您的宿舍楼</h2>
-              <p class="section-desc">请选择您所在的宿舍楼进行投票</p>
-            </div>
-
             <div class="buildings-grid">
               <button
                 v-for="building in buildings"

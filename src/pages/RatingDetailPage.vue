@@ -14,6 +14,11 @@ import type { RatingItemDetail, Comment } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
+// 扁平化的回复类型，包含被回复人信息
+interface FlattenedReply extends Comment {
+  replyToNickname?: string // 被回复人昵称
+}
+
 const route = useRoute()
 const toast = useToast()
 const userStore = useUserStore()
@@ -40,13 +45,13 @@ const bottomCommentText = ref('')
 const isSubmittingComment = ref(false)
 
 // 排序状态
-const commentSortBy = ref<'time' | 'hot'>('time')
+const commentSortBy = ref<'time' | 'hot'>('hot')
 const drawerSortBy = ref<'time' | 'hot'>('time')
 
 // 回复抽屉状态
 const replyDrawerComment = ref<Comment | null>(null)
 const isDrawerOpen = ref(false)
-const drawerReplyTarget = ref<{ nickname: string } | null>(null)
+const drawerReplyTarget = ref<{ commentId: number; nickname: string } | null>(null)
 const drawerReplyText = ref('')
 const isSubmittingDrawerReply = ref(false)
 
@@ -60,14 +65,32 @@ const sortedComments = computed(() => {
   return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 })
 
-// 排序后的抽屉回复列表
+// 递归扁平化回复列表，记录被回复人（直接修改原对象以保持引用，使点赞等操作能正确更新）
+function flattenReplies(replies: Comment[] | null, parentNickname?: string): FlattenedReply[] {
+  if (!replies || replies.length === 0) return []
+  const result: FlattenedReply[] = []
+  for (const reply of replies) {
+    // 直接在原对象上添加 replyToNickname，保持引用以支持点赞等操作
+    (reply as FlattenedReply).replyToNickname = parentNickname
+    result.push(reply as FlattenedReply)
+    // 递归处理嵌套的回复
+    if (reply.replies && reply.replies.length > 0) {
+      result.push(...flattenReplies(reply.replies, reply.nickname))
+    }
+  }
+  return result
+}
+
+// 排序后的抽屉回复列表（扁平化处理嵌套回复）
 const sortedDrawerReplies = computed(() => {
   if (!replyDrawerComment.value?.replies) return []
-  const replies = [...replyDrawerComment.value.replies]
+  // 扁平化所有嵌套回复
+  const flatReplies = flattenReplies(replyDrawerComment.value.replies)
   if (drawerSortBy.value === 'hot') {
-    return replies.sort((a, b) => b.likeCount - a.likeCount)
+    return flatReplies.sort((a, b) => b.likeCount - a.likeCount)
   }
-  return replies.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  // 回复区按时间正序（早的在前面）
+  return flatReplies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 })
 
 // 获取热门回复（按点赞数排序，取前2条）
@@ -160,12 +183,12 @@ async function submitBottomComment() {
 }
 
 // 抽屉内开始回复
-function startDrawerReply(nickname: string) {
+function startDrawerReply(commentId: number, nickname: string) {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
     return
   }
-  drawerReplyTarget.value = { nickname }
+  drawerReplyTarget.value = { commentId, nickname }
 }
 
 // 取消抽屉内回复
@@ -179,7 +202,9 @@ async function submitDrawerReply() {
   if (!replyDrawerComment.value || !drawerReplyText.value.trim() || isSubmittingDrawerReply.value) return
 
   const commentText = drawerReplyText.value.trim()
-  const parentId = replyDrawerComment.value.id
+  // 如果有回复目标（点击了某条评论的回复按钮），使用该评论ID作为parentId
+  // 否则（直接在输入框输入），使用一级评论ID作为parentId
+  const parentId = drawerReplyTarget.value?.commentId ?? replyDrawerComment.value.id
 
   // 乐观更新：创建临时回复
   const tempReply: Comment = {
@@ -263,6 +288,13 @@ async function loadDetail(silent = false) {
       // 如果已有评分，初始化用户评分（myRating 是 10 分制，转换为 5 星）
       if (detail.value?.myRating !== null && detail.value?.myRating !== undefined) {
         userRating.value = Math.round(detail.value.myRating / 2)
+      }
+      // 如果抽屉打开着，同步更新抽屉中的评论数据
+      if (isDrawerOpen.value && replyDrawerComment.value && detail.value?.comments) {
+        const updatedComment = detail.value.comments.find(c => c.id === replyDrawerComment.value!.id)
+        if (updatedComment) {
+          replyDrawerComment.value = updatedComment
+        }
       }
     } else if (!silent) {
       toast.error(res.data.message || '获取详情失败')
@@ -405,7 +437,7 @@ async function handleSubmitReply() {
     if (res.data.code === 200) {
       toast.success('回复成功')
       cancelReply()
-      await loadDetail()
+      await loadDetail(true) // 静默重载数据
     } else {
       toast.error(res.data.message || '回复失败')
     }
@@ -423,7 +455,7 @@ async function handleDeleteComment(commentId: number) {
     const res = await deleteComment(commentId)
     if (res.data.code === 200) {
       toast.success('删除成功')
-      await loadDetail()
+      await loadDetail(true) // 静默重载数据
     } else {
       toast.error(res.data.message || '删除失败')
     }
@@ -608,6 +640,17 @@ onMounted(() => {
                 <div class="comment-body">
                   <div class="comment-header">
                     <span class="comment-nickname">{{ comment.nickname }}</span>
+                    <span v-if="comment.commenterStars !== null" class="commenter-stars">
+                      <svg
+                        v-for="i in 5"
+                        :key="i"
+                        class="star-icon"
+                        :class="{ filled: i <= comment.commenterStars }"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    </span>
                   </div>
                   <p class="comment-text">{{ comment.commentText }}</p>
                   <div class="comment-footer">
@@ -727,6 +770,17 @@ onMounted(() => {
                     <div class="comment-body">
                       <div class="comment-header">
                         <span class="comment-nickname">{{ replyDrawerComment.nickname }}</span>
+                        <span v-if="replyDrawerComment.commenterStars !== null" class="commenter-stars">
+                          <svg
+                            v-for="i in 5"
+                            :key="i"
+                            class="star-icon"
+                            :class="{ filled: i <= replyDrawerComment.commenterStars }"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                          </svg>
+                        </span>
                       </div>
                       <p class="comment-text">{{ replyDrawerComment.commentText }}</p>
                       <div class="comment-footer">
@@ -742,7 +796,7 @@ onMounted(() => {
                             </svg>
                             <span v-if="replyDrawerComment.likeCount > 0">{{ replyDrawerComment.likeCount }}</span>
                           </button>
-                          <button class="action-btn" @click="startDrawerReply(replyDrawerComment.nickname)">
+                          <button class="action-btn" @click="startDrawerReply(replyDrawerComment.id, replyDrawerComment.nickname)">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                             </svg>
@@ -787,8 +841,21 @@ onMounted(() => {
                       <div class="comment-body">
                         <div class="comment-header">
                           <span class="comment-nickname">{{ reply.nickname }}</span>
+                          <span v-if="reply.commenterStars !== null" class="commenter-stars">
+                            <svg
+                              v-for="i in 5"
+                              :key="i"
+                              class="star-icon"
+                              :class="{ filled: i <= reply.commenterStars }"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                          </span>
                         </div>
-                        <p class="comment-text">{{ reply.commentText }}</p>
+                        <p class="comment-text">
+                          <span v-if="reply.replyToNickname" class="reply-to">回复 @{{ reply.replyToNickname }}：</span>{{ reply.commentText }}
+                        </p>
                         <div class="comment-footer">
                           <span class="comment-time">{{ formatTime(reply.createdAt) }}</span>
                           <div class="comment-actions">
@@ -802,7 +869,7 @@ onMounted(() => {
                               </svg>
                               <span v-if="reply.likeCount > 0">{{ reply.likeCount }}</span>
                             </button>
-                            <button class="action-btn" @click="startDrawerReply(reply.nickname)">
+                            <button class="action-btn" @click="startDrawerReply(reply.id, reply.nickname)">
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                               </svg>
@@ -1238,6 +1305,24 @@ onMounted(() => {
   color: var(--color-text);
 }
 
+.commenter-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: auto;
+}
+
+.commenter-stars .star-icon {
+  width: 12px;
+  height: 12px;
+  fill: var(--color-border);
+  stroke: none;
+}
+
+.commenter-stars .star-icon.filled {
+  fill: var(--color-warning);
+}
+
 .comment-time {
   font-size: 11px;
   color: var(--color-text-placeholder);
@@ -1248,6 +1333,11 @@ onMounted(() => {
   line-height: 1.6;
   color: var(--color-text);
   word-break: break-word;
+}
+
+.reply-to {
+  color: var(--color-primary);
+  font-weight: 500;
 }
 
 .comment-footer {

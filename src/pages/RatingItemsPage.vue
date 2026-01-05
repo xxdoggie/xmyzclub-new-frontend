@@ -2,7 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
-import { getRatingItems } from '@/api/rating'
+import { useUserStore } from '@/stores/user'
+import { getRatingItems, submitRating } from '@/api/rating'
 import type { RatingItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
@@ -10,6 +11,7 @@ import PageFooter from '@/components/layout/PageFooter.vue'
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const userStore = useUserStore()
 
 // 获取路由参数
 const minorId = Number(route.params.minorId)
@@ -18,6 +20,9 @@ const minorId = Number(route.params.minorId)
 const isLoading = ref(true)
 const ratingItems = ref<RatingItem[]>([])
 const currentFilter = ref<'hot' | 'high' | 'low'>('hot')
+
+// 星星悬停状态：记录每个项目的悬停星数
+const hoverStars = ref<Record<number, number>>({})
 
 // 筛选选项
 const filters = [
@@ -68,11 +73,59 @@ function goToDetail(itemId: number) {
   router.push(`/community/item/${itemId}`)
 }
 
-// 星星评分相关（预留）
-function handleStarClick(itemId: number, star: number, event: Event) {
+// 星星悬停处理
+function handleStarHover(itemId: number, star: number) {
+  hoverStars.value[itemId] = star
+}
+
+function handleStarLeave(itemId: number) {
+  hoverStars.value[itemId] = 0
+}
+
+// 获取显示的星数（悬停优先，否则显示已评分数）
+function getDisplayStars(item: RatingItem): number {
+  if (hoverStars.value[item.id]) {
+    return hoverStars.value[item.id]
+  }
+  return item.myStars || 0
+}
+
+// 星星评分点击（乐观更新）
+async function handleStarClick(item: RatingItem, star: number, event: Event) {
   event.stopPropagation()
-  toast.info(`评分功能开发中... (${star}星)`)
-  console.log('Rate item:', itemId, 'stars:', star)
+
+  if (!userStore.isLoggedIn) {
+    userStore.openLoginModal()
+    return
+  }
+
+  // 保存原始值用于回滚
+  const prevMyStars = item.myStars
+  const prevMyScore = item.myScore
+
+  // 乐观更新
+  item.myStars = star
+  item.myScore = star * 2
+
+  try {
+    const res = await submitRating({
+      ratingItemId: item.id,
+      stars: star,
+    })
+    if (res.data.code === 200) {
+      toast.success('评分成功')
+    } else {
+      // 失败：回滚
+      item.myStars = prevMyStars
+      item.myScore = prevMyScore
+      toast.error(res.data.message || '评分失败')
+    }
+  } catch {
+    // 失败：回滚
+    item.myStars = prevMyStars
+    item.myScore = prevMyScore
+    toast.error('评分失败')
+  }
 }
 
 onMounted(() => {
@@ -165,14 +218,19 @@ onMounted(() => {
                 <div class="item-rating">
                   <span class="item-score">{{ item.averageScore.toFixed(1) }}分</span>
                   <!-- 星星评分 -->
-                  <div class="star-rating">
+                  <div
+                    class="star-rating"
+                    @mouseleave="handleStarLeave(item.id)"
+                  >
                     <button
                       v-for="star in 5"
                       :key="star"
                       class="star-btn"
-                      @click="handleStarClick(item.id, star, $event)"
+                      :class="{ filled: star <= getDisplayStars(item) }"
+                      @click="handleStarClick(item, star, $event)"
+                      @mouseenter="handleStarHover(item.id, star)"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <svg viewBox="0 0 24 24" stroke-width="1.5">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                       </svg>
                     </button>
@@ -370,18 +428,23 @@ onMounted(() => {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--color-border);
   transition: all var(--transition-fast);
-}
-
-.star-btn:hover {
-  color: var(--color-accent);
-  transform: scale(1.1);
 }
 
 .star-btn svg {
   width: 100%;
   height: 100%;
+  fill: var(--color-border);
+  stroke: var(--color-border);
+}
+
+.star-btn:hover svg {
+  transform: scale(1.1);
+}
+
+.star-btn.filled svg {
+  fill: var(--color-warning);
+  stroke: var(--color-warning);
 }
 
 .item-meta {

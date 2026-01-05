@@ -7,6 +7,7 @@ import type {
   RatingItem,
   RatingItemDetail,
   Comment,
+  RandomRatingItem,
 } from '@/types/rating'
 
 /**
@@ -84,4 +85,13 @@ export function getMyComments() {
  */
 export function toggleLike(commentId: number) {
   return api.post<ApiResponse<null>>('/rating-community/likes', { commentId })
+}
+
+/**
+ * 获取随机推荐项目
+ */
+export function getRandomItems(schoolId: number, count: number = 10) {
+  return api.get<ApiResponse<RandomRatingItem[]>>('/rating-community/random-items', {
+    params: { schoolId, count },
+  })
 }

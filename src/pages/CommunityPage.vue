@@ -1,54 +1,29 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
-import { getSchools, getMajorSections } from '@/api/rating'
-import type { School, MajorSection } from '@/types/rating'
+import { getMajorSections, getRandomItems } from '@/api/rating'
+import type { MajorSection, RandomRatingItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
 const router = useRouter()
 const toast = useToast()
 
+// 固定学校ID
+const SCHOOL_ID = 1
+
 // 状态
-const isLoadingSchools = ref(true)
-const isLoadingSections = ref(false)
-const schools = ref<School[]>([])
+const isLoading = ref(true)
 const majorSections = ref<MajorSection[]>([])
-const selectedSchoolId = ref<number | null>(null)
-
-// 当前选中的学校
-const selectedSchool = computed(() => {
-  return schools.value.find((s) => s.id === selectedSchoolId.value)
-})
-
-// 加载学校列表
-async function loadSchools() {
-  isLoadingSchools.value = true
-  try {
-    const res = await getSchools()
-    if (res.data.code === 200) {
-      schools.value = res.data.data
-      // 如果只有一个学校，自动选中
-      if (schools.value.length === 1 && schools.value[0]) {
-        selectedSchoolId.value = schools.value[0].id
-      }
-    } else {
-      toast.error(res.data.message || '获取学校列表失败')
-    }
-  } catch {
-    toast.error('获取学校列表失败')
-  } finally {
-    isLoadingSchools.value = false
-  }
-}
+const randomItems = ref<RandomRatingItem[]>([])
+const isLoadingRandom = ref(false)
 
 // 加载大分区列表
-async function loadMajorSections(schoolId: number) {
-  isLoadingSections.value = true
-  majorSections.value = []
+async function loadMajorSections() {
+  isLoading.value = true
   try {
-    const res = await getMajorSections(schoolId)
+    const res = await getMajorSections(SCHOOL_ID)
     if (res.data.code === 200) {
       majorSections.value = res.data.data
     } else {
@@ -57,13 +32,43 @@ async function loadMajorSections(schoolId: number) {
   } catch {
     toast.error('获取分区列表失败')
   } finally {
-    isLoadingSections.value = false
+    isLoading.value = false
   }
 }
 
-// 选择学校
-function selectSchool(schoolId: number) {
-  selectedSchoolId.value = schoolId
+// 加载随机推荐
+async function loadRandomItems() {
+  isLoadingRandom.value = true
+  try {
+    const res = await getRandomItems(SCHOOL_ID, 10)
+    if (res.data.code === 200) {
+      // 有图片的排前面
+      randomItems.value = res.data.data.sort((a, b) => {
+        if (a.url && !b.url) return -1
+        if (!a.url && b.url) return 1
+        return 0
+      })
+    }
+  } catch {
+    // 静默失败，推荐区域可选
+  } finally {
+    isLoadingRandom.value = false
+  }
+}
+
+// 刷新推荐
+async function refreshRandom() {
+  await loadRandomItems()
+}
+
+// 进入评分详情
+function goToRatingItem(item: RandomRatingItem) {
+  router.push(`/community/item/${item.id}`)
+}
+
+// 格式化评分显示
+function formatScore(score: number): string {
+  return score.toFixed(1)
 }
 
 // 进入大分区
@@ -71,7 +76,7 @@ function goToMajorSection(section: MajorSection) {
   router.push(`/community/major/${section.id}`)
 }
 
-// 获取分区图标（根据分区名称返回不同图标）
+// 获取分区图标类型
 function getSectionIcon(name: string): string {
   if (name.includes('食堂') || name.includes('档口') || name.includes('餐')) {
     return 'utensils'
@@ -79,7 +84,7 @@ function getSectionIcon(name: string): string {
   if (name.includes('建筑') || name.includes('楼') || name.includes('馆')) {
     return 'building'
   }
-  if (name.includes('考试') || name.includes('测验')) {
+  if (name.includes('考试') || name.includes('测验') || name.includes('课程')) {
     return 'clipboard'
   }
   if (name.includes('活动') || name.includes('社团')) {
@@ -94,38 +99,9 @@ function getSectionIcon(name: string): string {
   return 'star'
 }
 
-// 获取分区渐变色（根据分区名称返回不同颜色）
-function getSectionGradient(name: string): string {
-  if (name.includes('食堂') || name.includes('档口') || name.includes('餐')) {
-    return 'linear-gradient(135deg, #FF6B6B, #E74C3C)'
-  }
-  if (name.includes('建筑') || name.includes('楼') || name.includes('馆')) {
-    return 'linear-gradient(135deg, #4ECDC4, #2ECC71)'
-  }
-  if (name.includes('考试') || name.includes('测验')) {
-    return 'linear-gradient(135deg, #A29BFE, #6C5CE7)'
-  }
-  if (name.includes('活动') || name.includes('社团')) {
-    return 'linear-gradient(135deg, #FDCB6E, #F39C12)'
-  }
-  if (name.includes('图书') || name.includes('阅读')) {
-    return 'linear-gradient(135deg, #74B9FF, #3498DB)'
-  }
-  if (name.includes('运动') || name.includes('体育')) {
-    return 'linear-gradient(135deg, #55EFC4, #00B894)'
-  }
-  return 'linear-gradient(135deg, #FD79A8, #E84393)'
-}
-
-// 监听学校选择变化
-watch(selectedSchoolId, (newId) => {
-  if (newId) {
-    loadMajorSections(newId)
-  }
-})
-
 onMounted(() => {
-  loadSchools()
+  loadMajorSections()
+  loadRandomItems()
 })
 </script>
 
@@ -134,153 +110,225 @@ onMounted(() => {
     <PageHeader back-to="/" />
 
     <main class="page-content">
-      <!-- 加载状态 -->
-      <div v-if="isLoadingSchools" class="loading-container">
-        <div class="loading-spinner"></div>
-        <p>加载中...</p>
-      </div>
-
-      <!-- 学校列表为空 -->
-      <div v-else-if="schools.length === 0" class="empty-container">
-        <div class="empty-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <!-- Hero Banner -->
+      <div class="hero-banner">
+        <div class="hero-bg">
+          <div class="hero-pattern"></div>
+        </div>
+        <div class="hero-content">
+          <h1 class="hero-title">发现 · 评价 · 分享</h1>
+          <p class="hero-subtitle">和同学们一起探索校园的每一个角落</p>
+        </div>
+        <div class="hero-decoration">
+          <svg class="float-icon" style="--delay: 0s; --x: 70%; --y: 15%;" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
           </svg>
+          <svg class="float-icon" style="--delay: 0.5s; --x: 85%; --y: 35%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <svg class="float-icon" style="--delay: 1s; --x: 75%; --y: 65%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+          </svg>
+          <svg class="float-icon" style="--delay: 1.5s; --x: 90%; --y: 75%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+          </svg>
         </div>
-        <h2>暂无学校</h2>
-        <p>目前没有可用的学校</p>
       </div>
 
-      <template v-else>
-        <!-- Hero Section -->
-        <div class="hero-section">
-          <div class="hero-content">
-            <h1 class="hero-title">评分社区</h1>
-            <p class="hero-desc">探索校园，分享你的评价</p>
-          </div>
-          <div class="hero-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
+      <!-- 快捷提示 -->
+      <div class="quick-tips">
+        <div class="tip-item">
+          <svg class="tip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="tip-text">点击分区探索更多</span>
+        </div>
+        <div class="tip-divider"></div>
+        <div class="tip-item">
+          <svg class="tip-icon" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <span class="tip-text">给你喜欢的打分</span>
+        </div>
+      </div>
+
+      <!-- 加载状态 -->
+      <div v-if="isLoading" class="loading-state">
+        <div class="skeleton-grid">
+          <div v-for="i in 4" :key="i" class="skeleton-card">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-text"></div>
           </div>
         </div>
+      </div>
 
-        <!-- 学校选择 Tabs -->
-        <div class="school-tabs" v-if="schools.length > 1">
-          <span class="tabs-label desktop-only">选择学校</span>
-          <div class="tabs-list">
-            <button
-              v-for="school in schools"
-              :key="school.id"
-              class="tab-item"
-              :class="{ active: selectedSchoolId === school.id }"
-              @click="selectSchool(school.id)"
-            >
-              {{ school.name }}
-            </button>
-          </div>
+      <!-- 空状态 -->
+      <div v-else-if="majorSections.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M8 15h8"></path>
+            <circle cx="9" cy="9" r="1" fill="currentColor"></circle>
+            <circle cx="15" cy="9" r="1" fill="currentColor"></circle>
+          </svg>
         </div>
+        <h3>暂无分区</h3>
+        <p>稍后再来看看吧</p>
+      </div>
 
-        <!-- 大分区网格 -->
-        <div class="sections-container">
-          <h2 class="sections-title desktop-only">
-            {{ selectedSchool?.name ? `${selectedSchool.name} · 分区` : '选择分区' }}
-          </h2>
-
-          <!-- 加载大分区 -->
-          <div v-if="isLoadingSections" class="loading-container small">
-            <div class="loading-spinner"></div>
-            <p>加载中...</p>
-          </div>
-
-          <!-- 未选择学校提示 -->
-          <div v-else-if="!selectedSchoolId" class="hint-container">
-            <p>请先选择学校</p>
-          </div>
-
-          <!-- 大分区为空 -->
-          <div v-else-if="majorSections.length === 0" class="empty-container small">
-            <p>该学校暂无分区</p>
-          </div>
-
-          <!-- 大分区网格 -->
-          <div v-else class="section-grid">
-            <div
-              v-for="section in majorSections"
-              :key="section.id"
-              class="section-card"
-              @click="goToMajorSection(section)"
-            >
-              <!-- 封面图 -->
-              <div class="section-cover">
-                <img
-                  v-if="section.url"
-                  :src="section.url"
-                  :alt="section.name"
-                  loading="lazy"
-                />
-                <div
-                  v-else
-                  class="section-placeholder"
-                  :style="{ background: getSectionGradient(section.name) }"
-                >
-                  <!-- 餐厅图标 -->
-                  <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-                    <path d="M7 2v20"></path>
-                    <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
-                  </svg>
-                  <!-- 建筑图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                    <line x1="9" y1="22" x2="9" y2="2"></line>
-                    <line x1="15" y1="22" x2="15" y2="2"></line>
-                    <line x1="4" y1="12" x2="20" y2="12"></line>
-                  </svg>
-                  <!-- 考试图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                    <line x1="8" y1="10" x2="16" y2="10"></line>
-                    <line x1="8" y1="14" x2="16" y2="14"></line>
-                    <line x1="8" y1="18" x2="12" y2="18"></line>
-                  </svg>
-                  <!-- 活动图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                  <!-- 图书图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                  </svg>
-                  <!-- 运动图标 -->
-                  <svg v-else-if="getSectionIcon(section.name) === 'trophy'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                    <path d="M4 22h16"></path>
-                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-                  </svg>
-                  <!-- 默认星星图标 -->
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                </div>
+      <!-- 分区列表 -->
+      <div v-else class="sections-wrapper">
+        <div class="section-grid">
+          <div
+            v-for="section in majorSections"
+            :key="section.id"
+            class="section-card"
+            @click="goToMajorSection(section)"
+          >
+            <!-- 卡片内容 -->
+            <div class="card-content">
+              <div class="card-icon">
+                <!-- 餐厅图标 -->
+                <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                  <path d="M7 2v20"></path>
+                  <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
+                </svg>
+                <!-- 建筑图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                  <path d="M9 22v-4h6v4"></path>
+                  <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"></path>
+                </svg>
+                <!-- 考试图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                  <path d="M9 12h6M9 16h6"></path>
+                </svg>
+                <!-- 活动图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <!-- 图书图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                <!-- 运动图标 -->
+                <svg v-else-if="getSectionIcon(section.name) === 'trophy'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                  <path d="M4 22h16"></path>
+                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                </svg>
+                <!-- 默认星星图标 -->
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
               </div>
-              <!-- 信息 -->
-              <div class="section-info">
-                <h3 class="section-name">{{ section.name }}</h3>
-                <p v-if="section.description" class="section-desc">{{ section.description }}</p>
+              <div class="card-info">
+                <h3 class="card-title">{{ section.name }}</h3>
+                <p v-if="section.description" class="card-desc">{{ section.description }}</p>
+                <p v-else class="card-desc">点击探索更多内容</p>
+              </div>
+              <div class="card-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
               </div>
             </div>
           </div>
         </div>
-      </template>
+      </div>
+
+      <!-- 随机推荐 -->
+      <div class="recommend-section">
+        <div class="recommend-header">
+          <h2 class="recommend-title">
+            <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
+              <polyline points="7.5 19.79 7.5 14.6 3 12"></polyline>
+              <polyline points="21 12 16.5 14.6 16.5 19.79"></polyline>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <span>随机发现</span>
+          </h2>
+          <button class="refresh-btn" :disabled="isLoadingRandom" @click="refreshRandom">
+            <svg :class="{ spinning: isLoadingRandom }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            <span>换一批</span>
+          </button>
+        </div>
+
+        <!-- 推荐加载状态 -->
+        <div v-if="isLoadingRandom && randomItems.length === 0" class="recommend-loading">
+          <div v-for="i in 4" :key="i" class="recommend-skeleton">
+            <div class="skeleton-cover"></div>
+            <div class="skeleton-info">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-meta"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 推荐列表 -->
+        <div v-else-if="randomItems.length > 0" class="recommend-grid">
+          <div
+            v-for="item in randomItems"
+            :key="item.id"
+            class="recommend-card"
+            @click="goToRatingItem(item)"
+          >
+            <!-- 封面图 -->
+            <div class="recommend-cover">
+              <img
+                v-if="item.url"
+                :src="item.url"
+                :alt="item.name"
+                loading="lazy"
+              />
+              <div v-else class="cover-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+              <!-- 评分标签 -->
+              <div class="score-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <span>{{ formatScore(item.averageScore) }}</span>
+              </div>
+            </div>
+            <!-- 信息区 -->
+            <div class="recommend-info">
+              <h3 class="recommend-name">{{ item.name }}</h3>
+              <p class="recommend-breadcrumb">{{ item.breadcrumb.minorSection.name }}</p>
+              <!-- 热评 -->
+              <div v-if="item.topComment" class="recommend-comment">
+                <span class="comment-text">"{{ item.topComment.commentText }}"</span>
+              </div>
+              <!-- 统计 -->
+              <div class="recommend-stats">
+                <span class="stat-item">{{ item.ratingCount }} 人评分</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
 
     <PageFooter />
@@ -301,339 +349,606 @@ onMounted(() => {
 .page-content {
   flex: 1;
   padding: var(--spacing-sm);
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
   width: 100%;
 }
 
-.desktop-only {
-  display: none;
+/* ===== Hero Banner ===== */
+.hero-banner {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
-/* ===== Hero Section ===== */
-.hero-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-md);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  border-radius: var(--radius-xl);
-  margin-bottom: var(--spacing-md);
-  color: white;
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+}
+
+.hero-pattern {
+  display: none;
 }
 
 .hero-content {
-  flex: 1;
+  position: relative;
+  z-index: 1;
+  color: var(--color-text);
 }
 
 .hero-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-xs);
-}
-
-.hero-desc {
-  font-size: var(--text-sm);
-  opacity: 0.9;
-}
-
-.hero-icon {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-lg);
-  flex-shrink: 0;
-}
-
-.hero-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-/* ===== School Tabs ===== */
-.school-tabs {
-  margin-bottom: var(--spacing-md);
-}
-
-.tabs-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.tabs-list {
-  display: flex;
-  gap: var(--spacing-sm);
-  overflow-x: auto;
-  padding-bottom: var(--spacing-xs);
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.tabs-list::-webkit-scrollbar {
-  display: none;
-}
-
-.tab-item {
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
-  background: var(--color-card);
-  border: 2px solid transparent;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.tab-item:hover {
-  border-color: var(--color-border);
-}
-
-.tab-item.active {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border-color: var(--color-primary);
-}
-
-/* ===== Sections Container ===== */
-.sections-container {
-  flex: 1;
-}
-
-.sections-title {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
+  letter-spacing: -0.02em;
 }
 
-/* ===== Loading ===== */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-2xl);
+.hero-subtitle {
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
-.loading-container.small {
-  padding: var(--spacing-xl);
+.hero-decoration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: var(--spacing-md);
+.float-icon {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 20px;
+  height: 20px;
+  color: var(--color-primary);
+  opacity: 0.4;
+  animation: float 3s ease-in-out infinite;
+  animation-delay: var(--delay);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(5deg);
   }
 }
 
-/* ===== Empty & Hint ===== */
-.empty-container,
-.hint-container {
-  text-align: center;
-  padding: var(--spacing-xl) var(--spacing-md);
-  color: var(--color-text-secondary);
-}
-
-.empty-container.small {
-  padding: var(--spacing-lg);
-}
-
-.empty-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto var(--spacing-lg);
+/* ===== Quick Tips ===== */
+.quick-tips {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-border);
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.tip-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary);
+}
+
+.tip-text {
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  border-radius: var(--radius-xl);
+}
+
+.tip-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
+}
+
+/* ===== Loading State ===== */
+.loading-state {
+  padding: var(--spacing-md) 0;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm);
+}
+
+.skeleton-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-text {
+  flex: 1;
+  height: 20px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--spacing-md);
+  color: var(--color-text-placeholder);
 }
 
 .empty-icon svg {
-  width: 40px;
-  height: 40px;
+  width: 100%;
+  height: 100%;
 }
 
-.empty-container h2 {
+.empty-state h3 {
   font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-xs);
 }
 
-.empty-container p,
-.hint-container p {
+.empty-state p {
+  color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 
-/* ===== Section Grid ===== */
+/* ===== Sections ===== */
+.sections-wrapper {
+  margin-bottom: var(--spacing-lg);
+}
+
 .section-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--spacing-sm);
 }
 
 .section-card {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-card);
+  position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all var(--transition-normal);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .section-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .section-card:active {
   transform: translateY(0);
 }
 
-.section-cover {
+.card-content {
   position: relative;
-  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-card);
+  border-left: 4px solid transparent;
+  border-image: var(--card-gradient, linear-gradient(135deg, var(--color-primary), #8B5CF6)) 1;
+}
+
+.section-card:nth-child(1) .card-content { --card-gradient: linear-gradient(135deg, #FF6B6B, #FF8E53); }
+.section-card:nth-child(2) .card-content { --card-gradient: linear-gradient(135deg, #4ECDC4, #44A08D); }
+.section-card:nth-child(3) .card-content { --card-gradient: linear-gradient(135deg, #A29BFE, #6C5CE7); }
+.section-card:nth-child(4) .card-content { --card-gradient: linear-gradient(135deg, #FDCB6E, #F39C12); }
+.section-card:nth-child(5) .card-content { --card-gradient: linear-gradient(135deg, #74B9FF, #0984E3); }
+.section-card:nth-child(6) .card-content { --card-gradient: linear-gradient(135deg, #55EFC4, #00B894); }
+
+.card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.card-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-arrow {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
+}
+
+.card-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== Recommend Section ===== */
+.recommend-section {
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.recommend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.recommend-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+}
+
+.recommend-title .title-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-primary);
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.refresh-btn svg.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 推荐加载骨架 */
+.recommend-loading {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.recommend-skeleton {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
-.section-cover img {
+.recommend-skeleton .skeleton-cover {
+  aspect-ratio: 4 / 3;
+  background: var(--color-border);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.recommend-skeleton .skeleton-info {
+  padding: var(--spacing-sm);
+}
+
+.recommend-skeleton .skeleton-title {
+  height: 16px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-xs);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.recommend-skeleton .skeleton-meta {
+  height: 12px;
+  width: 60%;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 推荐网格 */
+.recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.recommend-card {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.recommend-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.recommend-card:active {
+  transform: translateY(0);
+}
+
+/* 封面 */
+.recommend-cover {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.recommend-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.section-placeholder {
+.cover-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
 }
 
-.section-placeholder svg {
+:root.dark .cover-placeholder {
+  background: linear-gradient(135deg, #1e2538 0%, #252d40 100%);
+}
+
+.cover-placeholder svg {
   width: 36px;
   height: 36px;
-  color: white;
-  opacity: 0.9;
+  color: var(--color-primary);
+  opacity: 0.4;
 }
 
-.section-info {
-  flex: 1;
-  padding: var(--spacing-sm);
+/* 评分标签 */
+.score-badge {
+  position: absolute;
+  bottom: var(--spacing-xs);
+  left: var(--spacing-xs);
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.section-name {
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  line-height: 1.3;
+  color: white;
+}
+
+.score-badge svg {
+  width: 12px;
+  height: 12px;
+  color: #FBBF24;
+}
+
+/* 信息区 */
+.recommend-info {
+  padding: var(--spacing-sm);
+}
+
+.recommend-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.section-desc {
+.recommend-breadcrumb {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  line-height: 1.4;
+  margin-bottom: var(--spacing-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.recommend-comment {
+  margin-bottom: var(--spacing-xs);
+}
+
+.comment-text {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.recommend-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.stat-item {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
 }
 
 /* ===== Desktop ===== */
-@media (min-width: 1024px) {
-  .desktop-only {
-    display: block;
-  }
-
+@media (min-width: 768px) {
   .page-content {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    max-width: 900px;
   }
 
-  .hero-section {
-    padding: var(--spacing-xl) var(--spacing-2xl);
-    margin-bottom: var(--spacing-lg);
+  .hero-banner {
+    padding: var(--spacing-lg);
   }
 
   .hero-title {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
   }
 
-  .hero-desc {
-    font-size: var(--text-base);
+  .hero-subtitle {
+    font-size: var(--text-sm);
   }
 
-  .hero-icon {
-    width: 80px;
-    height: 80px;
+  .float-icon {
+    width: 28px;
+    height: 28px;
   }
 
-  .hero-icon svg {
-    width: 40px;
-    height: 40px;
+  .quick-tips {
+    gap: var(--spacing-xl);
   }
 
-  .school-tabs {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .tabs-label {
-    display: inline-block;
-    margin-right: var(--spacing-md);
-    margin-bottom: 0;
-  }
-
-  .tabs-list {
-    display: inline-flex;
-  }
-
-  .tab-item {
-    padding: var(--spacing-sm) var(--spacing-lg);
+  .tip-text {
+    font-size: var(--text-sm);
   }
 
   .section-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-md);
   }
 
-  .section-placeholder svg {
-    width: 48px;
-    height: 48px;
+  .card-content {
+    padding: var(--spacing-lg);
   }
 
-  .section-info {
-    padding: var(--spacing-md);
+  .card-icon {
+    width: 56px;
+    height: 56px;
   }
 
-  .section-name {
+  .card-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .card-title {
+    font-size: var(--text-lg);
+  }
+
+  .card-desc {
+    font-size: var(--text-sm);
+  }
+
+  .recommend-loading,
+  .recommend-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .recommend-name {
     font-size: var(--text-base);
   }
+}
 
-  .section-desc {
-    font-size: var(--text-sm);
+@media (min-width: 1024px) {
+  .page-content {
+    padding: var(--spacing-xl);
+    max-width: 1000px;
+  }
+
+  .hero-banner {
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  .section-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .recommend-loading,
+  .recommend-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 </style>

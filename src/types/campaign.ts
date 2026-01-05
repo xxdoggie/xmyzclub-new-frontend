@@ -59,6 +59,8 @@ export interface CurrentStage {
   endTime?: string
   /** 阶段状态 */
   status: StageStatus
+  /** 阶段配置 */
+  config?: Record<string, unknown>
 }
 
 /**
@@ -499,4 +501,106 @@ export interface CreateSubmissionRequest {
  */
 export interface CreateSubmissionResponse {
   submissions: UserSubmission[]
+}
+
+// ==================== 投票相关类型 ====================
+
+/**
+ * 投票配置响应
+ */
+export interface VotingConfigResponse {
+  campaignId: number
+  votingMode: 'unified' | 'by_building'
+  buildings: {
+    id: number
+    code: string
+    name: string
+  }[]
+  currentStage: {
+    id: number
+    stageType: string
+    name: string
+    status: string
+  } | null
+}
+
+/**
+ * 投票选项中的音乐信息
+ */
+export interface VotingOptionMusic {
+  id: number
+  songName: string
+  artist: string
+  album: string
+  coverUrl: string
+  musicServiceId: string
+}
+
+/**
+ * 投票选项
+ */
+export interface VotingOptionItem {
+  id: number
+  music: VotingOptionMusic
+  targetBuildings: string[]
+  voteCount: number
+}
+
+/**
+ * 按时段分组的投票选项
+ */
+export interface TimePeriodVotingOptions {
+  timePeriod: {
+    id: number
+    name: string
+    code: string
+  }
+  options: VotingOptionItem[]
+}
+
+/**
+ * 提交投票请求
+ */
+export interface SubmitVoteRequest {
+  campaignId: number
+  buildingChoice?: string
+  votes: {
+    timePeriodId: number
+    votingOptionId: number
+  }[]
+  userInfo?: Record<string, string>
+}
+
+/**
+ * 提交投票响应
+ */
+export interface SubmitVoteResponse {
+  success: boolean
+  voteCount: number
+}
+
+/**
+ * 我的投票记录
+ */
+export interface MyVoteRecord {
+  timePeriod: {
+    id: number
+    name: string
+    code: string
+  }
+  music: {
+    id: number
+    songName: string
+    artist: string
+  }
+}
+
+/**
+ * 我的投票响应
+ */
+export interface MyVotesResponse {
+  campaignId: number
+  buildingChoice: string | null
+  votes: MyVoteRecord[]
+  votedAt: string
 }

@@ -8,8 +8,7 @@ import {
   submitRating,
   createComment,
   deleteComment,
-  likeComment,
-  unlikeComment,
+  toggleLike,
 } from '@/api/rating'
 import type { RatingItemDetail, Comment } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -83,7 +82,8 @@ async function submitBottomComment() {
 
   isSubmittingComment.value = true
   try {
-    const res = await createComment(itemId, {
+    const res = await createComment({
+      ratingItemId: itemId,
       commentText: bottomCommentText.value.trim(),
     })
     if (res.data.code === 200) {
@@ -120,9 +120,10 @@ async function submitDrawerReply() {
 
   isSubmittingDrawerReply.value = true
   try {
-    const res = await createComment(itemId, {
+    const res = await createComment({
+      ratingItemId: itemId,
       commentText: drawerReplyText.value.trim(),
-      parentCommentId: replyDrawerComment.value.id,
+      parentId: replyDrawerComment.value.id,
     })
     if (res.data.code === 200) {
       drawerReplyTarget.value = null
@@ -248,12 +249,12 @@ async function handleLike(comment: Comment) {
     return
   }
   try {
+    await toggleLike(comment.id)
+    // Toggle 操作，切换状态
     if (comment.isLiked) {
-      await unlikeComment(comment.id)
       comment.isLiked = false
       comment.likeCount--
     } else {
-      await likeComment(comment.id)
       comment.isLiked = true
       comment.likeCount++
     }
@@ -283,9 +284,10 @@ async function handleSubmitReply() {
   if (!replyTarget.value || !replyText.value.trim()) return
   isReplying.value = true
   try {
-    const res = await createComment(itemId, {
+    const res = await createComment({
+      ratingItemId: itemId,
       commentText: replyText.value.trim(),
-      parentCommentId: replyTarget.value.commentId,
+      parentId: replyTarget.value.commentId,
     })
     if (res.data.code === 200) {
       toast.success('回复成功')

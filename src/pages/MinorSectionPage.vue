@@ -65,7 +65,7 @@ onMounted(() => {
     <main class="page-content">
       <div class="content-container">
         <!-- 桌面端标题 -->
-        <h1 class="page-title desktop-only">选择区域</h1>
+        <h1 class="page-title desktop-only">选择小分区</h1>
 
         <!-- 加载状态 -->
         <div v-if="isLoading" class="loading-container">

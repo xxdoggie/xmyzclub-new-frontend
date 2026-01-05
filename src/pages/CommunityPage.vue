@@ -78,7 +78,6 @@ onMounted(() => {
           <div class="hero-pattern"></div>
         </div>
         <div class="hero-content">
-          <div class="hero-badge">校园评分</div>
           <h1 class="hero-title">发现 · 评价 · 分享</h1>
           <p class="hero-subtitle">和同学们一起探索校园的每一个角落</p>
         </div>
@@ -212,15 +211,6 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 底部提示 -->
-      <div class="footer-hint">
-        <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-        <p>你的每一个评分都在帮助其他同学做出更好的选择</p>
-      </div>
     </main>
 
     <PageFooter />
@@ -249,53 +239,39 @@ onMounted(() => {
 /* ===== Hero Banner ===== */
 .hero-banner {
   position: relative;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: var(--spacing-md);
-  padding: var(--spacing-xl) var(--spacing-lg);
-  min-height: 140px;
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 .hero-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #6366F1 50%, #8B5CF6 100%);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
 }
 
 .hero-pattern {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 40%);
+  display: none;
 }
 
 .hero-content {
   position: relative;
   z-index: 1;
-  color: white;
-}
-
-.hero-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  margin-bottom: var(--spacing-sm);
+  color: var(--color-text);
 }
 
 .hero-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
   margin-bottom: var(--spacing-xs);
   letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
   font-size: var(--text-sm);
-  opacity: 0.9;
+  color: var(--color-text-secondary);
 }
 
 .hero-decoration {
@@ -311,7 +287,8 @@ onMounted(() => {
   top: var(--y);
   width: 20px;
   height: 20px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-primary);
+  opacity: 0.4;
   animation: float 3s ease-in-out infinite;
   animation-delay: var(--delay);
 }
@@ -533,29 +510,6 @@ onMounted(() => {
   height: 100%;
 }
 
-/* ===== Footer Hint ===== */
-.footer-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  text-align: center;
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-md);
-}
-
-.hint-icon {
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-placeholder);
-  flex-shrink: 0;
-}
-
-.footer-hint p {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
 /* ===== Desktop ===== */
 @media (min-width: 768px) {
   .page-content {
@@ -564,16 +518,15 @@ onMounted(() => {
   }
 
   .hero-banner {
-    padding: var(--spacing-2xl);
-    min-height: 180px;
+    padding: var(--spacing-lg);
   }
 
   .hero-title {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
   }
 
   .hero-subtitle {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
   }
 
   .float-icon {
@@ -624,8 +577,7 @@ onMounted(() => {
   }
 
   .hero-banner {
-    padding: var(--spacing-2xl) var(--spacing-3xl);
-    min-height: 200px;
+    padding: var(--spacing-lg) var(--spacing-xl);
   }
 
   .section-grid {

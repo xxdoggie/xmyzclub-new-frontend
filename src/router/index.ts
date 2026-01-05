@@ -110,7 +110,7 @@ const router = createRouter({
       component: () => import('../pages/MinorSectionPage.vue'),
       meta: {
         level: 2,
-        title: '选择区域',
+        title: '选择小分区',
         parent: 'community',
       },
     },

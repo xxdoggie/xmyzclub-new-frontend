@@ -506,7 +506,7 @@ onMounted(() => {
 
 .item-header {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 
 .item-image-wrapper {
@@ -589,21 +589,21 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 60px;
-  padding-right: var(--spacing-sm);
+  min-width: 70px;
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 .score-value {
-  font-size: var(--text-2xl);
+  font-size: 28px;
   font-weight: var(--font-bold);
-  color: var(--color-accent);
+  color: #f5a623;
   line-height: 1;
 }
 
 .rating-count {
-  font-size: 10px;
-  color: var(--color-text-placeholder);
-  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 6px;
   white-space: nowrap;
 }
 
@@ -637,24 +637,24 @@ onMounted(() => {
 .dist-star-icon {
   width: 10px;
   height: 10px;
-  color: var(--color-accent);
+  color: #f5a623;
 }
 
 .dist-star-icon.inactive {
-  opacity: 0.2;
+  opacity: 0.15;
 }
 
 .dist-bar-wrapper {
   flex: 1;
   height: 6px;
-  background: var(--color-border);
+  background: rgba(0, 0, 0, 0.06);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .dist-bar {
   height: 100%;
-  background: var(--color-accent);
+  background: #3b9dff;
   border-radius: var(--radius-full);
   transition: width 0.3s ease;
 }
@@ -681,7 +681,7 @@ onMounted(() => {
 .user-rating-stars {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .submit-rating-btn {
@@ -713,19 +713,19 @@ onMounted(() => {
 }
 
 .star-btn {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   background: transparent;
   border: none;
-  color: var(--color-border);
+  color: rgba(0, 0, 0, 0.15);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .star-btn:hover,
 .star-btn.active {
-  color: var(--color-accent);
+  color: #f5a623;
   transform: scale(1.1);
 }
 
@@ -1065,7 +1065,7 @@ onMounted(() => {
   }
 
   .item-header {
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
   }
 
   .item-image-wrapper {
@@ -1095,11 +1095,11 @@ onMounted(() => {
   }
 
   .score-main {
-    min-width: 80px;
+    min-width: 90px;
   }
 
   .score-value {
-    font-size: var(--text-3xl);
+    font-size: 36px;
   }
 
   .rating-count {

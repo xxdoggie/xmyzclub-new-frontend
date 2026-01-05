@@ -42,7 +42,12 @@ async function loadRandomItems() {
   try {
     const res = await getRandomItems(SCHOOL_ID, 10)
     if (res.data.code === 200) {
-      randomItems.value = res.data.data
+      // 有图片的排前面
+      randomItems.value = res.data.data.sort((a, b) => {
+        if (a.url && !b.url) return -1
+        if (!a.url && b.url) return 1
+        return 0
+      })
     }
   } catch {
     // 静默失败，推荐区域可选

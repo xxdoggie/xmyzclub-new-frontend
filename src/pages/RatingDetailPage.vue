@@ -640,11 +640,16 @@ onMounted(() => {
                 <div class="comment-body">
                   <div class="comment-header">
                     <span class="comment-nickname">{{ comment.nickname }}</span>
-                    <span v-if="comment.commenterStars !== null" class="commenter-score">
-                      <svg class="star-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <span v-if="comment.commenterStars !== null" class="commenter-stars">
+                      <svg
+                        v-for="i in 5"
+                        :key="i"
+                        class="star-icon"
+                        :class="{ filled: i <= comment.commenterStars }"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                       </svg>
-                      {{ comment.commenterStars }}
                     </span>
                   </div>
                   <p class="comment-text">{{ comment.commentText }}</p>
@@ -765,11 +770,16 @@ onMounted(() => {
                     <div class="comment-body">
                       <div class="comment-header">
                         <span class="comment-nickname">{{ replyDrawerComment.nickname }}</span>
-                        <span v-if="replyDrawerComment.commenterStars !== null" class="commenter-score">
-                          <svg class="star-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <span v-if="replyDrawerComment.commenterStars !== null" class="commenter-stars">
+                          <svg
+                            v-for="i in 5"
+                            :key="i"
+                            class="star-icon"
+                            :class="{ filled: i <= replyDrawerComment.commenterStars }"
+                            viewBox="0 0 24 24"
+                          >
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                           </svg>
-                          {{ replyDrawerComment.commenterStars }}
                         </span>
                       </div>
                       <p class="comment-text">{{ replyDrawerComment.commentText }}</p>
@@ -831,11 +841,16 @@ onMounted(() => {
                       <div class="comment-body">
                         <div class="comment-header">
                           <span class="comment-nickname">{{ reply.nickname }}</span>
-                          <span v-if="reply.commenterStars !== null" class="commenter-score">
-                            <svg class="star-icon" viewBox="0 0 24 24" fill="currentColor">
+                          <span v-if="reply.commenterStars !== null" class="commenter-stars">
+                            <svg
+                              v-for="i in 5"
+                              :key="i"
+                              class="star-icon"
+                              :class="{ filled: i <= reply.commenterStars }"
+                              viewBox="0 0 24 24"
+                            >
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                             </svg>
-                            {{ reply.commenterStars }}
                           </span>
                         </div>
                         <p class="comment-text">
@@ -1290,18 +1305,22 @@ onMounted(() => {
   color: var(--color-text);
 }
 
-.commenter-score {
+.commenter-stars {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  font-size: var(--text-xs);
-  color: var(--color-warning);
-  font-weight: var(--font-medium);
+  gap: 1px;
+  margin-left: auto;
 }
 
-.commenter-score .star-icon {
+.commenter-stars .star-icon {
   width: 12px;
   height: 12px;
+  fill: var(--color-border);
+  stroke: none;
+}
+
+.commenter-stars .star-icon.filled {
+  fill: var(--color-warning);
 }
 
 .comment-time {

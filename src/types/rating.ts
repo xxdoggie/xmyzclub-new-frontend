@@ -90,6 +90,8 @@ export interface Comment {
   likeCount: number
   isLiked: boolean
   isMyComment: boolean
+  commenterScore: number | null // 评论者对该项目的评分（10分制）
+  commenterStars: number | null // 评论者对该项目的评分（5星制）
   replies: Comment[] | null
 }
 

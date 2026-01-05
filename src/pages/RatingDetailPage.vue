@@ -640,6 +640,12 @@ onMounted(() => {
                 <div class="comment-body">
                   <div class="comment-header">
                     <span class="comment-nickname">{{ comment.nickname }}</span>
+                    <span v-if="comment.commenterStars !== null" class="commenter-score">
+                      <svg class="star-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      {{ comment.commenterStars }}
+                    </span>
                   </div>
                   <p class="comment-text">{{ comment.commentText }}</p>
                   <div class="comment-footer">
@@ -759,6 +765,12 @@ onMounted(() => {
                     <div class="comment-body">
                       <div class="comment-header">
                         <span class="comment-nickname">{{ replyDrawerComment.nickname }}</span>
+                        <span v-if="replyDrawerComment.commenterStars !== null" class="commenter-score">
+                          <svg class="star-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                          </svg>
+                          {{ replyDrawerComment.commenterStars }}
+                        </span>
                       </div>
                       <p class="comment-text">{{ replyDrawerComment.commentText }}</p>
                       <div class="comment-footer">
@@ -819,6 +831,12 @@ onMounted(() => {
                       <div class="comment-body">
                         <div class="comment-header">
                           <span class="comment-nickname">{{ reply.nickname }}</span>
+                          <span v-if="reply.commenterStars !== null" class="commenter-score">
+                            <svg class="star-icon" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            {{ reply.commenterStars }}
+                          </span>
                         </div>
                         <p class="comment-text">
                           <span v-if="reply.replyToNickname" class="reply-to">回复 @{{ reply.replyToNickname }}：</span>{{ reply.commentText }}
@@ -1270,6 +1288,20 @@ onMounted(() => {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text);
+}
+
+.commenter-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+  font-weight: var(--font-medium);
+}
+
+.commenter-score .star-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .comment-time {

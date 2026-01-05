@@ -110,7 +110,7 @@ async function handleStarClick(item: RatingItem, star: number, event: Event) {
   try {
     const res = await submitRating({
       ratingItemId: item.id,
-      score: star * 2, // 转换为10分制
+      stars: star,
     })
     if (res.data.code === 200) {
       toast.success('评分成功')

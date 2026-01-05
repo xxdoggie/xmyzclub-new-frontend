@@ -50,15 +50,27 @@ function canEnterCampaign(campaign: Campaign): boolean {
   return stageType === 'submission' || stageType === 'voting'
 }
 
-// 获取阶段状态标签和样式
-function getStageInfo(stageType: StageType): { label: string; class: string } {
-  const info: Record<StageType, { label: string; class: string }> = {
-    submission: { label: '投稿中', class: 'stage-submission' },
-    review: { label: '审核中', class: 'stage-review' },
-    voting: { label: '投票中', class: 'stage-voting' },
-    result: { label: '已结束', class: 'stage-result' },
+// 5个阶段定义
+const stages = [
+  { key: 'pending', label: '未开始' },
+  { key: 'submission', label: '投稿' },
+  { key: 'review', label: '审核' },
+  { key: 'voting', label: '投票' },
+  { key: 'ended', label: '结束' },
+]
+
+// 获取当前阶段索引 (0-4)
+function getCurrentStageIndex(campaign: Campaign): number {
+  if (!campaign.currentStage) return 0 // 未开始
+
+  const stageType = campaign.currentStage.stageType
+  switch (stageType) {
+    case 'submission': return 1
+    case 'review': return 2
+    case 'voting': return 3
+    case 'result': return 4
+    default: return 0
   }
-  return info[stageType] || { label: '', class: '' }
 }
 
 // 跳转到活动详情
@@ -146,7 +158,8 @@ onMounted(() => {
 
         <!-- 活动列表 -->
         <div v-else class="campaigns-section">
-          <div class="section-header">
+          <!-- 桌面端显示标题 -->
+          <div class="section-header desktop-only">
             <span class="section-title">全部活动</span>
           </div>
 
@@ -158,23 +171,32 @@ onMounted(() => {
               :class="{ clickable: canEnterCampaign(campaign) }"
               @click="canEnterCampaign(campaign) && goToCampaign(campaign)"
             >
-              <!-- 卡片封面区域 -->
-              <div class="campaign-cover">
-                <div class="cover-gradient">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 18V5l12-2v13"></path>
-                    <circle cx="6" cy="18" r="3"></circle>
-                    <circle cx="18" cy="16" r="3"></circle>
-                  </svg>
+              <!-- 进度条区域 -->
+              <div class="campaign-steps">
+                <div class="steps-track">
+                  <div
+                    v-for="(stage, index) in stages"
+                    :key="stage.key"
+                    class="step-item"
+                    :class="{
+                      active: index === getCurrentStageIndex(campaign),
+                      completed: index < getCurrentStageIndex(campaign),
+                    }"
+                  >
+                    <div class="step-dot">
+                      <svg v-if="index < getCurrentStageIndex(campaign)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <span class="step-label">{{ stage.label }}</span>
+                  </div>
                 </div>
-                <!-- 状态标签 -->
-                <span
-                  v-if="campaign.currentStage"
-                  class="status-badge"
-                  :class="getStageInfo(campaign.currentStage.stageType).class"
-                >
-                  {{ getStageInfo(campaign.currentStage.stageType).label }}
-                </span>
+                <div class="steps-line">
+                  <div
+                    class="steps-line-fill"
+                    :style="{ width: `${(getCurrentStageIndex(campaign) / (stages.length - 1)) * 100}%` }"
+                  ></div>
+                </div>
               </div>
 
               <!-- 活动信息 -->
@@ -393,62 +415,92 @@ onMounted(() => {
   transform: translateY(0);
 }
 
-/* ===== Campaign Cover ===== */
-.campaign-cover {
+/* ===== Campaign Steps ===== */
+.campaign-steps {
   position: relative;
-  width: 100%;
-  height: 100px;
-  flex-shrink: 0;
+  padding: var(--spacing-md) var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
 }
 
-.cover-gradient {
-  width: 100%;
-  height: 100%;
+.steps-track {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.step-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-info-bg) 100%);
-  color: var(--color-primary);
+  margin-bottom: 4px;
+  transition: all var(--transition-fast);
 }
 
-.cover-gradient svg {
-  width: 36px;
-  height: 36px;
-  opacity: 0.6;
-}
-
-.status-badge {
-  position: absolute;
-  top: var(--spacing-sm);
-  left: var(--spacing-sm);
-  padding: 4px 10px;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  border-radius: var(--radius-full);
+.step-dot svg {
+  width: 10px;
+  height: 10px;
   color: white;
-  backdrop-filter: blur(4px);
 }
 
-.status-badge.stage-submission {
-  background: rgba(231, 76, 60, 0.9);
+.step-item.active .step-dot {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
-.status-badge.stage-review {
-  background: rgba(245, 158, 11, 0.9);
+.step-item.completed .step-dot {
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 
-.status-badge.stage-voting {
-  background: rgba(59, 130, 246, 0.9);
+.step-label {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+  white-space: nowrap;
+  transition: all var(--transition-fast);
 }
 
-.status-badge.stage-result {
-  background: rgba(107, 114, 128, 0.9);
+.step-item.active .step-label {
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+}
+
+.step-item.completed .step-label {
+  color: var(--color-success);
+}
+
+.steps-line {
+  position: absolute;
+  top: calc(var(--spacing-md) + 9px);
+  left: calc(10% + 10px);
+  right: calc(10% + 10px);
+  height: 2px;
+  background: var(--color-border);
+}
+
+.steps-line-fill {
+  height: 100%;
+  background: var(--color-success);
+  transition: width 0.3s ease;
 }
 
 /* ===== Campaign Info ===== */
 .campaign-info {
   flex: 1;
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-top: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -522,11 +574,31 @@ onMounted(() => {
 
   .campaign-card {
     flex-direction: row;
+    align-items: center;
   }
 
-  .campaign-cover {
-    width: 160px;
-    height: 100px;
+  .campaign-steps {
+    width: 280px;
+    flex-shrink: 0;
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .step-dot {
+    width: 24px;
+    height: 24px;
+  }
+
+  .step-dot svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .step-label {
+    font-size: var(--text-xs);
+  }
+
+  .steps-line {
+    top: calc(var(--spacing-lg) + 11px);
   }
 
   .campaign-info {

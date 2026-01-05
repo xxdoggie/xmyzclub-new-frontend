@@ -39,9 +39,8 @@ const userSubmissions = ref<TimePeriodUserSubmissions[]>([])
 const showSearchModal = ref(false)
 const searchKeyword = ref('')
 const isSearching = ref(false)
+const hasSearched = ref(false) // 标记是否已发起过搜索
 const searchResults = ref<MusicSearchItem[]>([])
-const searchPage = ref(1)
-const hasMoreResults = ref(false)
 const searchDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 
 // 选择的音乐
@@ -226,8 +225,7 @@ function openSearchModal() {
   showSearchModal.value = true
   searchKeyword.value = ''
   searchResults.value = []
-  searchPage.value = 1
-  hasMoreResults.value = false
+  hasSearched.value = false
   selectedMusic.value = null
   selectedMusicDetail.value = null
   selectedPeriodIds.value = []
@@ -253,35 +251,29 @@ function handleSearchInput() {
 
   if (!searchKeyword.value.trim()) {
     searchResults.value = []
+    hasSearched.value = false
     return
   }
 
+  // 立即显示搜索中状态
+  isSearching.value = true
+  hasSearched.value = true
+
   searchDebounceTimer.value = setTimeout(() => {
-    searchPage.value = 1
     doSearch()
   }, 500)
 }
 
 // 执行搜索
-async function doSearch(loadMore = false) {
+async function doSearch() {
   if (!searchKeyword.value.trim()) return
 
   isSearching.value = true
   try {
-    const res = await searchMusic(
-      searchKeyword.value.trim(),
-      loadMore ? searchPage.value : 1,
-      20
-    )
+    const res = await searchMusic(searchKeyword.value.trim(), 1, 50)
     if (res.data.code === 200) {
-      const { data, meta } = res.data.data
-      if (loadMore) {
-        searchResults.value.push(...data)
-      } else {
-        searchResults.value = data
-      }
-      hasMoreResults.value = meta.nextPage !== null
-      searchPage.value = meta.page
+      const { data } = res.data.data
+      searchResults.value = data
     } else {
       toast.error(res.data.message || '搜索失败')
     }
@@ -289,14 +281,6 @@ async function doSearch(loadMore = false) {
     toast.error('搜索失败')
   } finally {
     isSearching.value = false
-  }
-}
-
-// 加载更多搜索结果
-function loadMoreResults() {
-  if (hasMoreResults.value && !isSearching.value) {
-    searchPage.value++
-    doSearch(true)
   }
 }
 
@@ -459,7 +443,7 @@ onMounted(() => {
   <div class="page-container">
     <PageHeader :back-to="`/ringtone`" />
 
-    <main class="page-content" :class="{ 'has-player': playingMusic }">
+    <main class="page-content">
       <div class="content-container">
         <!-- 桌面端面包屑 -->
         <div class="breadcrumb-wrapper">
@@ -499,7 +483,7 @@ onMounted(() => {
 
           <!-- 我的投稿 -->
           <section class="submissions-section">
-            <div class="section-header">
+            <div class="section-header desktop-only">
               <h2 class="section-title">我的投稿</h2>
               <span class="section-count">{{ totalSubmissions }} 首</span>
             </div>
@@ -594,11 +578,13 @@ onMounted(() => {
               </div>
 
               <div class="search-results">
-                <div v-if="isSearching && searchResults.length === 0" class="search-loading">
+                <!-- 搜索中状态 -->
+                <div v-if="isSearching" class="search-loading">
                   <div class="loading-spinner-sm"></div>
                   <span>搜索中...</span>
                 </div>
 
+                <!-- 未输入关键词 -->
                 <div v-else-if="!searchKeyword" class="search-hint">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -607,12 +593,14 @@ onMounted(() => {
                   <p>输入歌曲名或歌手搜索</p>
                 </div>
 
-                <div v-else-if="searchResults.length === 0 && !isSearching" class="search-empty">
+                <!-- 搜索完成但无结果 -->
+                <div v-else-if="hasSearched && searchResults.length === 0" class="search-empty">
                   <p>未找到相关歌曲</p>
                   <span>换个关键词试试</span>
                 </div>
 
-                <div v-else class="results-list">
+                <!-- 搜索结果列表 -->
+                <div v-else-if="searchResults.length > 0" class="results-list">
                   <div
                     v-for="music in searchResults"
                     :key="music.mid || music.id"
@@ -636,12 +624,6 @@ onMounted(() => {
                     <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
-                  </div>
-
-                  <div v-if="hasMoreResults" class="load-more">
-                    <button class="load-more-btn" :disabled="isSearching" @click="loadMoreResults">
-                      {{ isSearching ? '加载中...' : '加载更多' }}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -777,10 +759,6 @@ onMounted(() => {
 .page-content {
   flex: 1;
   padding: var(--spacing-sm);
-}
-
-.page-content.has-player {
-  padding-bottom: 180px;
 }
 
 .content-container {
@@ -1269,31 +1247,9 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.load-more {
-  display: flex;
-  justify-content: center;
-  padding: var(--spacing-md);
-}
-
-.load-more-btn {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: var(--text-sm);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border: none;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.load-more-btn:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: white;
-}
-
-.load-more-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* ===== Desktop Only ===== */
+.desktop-only {
+  display: none;
 }
 
 /* ===== Back Button ===== */
@@ -1655,6 +1611,10 @@ onMounted(() => {
 }
 
 @media (min-width: 1024px) {
+  .desktop-only {
+    display: flex;
+  }
+
   .breadcrumb-wrapper {
     display: block;
   }

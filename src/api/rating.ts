@@ -47,8 +47,8 @@ export function getRatingItemDetail(itemId: number) {
 /**
  * 提交评分（创建或更新）
  */
-export function submitRating(itemId: number, data: { score: number; commentText?: string }) {
-  return api.post<ApiResponse<number>>(`/rating-community/rating-items/${itemId}/ratings`, data)
+export function submitRating(data: { ratingItemId: number; stars: number }) {
+  return api.post<ApiResponse<null>>('/rating-community/ratings', data)
 }
 
 /**
@@ -61,8 +61,8 @@ export function getMyRating(itemId: number) {
 /**
  * 发表评论
  */
-export function createComment(itemId: number, data: { commentText: string; parentCommentId?: number }) {
-  return api.post<ApiResponse<Comment>>(`/rating-community/rating-items/${itemId}/comments`, data)
+export function createComment(data: { ratingItemId: number; commentText: string; parentId?: number }) {
+  return api.post<ApiResponse<Comment>>('/rating-community/comments', data)
 }
 
 /**
@@ -73,22 +73,15 @@ export function deleteComment(commentId: number) {
 }
 
 /**
- * 获取我的评论
+ * 获取我的评论历史
  */
-export function getMyComments(itemId: number) {
-  return api.get<ApiResponse<Comment[]>>(`/rating-community/rating-items/${itemId}/my-comments`)
+export function getMyComments() {
+  return api.get<ApiResponse<Comment[]>>('/rating-community/my-comments')
 }
 
 /**
- * 点赞评论
+ * 点赞/取消点赞评论（toggle）
  */
-export function likeComment(commentId: number) {
-  return api.post<ApiResponse<null>>(`/rating-community/comments/${commentId}/likes`)
-}
-
-/**
- * 取消点赞评论
- */
-export function unlikeComment(commentId: number) {
-  return api.delete<ApiResponse<null>>(`/rating-community/comments/${commentId}/likes`)
+export function toggleLike(commentId: number) {
+  return api.post<ApiResponse<null>>('/rating-community/likes', { commentId })
 }

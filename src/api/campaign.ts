@@ -184,14 +184,14 @@ export function createSubmission(data: CreateSubmissionRequest) {
  * 获取投票配置
  */
 export function getVotingConfig(campaignId: number) {
-  return api.get<ApiResponse<VotingConfigResponse>>(`/campaigns/${campaignId}/config`)
+  return api.get<ApiResponse<VotingConfigResponse>>(`/voting/campaigns/${campaignId}/config`)
 }
 
 /**
  * 获取投票选项
  */
 export function getVotingOptions(campaignId: number, buildingCode?: string) {
-  return api.get<ApiResponse<TimePeriodVotingOptions[]>>(`/campaigns/${campaignId}/options`, {
+  return api.get<ApiResponse<TimePeriodVotingOptions[]>>(`/voting/campaigns/${campaignId}/options`, {
     params: buildingCode ? { buildingCode } : undefined,
   })
 }
@@ -200,12 +200,12 @@ export function getVotingOptions(campaignId: number, buildingCode?: string) {
  * 提交投票
  */
 export function submitVote(data: SubmitVoteRequest) {
-  return api.post<ApiResponse<SubmitVoteResponse>>('/vote', data)
+  return api.post<ApiResponse<SubmitVoteResponse>>('/voting/vote', data)
 }
 
 /**
  * 获取我的投票
  */
 export function getMyVotes(campaignId: number) {
-  return api.get<ApiResponse<MyVotesResponse | null>>(`/campaigns/${campaignId}/my-votes`)
+  return api.get<ApiResponse<MyVotesResponse | null>>(`/voting/campaigns/${campaignId}/my-votes`)
 }

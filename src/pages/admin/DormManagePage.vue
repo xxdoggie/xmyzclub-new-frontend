@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -278,13 +278,14 @@ function cancelDeleteCampus() {
 // ==================== 宿舍楼 CRUD ====================
 
 function openCreateBuildingModal() {
-  if (campuses.value.length === 0) {
+  const firstCampus = campuses.value[0]
+  if (!firstCampus) {
     toast.warning('请先创建校区')
     return
   }
   buildingModalMode.value = 'create'
   editingBuilding.value = null
-  buildingForm.value = { campusId: campuses.value[0].id, name: '', code: '' }
+  buildingForm.value = { campusId: firstCampus.id, name: '', code: '' }
   showBuildingModal.value = true
 }
 

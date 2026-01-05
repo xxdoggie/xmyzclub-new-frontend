@@ -131,7 +131,9 @@ async function confirmReview() {
   try {
     if (reviewTargetIds.value.length === 1) {
       // 单个审核
-      const res = await reviewTicket(reviewTargetIds.value[0], {
+      const targetId = reviewTargetIds.value[0]
+      if (targetId === undefined) return
+      const res = await reviewTicket(targetId, {
         action: reviewAction.value,
         adminNote: reviewNote.value || undefined,
       })

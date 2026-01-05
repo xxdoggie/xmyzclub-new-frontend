@@ -12,7 +12,6 @@ import {
 } from '@/api/rating'
 import type { RatingItemDetail, Comment } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
-import PageFooter from '@/components/layout/PageFooter.vue'
 
 // 扁平化的回复类型，包含被回复人信息
 interface FlattenedReply extends Comment {
@@ -139,6 +138,8 @@ async function submitBottomComment() {
     likeCount: 0,
     isLiked: false,
     isMyComment: true,
+    commenterScore: null,
+    commenterStars: null,
     replies: null,
   }
 
@@ -216,6 +217,8 @@ async function submitDrawerReply() {
     likeCount: 0,
     isLiked: false,
     isMyComment: true,
+    commenterScore: null,
+    commenterStars: null,
     replies: null,
   }
 
@@ -923,7 +926,7 @@ onMounted(() => {
       <div v-else class="error-container">
         <h2>加载失败</h2>
         <p>无法获取评分项目详情</p>
-        <button class="retry-btn" @click="loadDetail">重试</button>
+        <button class="retry-btn" @click="() => loadDetail()">重试</button>
       </div>
     </main>
   </div>

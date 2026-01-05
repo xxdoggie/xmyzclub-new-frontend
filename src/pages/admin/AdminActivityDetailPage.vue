@@ -19,9 +19,7 @@ import type {
   ActivityConfig,
   ActivitySession,
   ActivityStats,
-  CreateSessionRequest,
   ExtraInfoField,
-  SessionStatus,
 } from '@/types/ticket'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'

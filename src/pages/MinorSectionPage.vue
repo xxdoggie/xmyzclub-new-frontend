@@ -41,16 +41,16 @@ function goToRatingItems(section: MinorSection) {
 }
 
 // 获取占位渐变色（使用柔和的颜色）
+const PLACEHOLDER_GRADIENTS = [
+  'linear-gradient(135deg, #667eea, #764ba2)',
+  'linear-gradient(135deg, #f093fb, #f5576c)',
+  'linear-gradient(135deg, #4facfe, #00f2fe)',
+  'linear-gradient(135deg, #43e97b, #38f9d7)',
+  'linear-gradient(135deg, #fa709a, #fee140)',
+  'linear-gradient(135deg, #a8edea, #fed6e3)',
+]
 function getPlaceholderGradient(index: number): string {
-  const gradients = [
-    'linear-gradient(135deg, #667eea, #764ba2)',
-    'linear-gradient(135deg, #f093fb, #f5576c)',
-    'linear-gradient(135deg, #4facfe, #00f2fe)',
-    'linear-gradient(135deg, #43e97b, #38f9d7)',
-    'linear-gradient(135deg, #fa709a, #fee140)',
-    'linear-gradient(135deg, #a8edea, #fed6e3)',
-  ]
-  return gradients[index % gradients.length]
+  return PLACEHOLDER_GRADIENTS[index % PLACEHOLDER_GRADIENTS.length] || 'linear-gradient(135deg, #667eea, #764ba2)'
 }
 
 onMounted(() => {

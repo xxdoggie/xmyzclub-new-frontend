@@ -8,7 +8,7 @@ import {
   getReviewSubmissions,
   deleteSubmissions,
 } from '@/api/campaign'
-import type { Campaign, TimePeriodSubmissions, SubmissionItem } from '@/types/campaign'
+import type { Campaign, TimePeriodSubmissions } from '@/types/campaign'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -56,8 +56,9 @@ async function loadData() {
     if (submissionsRes.data.code === 200) {
       timePeriodSubmissions.value = submissionsRes.data.data
       // 默认展开第一个时段
-      if (timePeriodSubmissions.value.length > 0) {
-        expandedPeriodIds.value.add(timePeriodSubmissions.value[0].timePeriod.id)
+      const firstPeriod = timePeriodSubmissions.value[0]
+      if (firstPeriod) {
+        expandedPeriodIds.value.add(firstPeriod.timePeriod.id)
       }
     } else {
       toast.error(submissionsRes.data.message || '获取投稿列表失败')
@@ -120,10 +121,6 @@ function selectAll() {
       item.submissionIds.forEach(id => selectedSubmissions.value.add(id))
     })
   })
-}
-
-function deselectAll() {
-  selectedSubmissions.value.clear()
 }
 
 function invertSelection() {

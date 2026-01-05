@@ -426,7 +426,7 @@ const canSubmit = computed(() => {
   // 检查用户信息是否完整
   if (!isUserInfoComplete.value) return false
 
-  const { hasLimit, limitScope, minCount } = votingRules.value
+  const { limitScope, minCount } = votingRules.value
 
   if (limitScope === 'activity') {
     // 活动级别限制：检查总选择数量
@@ -435,17 +435,6 @@ const canSubmit = computed(() => {
     // 时段级别限制：每个时段都要满足最小要求
     return completedPeriodsCount.value === totalPeriodsCount.value
   }
-})
-
-// 提交按钮文字
-const submitButtonText = computed(() => {
-  if (isSubmitting.value) return '提交中...'
-
-  const { limitScope } = votingRules.value
-  if (limitScope === 'activity') {
-    return `确认投票 (${totalSelectedCount.value}首)`
-  }
-  return `确认投票 (${completedPeriodsCount.value}/${totalPeriodsCount.value})`
 })
 
 // 提交投票

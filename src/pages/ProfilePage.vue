@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
+import { getCampusCaptcha } from '@/api/user'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -20,6 +21,19 @@ const isEditing = ref(false)
 const showUnbindConfirm = ref(false)
 const unbindType = ref<'campus' | 'qq'>('campus')
 const isUnbinding = ref(false)
+
+// 校园网绑定抽屉
+const showCampusBindDrawer = ref(false)
+const campusBindForm = ref({
+  studentId: '',
+  password: '',
+  captchaCode: '',
+  jsessionId: '',
+})
+const campusCaptchaImage = ref('')
+const captchaLoading = ref(false)
+const isBinding = ref(false)
+const bindErrorMessage = ref('')
 
 // 编辑表单
 const editForm = ref({
@@ -104,9 +118,74 @@ async function saveEdit() {
   }
 }
 
-// 绑定校园网
+// 绑定校园网 - 打开抽屉
 function handleBindCampus() {
-  toast.info('校园网绑定功能开发中...')
+  showCampusBindDrawer.value = true
+  bindErrorMessage.value = ''
+  campusBindForm.value = {
+    studentId: '',
+    password: '',
+    captchaCode: '',
+    jsessionId: '',
+  }
+  loadCampusCaptcha()
+}
+
+// 关闭校园网绑定抽屉
+function closeCampusBindDrawer() {
+  showCampusBindDrawer.value = false
+  bindErrorMessage.value = ''
+}
+
+// 加载校园网验证码
+async function loadCampusCaptcha() {
+  captchaLoading.value = true
+  try {
+    const res = await getCampusCaptcha()
+    if (res.data.code === 200) {
+      campusCaptchaImage.value = res.data.data.captchaImage
+      campusBindForm.value.jsessionId = res.data.data.jsessionId
+      campusBindForm.value.captchaCode = ''
+    } else {
+      bindErrorMessage.value = res.data.message || '获取验证码失败'
+    }
+  } catch {
+    bindErrorMessage.value = '网络错误，请稍后重试'
+  } finally {
+    captchaLoading.value = false
+  }
+}
+
+// 提交校园网绑定
+async function submitCampusBind() {
+  const { studentId, password, captchaCode, jsessionId } = campusBindForm.value
+  if (!studentId || !password) {
+    bindErrorMessage.value = '请填写学号和密码'
+    return
+  }
+  if (!captchaCode) {
+    bindErrorMessage.value = '请输入验证码'
+    return
+  }
+
+  isBinding.value = true
+  bindErrorMessage.value = ''
+
+  try {
+    const result = await userStore.bindCampus(studentId, password, captchaCode, jsessionId)
+    if (result.code === 200) {
+      toast.success('绑定成功')
+      closeCampusBindDrawer()
+    } else {
+      bindErrorMessage.value = result.message || '绑定失败'
+      loadCampusCaptcha()
+    }
+  } catch {
+    bindErrorMessage.value = '网络错误，请稍后重试'
+    loadCampusCaptcha()
+  } finally {
+    isBinding.value = false
+  }
 }
 
 // 绑定 QQ
@@ -400,6 +479,90 @@ function cancelUnbind() {
                 {{ isUnbinding ? '解绑中...' : '确定' }}
               </button>
             </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
+
+    <!-- 校园网绑定抽屉 -->
+    <Transition name="drawer-fade">
+      <div v-if="showCampusBindDrawer" class="drawer-overlay" @click="closeCampusBindDrawer">
+        <Transition name="drawer-slide">
+          <div v-if="showCampusBindDrawer" class="drawer-content" @click.stop>
+            <!-- 抽屉头部 -->
+            <div class="drawer-header">
+              <h3 class="drawer-title">绑定校园网账号</h3>
+              <button class="drawer-close" @click="closeCampusBindDrawer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <!-- 错误提示 -->
+            <div v-if="bindErrorMessage" class="bind-error">
+              {{ bindErrorMessage }}
+            </div>
+
+            <!-- 绑定表单 -->
+            <form class="bind-form" @submit.prevent="submitCampusBind">
+              <div class="bind-form-group">
+                <label class="bind-form-label">学号</label>
+                <input
+                  v-model="campusBindForm.studentId"
+                  type="text"
+                  class="bind-form-input"
+                  placeholder="请输入学号"
+                  :disabled="isBinding"
+                />
+              </div>
+
+              <div class="bind-form-group">
+                <label class="bind-form-label">校园网密码</label>
+                <input
+                  v-model="campusBindForm.password"
+                  type="password"
+                  class="bind-form-input"
+                  placeholder="请输入校园网密码"
+                  :disabled="isBinding"
+                />
+              </div>
+
+              <div class="bind-form-group">
+                <label class="bind-form-label">验证码</label>
+                <div class="captcha-row">
+                  <input
+                    v-model="campusBindForm.captchaCode"
+                    type="text"
+                    class="bind-form-input captcha-input"
+                    placeholder="请输入验证码"
+                    :disabled="isBinding"
+                  />
+                  <div
+                    class="captcha-image"
+                    :class="{ 'is-loading': captchaLoading }"
+                    @click="loadCampusCaptcha"
+                  >
+                    <img
+                      v-if="campusCaptchaImage && !captchaLoading"
+                      :src="campusCaptchaImage"
+                      alt="验证码"
+                    />
+                    <span v-else-if="captchaLoading" class="captcha-loading">加载中</span>
+                    <span v-else class="captcha-placeholder">点击获取</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                class="bind-submit-btn"
+                :disabled="isBinding"
+              >
+                {{ isBinding ? '绑定中...' : '绑定' }}
+              </button>
+            </form>
           </div>
         </Transition>
       </div>
@@ -983,6 +1146,218 @@ function cancelUnbind() {
 
   .action-item {
     padding: var(--spacing-lg);
+  }
+}
+
+/* ===== 校园网绑定抽屉 ===== */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.drawer-content {
+  background: var(--color-card);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: var(--spacing-lg);
+  padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+}
+
+.drawer-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+}
+
+.drawer-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.drawer-close:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.drawer-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 绑定错误提示 */
+.bind-error {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+}
+
+/* 绑定表单 */
+.bind-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.bind-form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.bind-form-label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+}
+
+.bind-form-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: all var(--transition-fast);
+}
+
+.bind-form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.bind-form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bind-form-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* 验证码 */
+.captcha-row {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.captcha-input {
+  flex: 1;
+}
+
+.captcha-image {
+  width: 120px;
+  height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  flex-shrink: 0;
+}
+
+.captcha-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.captcha-image.is-loading {
+  cursor: wait;
+}
+
+.captcha-loading,
+.captcha-placeholder {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* 提交按钮 */
+.bind-submit-btn {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.bind-submit-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.bind-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Drawer Animations */
+.drawer-fade-enter-active,
+.drawer-fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
+
+.drawer-fade-enter-from,
+.drawer-fade-leave-to {
+  opacity: 0;
+}
+
+.drawer-slide-enter-active,
+.drawer-slide-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.drawer-slide-enter-from,
+.drawer-slide-leave-to {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+/* 桌面端抽屉样式调整 */
+@media (min-width: 1024px) {
+  .drawer-overlay {
+    align-items: center;
+  }
+
+  .drawer-content {
+    border-radius: var(--radius-xl);
+    max-height: 80vh;
   }
 }
 </style>

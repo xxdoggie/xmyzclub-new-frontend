@@ -197,9 +197,11 @@ async function loadUserSubmissions() {
   try {
     const res = await getUserSubmissions(campaignId.value)
     if (res.data.code === 200) {
-      const data = res.data.data
+      const data = res.data.data as
+        | TimePeriodUserSubmissions[]
+        | { timePeriods: TimePeriodUserSubmissions[]; lastUserInfo: Record<string, string> | null }
       // 支持新的返回格式 { timePeriods: [...], lastUserInfo: {...} }
-      if (data.timePeriods) {
+      if ('timePeriods' in data) {
         userSubmissions.value = data.timePeriods
         lastUserInfo.value = data.lastUserInfo || null
       } else {

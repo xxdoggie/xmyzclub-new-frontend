@@ -247,7 +247,17 @@ onMounted(() => {
       <!-- 随机推荐 -->
       <div class="recommend-section">
         <div class="recommend-header">
-          <h2 class="recommend-title">随机发现</h2>
+          <h2 class="recommend-title">
+            <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
+              <polyline points="7.5 19.79 7.5 14.6 3 12"></polyline>
+              <polyline points="21 12 16.5 14.6 16.5 19.79"></polyline>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <span>随机发现</span>
+          </h2>
           <button class="refresh-btn" :disabled="isLoadingRandom" @click="refreshRandom">
             <svg :class="{ spinning: isLoadingRandom }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"></polyline>
@@ -627,8 +637,17 @@ onMounted(() => {
 }
 
 .recommend-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
+}
+
+.recommend-title .title-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-primary);
 }
 
 .refresh-btn {
@@ -753,15 +772,18 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
-  opacity: 0.1;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
+}
+
+:root.dark .cover-placeholder {
+  background: linear-gradient(135deg, #1e2538 0%, #252d40 100%);
 }
 
 .cover-placeholder svg {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   color: var(--color-primary);
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 /* 评分标签 */

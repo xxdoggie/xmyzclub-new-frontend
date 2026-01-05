@@ -55,11 +55,19 @@ const votingStageConfig = computed<VotingStageConfig | null>(() => {
   return campaign.value.currentStage.config as VotingStageConfig
 })
 
-// 投票模式
-const votingMode = computed(() => votingConfig.value?.votingMode || 'unified')
+// 投票模式（优先从 currentStage.config 获取）
+const votingMode = computed(() => {
+  // 优先从阶段配置中获取
+  const stageVotingMode = votingStageConfig.value?.voting_mode
+  if (stageVotingMode) {
+    return stageVotingMode
+  }
+  // 否则从投票配置接口获取
+  return votingConfig.value?.votingMode || 'unified'
+})
 
 // 是否为分楼投票模式
-const isByBuilding = computed(() => votingMode.value === 'by_building')
+const isByBuilding = computed(() => votingMode.value === 'per_building' || votingMode.value === 'by_building')
 
 // 可选宿舍楼列表
 const buildings = computed(() => votingConfig.value?.buildings || [])

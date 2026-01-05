@@ -40,6 +40,19 @@ function goToRatingItems(section: MinorSection) {
   router.push(`/community/minor/${section.id}`)
 }
 
+// 获取占位渐变色（使用柔和的颜色）
+function getPlaceholderGradient(index: number): string {
+  const gradients = [
+    'linear-gradient(135deg, #667eea, #764ba2)',
+    'linear-gradient(135deg, #f093fb, #f5576c)',
+    'linear-gradient(135deg, #4facfe, #00f2fe)',
+    'linear-gradient(135deg, #43e97b, #38f9d7)',
+    'linear-gradient(135deg, #fa709a, #fee140)',
+    'linear-gradient(135deg, #a8edea, #fed6e3)',
+  ]
+  return gradients[index % gradients.length]
+}
+
 onMounted(() => {
   loadMinorSections()
 })
@@ -73,29 +86,38 @@ onMounted(() => {
           <p>该分区暂无可用区域</p>
         </div>
 
-        <!-- 小分区列表 -->
-        <div v-else class="section-list">
+        <!-- 小分区网格 -->
+        <div v-else class="section-grid">
           <div
-            v-for="section in minorSections"
+            v-for="(section, index) in minorSections"
             :key="section.id"
             class="section-card"
             @click="goToRatingItems(section)"
           >
-            <div class="section-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="21" x2="9" y2="9"></line>
-              </svg>
+            <!-- 封面图 -->
+            <div class="section-cover">
+              <img
+                v-if="section.url"
+                :src="section.url"
+                :alt="section.name"
+                loading="lazy"
+              />
+              <div
+                v-else
+                class="section-placeholder"
+                :style="{ background: getPlaceholderGradient(index) }"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+              </div>
             </div>
+            <!-- 信息 -->
             <div class="section-info">
               <h3 class="section-name">{{ section.name }}</h3>
               <p v-if="section.description" class="section-desc">{{ section.description }}</p>
-            </div>
-            <div class="section-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
             </div>
           </div>
         </div>
@@ -123,7 +145,7 @@ onMounted(() => {
 }
 
 .content-container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -198,20 +220,19 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* ===== Section List ===== */
-.section-list {
-  display: flex;
-  flex-direction: column;
+/* ===== Section Grid ===== */
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-sm);
 }
 
 .section-card {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
+  flex-direction: column;
   background: var(--color-card);
   border-radius: var(--radius-lg);
+  overflow: hidden;
   cursor: pointer;
   transition: all var(--transition-fast);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -226,62 +247,57 @@ onMounted(() => {
   transform: translateY(0);
 }
 
-.section-icon {
-  width: 48px;
-  height: 48px;
+.section-cover {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.section-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.section-placeholder {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
 }
 
-.section-icon svg {
-  width: 24px;
-  height: 24px;
+.section-placeholder svg {
+  width: 36px;
+  height: 36px;
+  color: white;
+  opacity: 0.8;
 }
 
 .section-info {
   flex: 1;
-  min-width: 0;
+  padding: var(--spacing-sm);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .section-name {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  line-height: 1.4;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .section-desc {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.section-arrow {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-placeholder);
-  flex-shrink: 0;
-}
-
-.section-arrow svg {
-  width: 18px;
-  height: 18px;
 }
 
 /* ===== Desktop ===== */
@@ -294,34 +310,26 @@ onMounted(() => {
     padding: var(--spacing-xl);
   }
 
-  .content-container {
-    max-width: 900px;
-  }
-
-  .section-list {
+  .section-grid {
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-md);
   }
 
-  .section-card {
-    padding: var(--spacing-md) var(--spacing-lg);
+  .section-placeholder svg {
+    width: 48px;
+    height: 48px;
   }
 
-  .section-icon {
-    width: 56px;
-    height: 56px;
-  }
-
-  .section-icon svg {
-    width: 28px;
-    height: 28px;
+  .section-info {
+    padding: var(--spacing-md);
   }
 
   .section-name {
-    font-size: var(--text-lg);
+    font-size: var(--text-base);
   }
 
   .section-desc {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
   }
 }
 </style>

@@ -23,4 +23,5 @@ export interface MinorSection {
   id: number
   name: string
   description: string
+  url: string | null
 }

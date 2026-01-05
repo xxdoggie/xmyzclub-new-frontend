@@ -74,24 +74,24 @@ function goToMajorSection(section: MajorSection) {
 // 获取分区图标（根据分区名称返回不同图标）
 function getSectionIcon(name: string): string {
   if (name.includes('食堂') || name.includes('档口') || name.includes('餐')) {
-    return 'utensils' // 餐厅图标
+    return 'utensils'
   }
   if (name.includes('建筑') || name.includes('楼') || name.includes('馆')) {
-    return 'building' // 建筑图标
+    return 'building'
   }
   if (name.includes('考试') || name.includes('测验')) {
-    return 'clipboard' // 考试图标
+    return 'clipboard'
   }
   if (name.includes('活动') || name.includes('社团')) {
-    return 'users' // 活动图标
+    return 'users'
   }
   if (name.includes('图书') || name.includes('阅读')) {
-    return 'book' // 图书图标
+    return 'book'
   }
   if (name.includes('运动') || name.includes('体育')) {
-    return 'trophy' // 运动图标
+    return 'trophy'
   }
-  return 'star' // 默认图标
+  return 'star'
 }
 
 // 获取分区渐变色（根据分区名称返回不同颜色）
@@ -134,164 +134,153 @@ onMounted(() => {
     <PageHeader back-to="/" />
 
     <main class="page-content">
-      <div class="content-container">
-        <!-- 桌面端标题 -->
-        <h1 class="page-title desktop-only">评分社区</h1>
+      <!-- 加载状态 -->
+      <div v-if="isLoadingSchools" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>加载中...</p>
+      </div>
 
-        <!-- 加载状态 -->
-        <div v-if="isLoadingSchools" class="loading-container">
-          <div class="loading-spinner"></div>
-          <p>加载中...</p>
+      <!-- 学校列表为空 -->
+      <div v-else-if="schools.length === 0" class="empty-container">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
         </div>
+        <h2>暂无学校</h2>
+        <p>目前没有可用的学校</p>
+      </div>
 
-        <!-- 学校列表为空 -->
-        <div v-else-if="schools.length === 0" class="empty-container">
-          <div class="empty-icon">
+      <template v-else>
+        <!-- Hero Section -->
+        <div class="hero-section">
+          <div class="hero-content">
+            <h1 class="hero-title">评分社区</h1>
+            <p class="hero-desc">探索校园，分享你的评价</p>
+          </div>
+          <div class="hero-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
             </svg>
           </div>
-          <h2>暂无学校</h2>
-          <p>目前没有可用的学校</p>
         </div>
 
-        <!-- 学校选择 + 大分区 -->
-        <template v-else>
-          <!-- 学校选择区域 -->
-          <div class="school-section">
-            <div class="section-header">
-              <span class="section-title">选择学校</span>
-            </div>
+        <!-- 学校选择 Tabs -->
+        <div class="school-tabs" v-if="schools.length > 1">
+          <span class="tabs-label desktop-only">选择学校</span>
+          <div class="tabs-list">
+            <button
+              v-for="school in schools"
+              :key="school.id"
+              class="tab-item"
+              :class="{ active: selectedSchoolId === school.id }"
+              @click="selectSchool(school.id)"
+            >
+              {{ school.name }}
+            </button>
+          </div>
+        </div>
 
-            <div class="school-list">
-              <button
-                v-for="school in schools"
-                :key="school.id"
-                class="school-item"
-                :class="{ active: selectedSchoolId === school.id }"
-                @click="selectSchool(school.id)"
-              >
-                <div class="school-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                  </svg>
-                </div>
-                <span class="school-name">{{ school.name }}</span>
-                <div class="school-check" v-if="selectedSchoolId === school.id">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                </div>
-              </button>
-            </div>
+        <!-- 大分区网格 -->
+        <div class="sections-container">
+          <h2 class="sections-title desktop-only">
+            {{ selectedSchool?.name ? `${selectedSchool.name} · 分区` : '选择分区' }}
+          </h2>
+
+          <!-- 加载大分区 -->
+          <div v-if="isLoadingSections" class="loading-container small">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
           </div>
 
-          <!-- 大分区区域 -->
-          <div v-if="selectedSchoolId" class="section-divider"></div>
+          <!-- 未选择学校提示 -->
+          <div v-else-if="!selectedSchoolId" class="hint-container">
+            <p>请先选择学校</p>
+          </div>
 
-          <div v-if="selectedSchoolId" class="major-section">
-            <div class="section-header">
-              <span class="section-title">选择分区</span>
-              <span class="section-subtitle">{{ selectedSchool?.name }}</span>
-            </div>
+          <!-- 大分区为空 -->
+          <div v-else-if="majorSections.length === 0" class="empty-container small">
+            <p>该学校暂无分区</p>
+          </div>
 
-            <!-- 加载大分区 -->
-            <div v-if="isLoadingSections" class="loading-container small">
-              <div class="loading-spinner"></div>
-              <p>加载中...</p>
-            </div>
-
-            <!-- 大分区为空 -->
-            <div v-else-if="majorSections.length === 0" class="empty-container small">
-              <p>该学校暂无分区</p>
-            </div>
-
-            <!-- 大分区网格 -->
-            <div v-else class="section-grid">
-              <div
-                v-for="section in majorSections"
-                :key="section.id"
-                class="section-card"
-                @click="goToMajorSection(section)"
-              >
-                <!-- 封面图 -->
-                <div class="section-cover">
-                  <img
-                    v-if="section.url"
-                    :src="section.url"
-                    :alt="section.name"
-                    loading="lazy"
-                  />
-                  <div
-                    v-else
-                    class="section-placeholder"
-                    :style="{ background: getSectionGradient(section.name) }"
-                  >
-                    <!-- 餐厅图标 -->
-                    <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-                      <path d="M7 2v20"></path>
-                      <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
-                    </svg>
-                    <!-- 建筑图标 -->
-                    <svg v-else-if="getSectionIcon(section.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                      <line x1="9" y1="22" x2="9" y2="2"></line>
-                      <line x1="15" y1="22" x2="15" y2="2"></line>
-                      <line x1="4" y1="12" x2="20" y2="12"></line>
-                    </svg>
-                    <!-- 考试图标 -->
-                    <svg v-else-if="getSectionIcon(section.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                      <line x1="8" y1="10" x2="16" y2="10"></line>
-                      <line x1="8" y1="14" x2="16" y2="14"></line>
-                      <line x1="8" y1="18" x2="12" y2="18"></line>
-                    </svg>
-                    <!-- 活动图标 -->
-                    <svg v-else-if="getSectionIcon(section.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                    <!-- 图书图标 -->
-                    <svg v-else-if="getSectionIcon(section.name) === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                    </svg>
-                    <!-- 运动图标 -->
-                    <svg v-else-if="getSectionIcon(section.name) === 'trophy'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                      <path d="M4 22h16"></path>
-                      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-                      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-                      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-                    </svg>
-                    <!-- 默认星星图标 -->
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                    </svg>
-                  </div>
-                </div>
-                <!-- 信息 -->
-                <div class="section-info">
-                  <h3 class="section-name">{{ section.name }}</h3>
-                  <p v-if="section.description" class="section-desc">{{ section.description }}</p>
-                </div>
-                <!-- 箭头 -->
-                <div class="section-arrow">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
+          <!-- 大分区网格 -->
+          <div v-else class="section-grid">
+            <div
+              v-for="section in majorSections"
+              :key="section.id"
+              class="section-card"
+              @click="goToMajorSection(section)"
+            >
+              <!-- 封面图 -->
+              <div class="section-cover">
+                <img
+                  v-if="section.url"
+                  :src="section.url"
+                  :alt="section.name"
+                  loading="lazy"
+                />
+                <div
+                  v-else
+                  class="section-placeholder"
+                  :style="{ background: getSectionGradient(section.name) }"
+                >
+                  <!-- 餐厅图标 -->
+                  <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                    <path d="M7 2v20"></path>
+                    <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
+                  </svg>
+                  <!-- 建筑图标 -->
+                  <svg v-else-if="getSectionIcon(section.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                    <line x1="9" y1="22" x2="9" y2="2"></line>
+                    <line x1="15" y1="22" x2="15" y2="2"></line>
+                    <line x1="4" y1="12" x2="20" y2="12"></line>
+                  </svg>
+                  <!-- 考试图标 -->
+                  <svg v-else-if="getSectionIcon(section.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    <line x1="8" y1="10" x2="16" y2="10"></line>
+                    <line x1="8" y1="14" x2="16" y2="14"></line>
+                    <line x1="8" y1="18" x2="12" y2="18"></line>
+                  </svg>
+                  <!-- 活动图标 -->
+                  <svg v-else-if="getSectionIcon(section.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                  <!-- 图书图标 -->
+                  <svg v-else-if="getSectionIcon(section.name) === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  </svg>
+                  <!-- 运动图标 -->
+                  <svg v-else-if="getSectionIcon(section.name) === 'trophy'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                    <path d="M4 22h16"></path>
+                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                  </svg>
+                  <!-- 默认星星图标 -->
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </div>
               </div>
+              <!-- 信息 -->
+              <div class="section-info">
+                <h3 class="section-name">{{ section.name }}</h3>
+                <p v-if="section.description" class="section-desc">{{ section.description }}</p>
+              </div>
             </div>
           </div>
-        </template>
-      </div>
+        </div>
+      </template>
     </main>
 
     <PageFooter />
@@ -312,47 +301,116 @@ onMounted(() => {
 .page-content {
   flex: 1;
   padding: var(--spacing-sm);
-}
-
-.content-container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
-}
-
-/* ===== Desktop Only Title ===== */
-.page-title {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-lg);
+  width: 100%;
 }
 
 .desktop-only {
   display: none;
 }
 
-/* ===== Section Header ===== */
-.section-header {
+/* ===== Hero Section ===== */
+.hero-section {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-md);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--spacing-md);
+  color: white;
+}
+
+.hero-content {
+  flex: 1;
+}
+
+.hero-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--spacing-xs);
+}
+
+.hero-desc {
+  font-size: var(--text-sm);
+  opacity: 0.9;
+}
+
+.hero-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.hero-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* ===== School Tabs ===== */
+.school-tabs {
+  margin-bottom: var(--spacing-md);
+}
+
+.tabs-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
   margin-bottom: var(--spacing-sm);
 }
 
-.section-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--color-text);
+.tabs-list {
+  display: flex;
+  gap: var(--spacing-sm);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-xs);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
-.section-subtitle {
+.tabs-list::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-item {
+  padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   color: var(--color-text-secondary);
+  background: var(--color-card);
+  border: 2px solid transparent;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.section-divider {
-  height: 1px;
-  background: var(--color-border);
-  margin: var(--spacing-lg) 0;
+.tab-item:hover {
+  border-color: var(--color-border);
+}
+
+.tab-item.active {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
+}
+
+/* ===== Sections Container ===== */
+.sections-container {
+  flex: 1;
+}
+
+.sections-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-md);
 }
 
 /* ===== Loading ===== */
@@ -366,7 +424,7 @@ onMounted(() => {
 }
 
 .loading-container.small {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl);
 }
 
 .loading-spinner {
@@ -385,10 +443,12 @@ onMounted(() => {
   }
 }
 
-/* ===== Empty ===== */
-.empty-container {
+/* ===== Empty & Hint ===== */
+.empty-container,
+.hint-container {
   text-align: center;
-  padding: var(--spacing-2xl) var(--spacing-md);
+  padding: var(--spacing-xl) var(--spacing-md);
+  color: var(--color-text-secondary);
 }
 
 .empty-container.small {
@@ -418,84 +478,9 @@ onMounted(() => {
   margin-bottom: var(--spacing-sm);
 }
 
-.empty-container p {
+.empty-container p,
+.hint-container p {
   font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-/* ===== School List ===== */
-.school-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.school-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--color-card);
-  border: 2px solid transparent;
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: left;
-  width: 100%;
-}
-
-.school-item:hover {
-  border-color: var(--color-border);
-}
-
-.school-item.active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.school-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-}
-
-.school-item.active .school-icon {
-  background: var(--color-primary);
-  color: white;
-}
-
-.school-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.school-name {
-  flex: 1;
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  line-height: 1.4;
-}
-
-.school-check {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary);
-  color: white;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.school-check svg {
-  width: 14px;
-  height: 14px;
 }
 
 /* ===== Section Grid ===== */
@@ -578,10 +563,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.section-arrow {
-  display: none;
-}
-
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
   .desktop-only {
@@ -592,42 +573,49 @@ onMounted(() => {
     padding: var(--spacing-xl);
   }
 
-  .content-container {
-    max-width: 900px;
+  .hero-section {
+    padding: var(--spacing-xl) var(--spacing-2xl);
+    margin-bottom: var(--spacing-lg);
   }
 
-  .section-header {
-    margin-bottom: var(--spacing-md);
+  .hero-title {
+    font-size: var(--text-2xl);
   }
 
-  .section-title {
+  .hero-desc {
     font-size: var(--text-base);
   }
 
-  .school-list {
-    gap: var(--spacing-md);
+  .hero-icon {
+    width: 80px;
+    height: 80px;
   }
 
-  .school-item {
-    padding: var(--spacing-md) var(--spacing-lg);
+  .hero-icon svg {
+    width: 40px;
+    height: 40px;
   }
 
-  .school-icon {
-    width: 48px;
-    height: 48px;
+  .school-tabs {
+    margin-bottom: var(--spacing-lg);
   }
 
-  .school-icon svg {
-    width: 24px;
-    height: 24px;
+  .tabs-label {
+    display: inline-block;
+    margin-right: var(--spacing-md);
+    margin-bottom: 0;
   }
 
-  .school-name {
-    font-size: var(--text-lg);
+  .tabs-list {
+    display: inline-flex;
+  }
+
+  .tab-item {
+    padding: var(--spacing-sm) var(--spacing-lg);
   }
 
   .section-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-md);
   }
 

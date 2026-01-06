@@ -62,14 +62,14 @@ const comments = ref<AdminComment[]>([])
 const commentsTotal = ref(0)
 const commentsPage = ref(1)
 const commentsPageSize = ref(20)
-const isLoadingComments = ref(false)
+const isLoadingComments = ref(true)
 
 // 用户评分列表
 const ratings = ref<AdminUserRating[]>([])
 const ratingsTotal = ref(0)
 const ratingsPage = ref(1)
 const ratingsPageSize = ref(20)
-const isLoadingRatings = ref(false)
+const isLoadingRatings = ref(true)
 
 // 选中的评论/评分（用于批量删除）
 const selectedComments = ref<number[]>([])

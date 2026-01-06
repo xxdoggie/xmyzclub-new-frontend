@@ -1286,6 +1286,8 @@ onMounted(() => {
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
+  text-align: center;
+  padding: var(--spacing-sm);
 }
 
 .upload-placeholder:hover {
@@ -1296,15 +1298,19 @@ onMounted(() => {
 .upload-placeholder svg {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
 }
 
 .upload-placeholder span {
   font-size: var(--text-sm);
+  white-space: nowrap;
 }
 
 .upload-hint {
   font-size: var(--text-xs) !important;
   color: var(--color-text-placeholder) !important;
+  white-space: normal !important;
+  line-height: 1.3;
 }
 
 .hidden-input {

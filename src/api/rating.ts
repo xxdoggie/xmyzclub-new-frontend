@@ -41,6 +41,7 @@ import type {
   SubmitContributionRequest,
   Contribution,
   ContributionImageUploadResponse,
+  MyContributionsResponse,
 } from '@/types/rating'
 
 /**
@@ -608,4 +609,18 @@ export function uploadContributionImage(file: File) {
   return api.post<ApiResponse<ContributionImageUploadResponse>>('/rating-community/contributions/upload-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
+}
+
+/**
+ * 获取我的贡献列表
+ */
+export function getMyContributions(params?: { page?: number; size?: number; status?: number }) {
+  return api.get<ApiResponse<MyContributionsResponse>>('/rating-community/contributions/my', { params })
+}
+
+/**
+ * 获取贡献详情
+ */
+export function getContributionDetail(id: number) {
+  return api.get<ApiResponse<Contribution>>(`/rating-community/contributions/${id}`)
 }

@@ -175,6 +175,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/community/contributions',
+      name: 'community-contributions',
+      component: () => import('../pages/MyContributionsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '我的反馈',
+        parent: 'community',
+      },
+    },
+    {
       path: '/design-system',
       name: 'design-system',
       component: () => import('../pages/DesignSystemPage.vue'),

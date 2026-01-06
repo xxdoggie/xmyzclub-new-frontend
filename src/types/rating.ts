@@ -621,3 +621,36 @@ export interface ContributionImageUploadResponse {
   id: number
   fileUrl: string
 }
+
+/**
+ * 我的贡献列表项（简化版）
+ */
+export interface MyContribution {
+  id: number
+  userId: number
+  username: string
+  nickname: string
+  contributionType: ContributionType
+  contributionTypeDisplay: string
+  targetType: TargetType
+  targetTypeDisplay: string
+  targetId: number | null
+  targetName: string | null
+  status: ContributionStatus
+  statusDisplay: string
+  reason: string
+  rejectReason: string | null
+  reviewedAt: string | null
+  createdAt: string
+  details: ContributionDetail[]
+}
+
+/**
+ * 我的贡献列表响应
+ */
+export interface MyContributionsResponse {
+  list: MyContribution[]
+  total: number
+  page: number
+  size: number
+}

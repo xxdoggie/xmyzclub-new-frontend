@@ -231,12 +231,7 @@ async function handleQQLogin() {
     } else {
       toast.error(res.data.message || '获取授权链接失败')
     }
-  } catch (err: unknown) {
-    // 临时调试：显示完整错误信息
-    const errorDetail = err instanceof Error
-      ? `${err.name}: ${err.message}\n\nStack: ${err.stack || '无'}`
-      : JSON.stringify(err, null, 2)
-    alert(`[调试] QQ登录获取授权URL失败\n\n${errorDetail}`)
+  } catch {
     toast.error('网络错误，请稍后重试')
   } finally {
     loading.value = false

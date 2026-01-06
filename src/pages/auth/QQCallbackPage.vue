@@ -2,9 +2,11 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
 const userStore = useUserStore()
+const toast = useToast()
 
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search)
@@ -31,6 +33,7 @@ onMounted(async () => {
 
     if (result.code === 200) {
       // 登录成功
+      toast.success('登录成功')
       const redirect = userStore.consumeRedirectRoute()
       router.push(redirect || '/')
     } else if (result.code === 40007 && 'needBinding' in result.data) {
@@ -50,13 +53,9 @@ onMounted(async () => {
       alert(result.message || '登录失败')
       router.push('/')
     }
-  } catch (err: unknown) {
+  } catch (err) {
     console.error('QQ登录失败', err)
-    // 临时调试：显示完整错误信息
-    const errorDetail = err instanceof Error
-      ? `${err.name}: ${err.message}\n\nStack: ${err.stack || '无'}`
-      : JSON.stringify(err, null, 2)
-    alert(`[调试] QQ登录回调处理失败\n\ncode: ${code}\nstate: ${state}\n\n错误详情:\n${errorDetail}`)
+    alert('网络错误')
     router.push('/')
   }
 })

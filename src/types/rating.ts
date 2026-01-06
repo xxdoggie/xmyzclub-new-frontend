@@ -671,3 +671,72 @@ export interface ContributionHistoryItem {
   details: ContributionDetail[]
   reviewedAt: string
 }
+
+// ==================== 管理端贡献审核 (AdminContribution) ====================
+
+/**
+ * 管理端贡献列表查询参数
+ */
+export interface AdminContributionsParams {
+  page?: number
+  size?: number
+  status?: ContributionStatus
+  targetType?: TargetType
+  contributionType?: ContributionType
+}
+
+/**
+ * 审核贡献请求
+ */
+export interface ReviewContributionRequest {
+  status: 1 | 2 // 1=通过, 2=拒绝
+  rejectReason?: string // 拒绝时必填
+}
+
+/**
+ * 获取贡献状态信息的辅助函数
+ */
+export function getContributionStatusInfo(status: ContributionStatus): StatusInfo {
+  switch (status) {
+    case 0:
+      return { label: '待审核', class: 'status-pending' }
+    case 1:
+      return { label: '已通过', class: 'status-approved' }
+    case 2:
+      return { label: '已拒绝', class: 'status-rejected' }
+    default:
+      return { label: '未知', class: 'status-unknown' }
+  }
+}
+
+/**
+ * 获取贡献类型信息的辅助函数
+ */
+export function getContributionTypeInfo(type: ContributionType): { label: string; class: string } {
+  switch (type) {
+    case 1:
+      return { label: '修改现有', class: 'type-modify' }
+    case 2:
+      return { label: '新增内容', class: 'type-create' }
+    default:
+      return { label: '未知', class: 'type-unknown' }
+  }
+}
+
+/**
+ * 获取目标类型信息的辅助函数
+ */
+export function getTargetTypeInfo(type: TargetType): { label: string; class: string } {
+  switch (type) {
+    case 1:
+      return { label: '大分区', class: 'target-major' }
+    case 2:
+      return { label: '小分区', class: 'target-minor' }
+    case 3:
+      return { label: '评分项目', class: 'target-item' }
+    case 4:
+      return { label: '合集', class: 'target-collection' }
+    default:
+      return { label: '未知', class: 'target-unknown' }
+  }
+}

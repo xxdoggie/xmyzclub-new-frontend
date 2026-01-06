@@ -10,6 +10,7 @@ import {
   updateSchool,
   deleteSchool,
   updateSchoolStatus,
+  getAdminContributionsPendingCount,
 } from '@/api/rating'
 import type {
   RatingStatistics,
@@ -31,6 +32,9 @@ const isLoading = ref(true)
 
 // 统计数据
 const statistics = ref<RatingStatistics | null>(null)
+
+// 待审核贡献数量
+const pendingContributionsCount = ref(0)
 
 // 学校列表
 const schools = ref<AdminSchool[]>([])
@@ -85,6 +89,18 @@ async function loadStatistics() {
   }
 }
 
+// 加载待审核贡献数量
+async function loadPendingContributionsCount() {
+  try {
+    const res = await getAdminContributionsPendingCount()
+    if (res.data.code === 200) {
+      pendingContributionsCount.value = res.data.data
+    }
+  } catch (error) {
+    console.error('获取待审核数量失败', error)
+  }
+}
+
 // 加载学校列表
 async function loadSchools() {
   try {
@@ -111,7 +127,7 @@ async function loadSchools() {
 async function loadAllData() {
   isLoading.value = true
   try {
-    await Promise.all([loadStatistics(), loadSchools()])
+    await Promise.all([loadStatistics(), loadSchools(), loadPendingContributionsCount()])
   } finally {
     isLoading.value = false
   }
@@ -272,6 +288,15 @@ onMounted(() => {
               <p class="page-subtitle">管理学校、分区和评分项目</p>
             </div>
             <div class="header-actions">
+              <button class="action-button secondary" @click="router.push('/admin/rating/contributions')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+                  <rect x="9" y="3" width="6" height="4" rx="1"></rect>
+                  <path d="M9 12l2 2 4-4"></path>
+                </svg>
+                审核反馈
+                <span v-if="pendingContributionsCount > 0" class="pending-count">{{ pendingContributionsCount }}</span>
+              </button>
               <button class="action-button secondary" @click="router.push('/admin/rating/collections')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="7" height="7"></rect>
@@ -581,6 +606,21 @@ onMounted(() => {
 
 .action-button.secondary:hover {
   background: var(--color-border);
+}
+
+.pending-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  color: white;
+  background: #F59E0B;
+  border-radius: var(--radius-full);
+  margin-left: 4px;
 }
 
 /* ===== Loading ===== */

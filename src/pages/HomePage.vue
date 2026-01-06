@@ -338,12 +338,12 @@ function goToBanner(index: number) {
             </div>
           </Transition>
         </div>
+        </div>
 
-          <!-- 底部信息 -->
-          <div class="drawer-footer">
-            <p class="drawer-brand">厦门一中学生社区</p>
-            <p class="drawer-credit">designed by 23届玄学狗狗</p>
-          </div>
+        <!-- 底部信息（固定在抽屉底部） -->
+        <div class="drawer-footer">
+          <p class="drawer-brand">厦门一中学生社区</p>
+          <p class="drawer-credit">designed by 23届玄学狗狗</p>
         </div>
       </div>
     </Transition>
@@ -694,8 +694,6 @@ function goToBanner(index: number) {
   flex-direction: column;
   /* iOS 弹性滚动 */
   -webkit-overflow-scrolling: touch;
-  /* 底部安全区域 padding，确保内容不被浏览器 UI 遮挡 */
-  padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 20px));
 }
 
 
@@ -946,11 +944,14 @@ function goToBanner(index: number) {
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* 底部信息 */
+/* 底部信息（固定在抽屉底部） */
 .drawer-footer {
+  flex-shrink: 0;
   padding: var(--spacing-md);
+  padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 20px));
   border-top: 1px solid var(--color-border);
   text-align: center;
+  background: var(--color-card);
 }
 
 .drawer-brand {

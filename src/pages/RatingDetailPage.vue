@@ -54,6 +54,11 @@ const drawerReplyTarget = ref<{ commentId: number; nickname: string } | null>(nu
 const drawerReplyText = ref('')
 const isSubmittingDrawerReply = ref(false)
 
+// 删除确认模态框状态
+const showDeleteConfirm = ref(false)
+const deleteTargetId = ref<number | null>(null)
+const isDeleting = ref(false)
+
 // 排序后的评论列表
 const sortedComments = computed(() => {
   if (!detail.value?.comments) return []
@@ -532,19 +537,37 @@ async function handleSubmitReply() {
   }
 }
 
-// 删除评论
-async function handleDeleteComment(commentId: number) {
-  if (!confirm('确定要删除这条评论吗？')) return
+// 打开删除确认模态框
+function openDeleteConfirm(commentId: number) {
+  deleteTargetId.value = commentId
+  showDeleteConfirm.value = true
+}
+
+// 取消删除
+function cancelDeleteComment() {
+  showDeleteConfirm.value = false
+  deleteTargetId.value = null
+}
+
+// 确认删除评论
+async function confirmDeleteComment() {
+  if (!deleteTargetId.value) return
+
+  isDeleting.value = true
   try {
-    const res = await deleteComment(commentId)
+    const res = await deleteComment(deleteTargetId.value)
     if (res.data.code === 200) {
       toast.success('删除成功')
+      showDeleteConfirm.value = false
+      deleteTargetId.value = null
       await loadDetail(true) // 静默重载数据
     } else {
       toast.error(res.data.message || '删除失败')
     }
   } catch {
     toast.error('删除失败')
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -759,7 +782,7 @@ onMounted(() => {
                       <button
                         v-if="comment.isMyComment"
                         class="action-btn delete"
-                        @click="handleDeleteComment(comment.id)"
+                        @click="openDeleteConfirm(comment.id)"
                       >
                         删除
                       </button>
@@ -962,7 +985,7 @@ onMounted(() => {
                             <button
                               v-if="reply.isMyComment"
                               class="action-btn delete"
-                              @click="handleDeleteComment(reply.id)"
+                              @click="openDeleteConfirm(reply.id)"
                             >
                               删除
                             </button>
@@ -995,6 +1018,26 @@ onMounted(() => {
                     @click="submitDrawerReply"
                   >
                     {{ isSubmittingDrawerReply ? '...' : '发送' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </Teleport>
+
+        <!-- 删除确认模态框 -->
+        <Teleport to="body">
+          <Transition name="modal">
+            <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDeleteComment">
+              <div class="modal-content">
+                <h3 class="modal-title">确认删除</h3>
+                <p class="modal-desc">确定要删除这条评论吗？此操作不可撤销。</p>
+                <div class="modal-actions">
+                  <button class="modal-btn cancel" @click="cancelDeleteComment" :disabled="isDeleting">
+                    取消
+                  </button>
+                  <button class="modal-btn confirm" @click="confirmDeleteComment" :disabled="isDeleting">
+                    {{ isDeleting ? '删除中...' : '确认删除' }}
                   </button>
                 </div>
               </div>
@@ -1977,5 +2020,98 @@ onMounted(() => {
     min-height: 70vh;
     max-height: 85vh;
   }
+}
+
+/* ===== Delete Confirm Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: var(--spacing-md);
+}
+
+.modal-content {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  max-width: 320px;
+  width: 100%;
+}
+
+.modal-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.modal-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-btn.cancel {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.modal-btn.cancel:hover:not(:disabled) {
+  background: var(--color-text-placeholder);
+}
+
+.modal-btn.confirm {
+  background: var(--color-error);
+  color: white;
+}
+
+.modal-btn.confirm:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* Modal Transition */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-active .modal-content,
+.modal-leave-active .modal-content {
+  transition: transform 0.2s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-content,
+.modal-leave-to .modal-content {
+  transform: scale(0.95);
 }
 </style>

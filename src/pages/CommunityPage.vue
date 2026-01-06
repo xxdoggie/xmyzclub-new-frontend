@@ -649,6 +649,7 @@ onMounted(() => {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   padding: var(--spacing-sm);
+  padding-left: var(--spacing-md);
   padding-right: var(--spacing-md);
 }
 

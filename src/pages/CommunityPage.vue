@@ -923,7 +923,7 @@ onMounted(() => {
 .collection-card,
 .collection-skeleton {
   flex: 0 0 auto;
-  width: 140px;
+  width: 120px;
   background: var(--color-bg);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -972,6 +972,32 @@ onMounted(() => {
   font-size: 10px;
   font-weight: var(--font-medium);
   color: white;
+}
+
+.collection-skeleton .skeleton-cover {
+  aspect-ratio: 16 / 9;
+  background: var(--color-border);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.collection-skeleton .skeleton-info {
+  padding: var(--spacing-xs);
+}
+
+.collection-skeleton .skeleton-title {
+  height: 12px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-xs);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.collection-skeleton .skeleton-meta {
+  height: 10px;
+  width: 60%;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 /* ===== Desktop ===== */
@@ -1026,13 +1052,10 @@ onMounted(() => {
   }
 
   .item-card,
-  .item-skeleton {
-    width: 140px;
-  }
-
+  .item-skeleton,
   .collection-card,
   .collection-skeleton {
-    width: 160px;
+    width: 140px;
   }
 
   .item-name {
@@ -1051,13 +1074,10 @@ onMounted(() => {
   }
 
   .item-card,
-  .item-skeleton {
-    width: 160px;
-  }
-
+  .item-skeleton,
   .collection-card,
   .collection-skeleton {
-    width: 180px;
+    width: 160px;
   }
 }
 </style>

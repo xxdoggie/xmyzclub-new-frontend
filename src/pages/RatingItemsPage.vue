@@ -7,6 +7,7 @@ import { getRatingItems, submitRating } from '@/api/rating'
 import type { RatingItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
+import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,6 +21,21 @@ const minorId = Number(route.params.minorId)
 const isLoading = ref(true)
 const ratingItems = ref<RatingItem[]>([])
 const currentFilter = ref<'hot' | 'high' | 'low'>('hot')
+
+// 反馈抽屉状态
+const isFeedbackOpen = ref(false)
+
+function openFeedbackDrawer() {
+  isFeedbackOpen.value = true
+}
+
+function closeFeedbackDrawer() {
+  isFeedbackOpen.value = false
+}
+
+function handleFeedbackSuccess() {
+  // 可以在这里做额外处理
+}
 
 // 星星悬停状态：记录每个项目的悬停星数
 const hoverStars = ref<Record<number, number>>({})
@@ -251,10 +267,32 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
+        <!-- 反馈提示 -->
+        <div class="feedback-prompt">
+          <button class="feedback-link" @click="openFeedbackDrawer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            没找到想要的评分项目？点我发起新建请求
+          </button>
+        </div>
       </template>
     </main>
 
     <PageFooter />
+
+    <!-- 反馈抽屉 -->
+    <FeedbackDrawer
+      :is-open="isFeedbackOpen"
+      :contribution-type="2"
+      :target-type="3"
+      :parent-id="minorId"
+      @close="closeFeedbackDrawer"
+      @success="handleFeedbackSuccess"
+    />
   </div>
 </template>
 
@@ -607,6 +645,34 @@ onMounted(() => {
   50% {
     opacity: 0.5;
   }
+}
+
+/* ===== Feedback Prompt ===== */
+.feedback-prompt {
+  margin-top: var(--spacing-lg);
+  text-align: center;
+}
+
+.feedback-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.feedback-link:hover {
+  opacity: 0.8;
+}
+
+.feedback-link svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* ===== Desktop ===== */

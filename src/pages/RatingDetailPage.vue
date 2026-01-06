@@ -9,9 +9,11 @@ import {
   createComment,
   deleteComment,
   toggleLike,
+  getContributionHistory,
 } from '@/api/rating'
-import type { RatingItemDetail, Comment } from '@/types/rating'
+import type { RatingItemDetail, Comment, ContributionHistoryItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
 
 // 扁平化的回复类型，包含被回复人信息
 interface FlattenedReply extends Comment {
@@ -58,6 +60,67 @@ const isSubmittingDrawerReply = ref(false)
 const showDeleteConfirm = ref(false)
 const deleteTargetId = ref<number | null>(null)
 const isDeleting = ref(false)
+
+// 反馈抽屉状态
+const isFeedbackOpen = ref(false)
+
+function openFeedbackDrawer() {
+  isFeedbackOpen.value = true
+}
+
+function closeFeedbackDrawer() {
+  isFeedbackOpen.value = false
+}
+
+function handleFeedbackSuccess() {
+  // 可以在这里做额外处理
+}
+
+// 更改历史弹窗状态
+const isHistoryOpen = ref(false)
+const historyList = ref<ContributionHistoryItem[]>([])
+const isLoadingHistory = ref(false)
+
+async function openHistoryModal() {
+  isHistoryOpen.value = true
+  isLoadingHistory.value = true
+  try {
+    const res = await getContributionHistory(3, itemId) // targetType 3 = 评分项目
+    if (res.data.code === 200) {
+      historyList.value = res.data.data || []
+    } else {
+      toast.error(res.data.message || '获取历史失败')
+    }
+  } catch {
+    toast.error('获取历史失败')
+  } finally {
+    isLoadingHistory.value = false
+  }
+}
+
+function closeHistoryModal() {
+  isHistoryOpen.value = false
+}
+
+// 格式化历史时间
+function formatHistoryTime(dateStr: string): string {
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+// 获取字段名称显示
+function getFieldLabel(fieldName: string): string {
+  switch (fieldName) {
+    case 'name':
+      return '名称'
+    case 'description':
+      return '描述'
+    case 'image':
+      return '图片'
+    default:
+      return fieldName
+  }
+}
 
 // 排序后的评论列表
 const sortedComments = computed(() => {
@@ -640,6 +703,25 @@ onMounted(() => {
               <p v-if="detail.description" class="item-desc">{{ detail.description }}</p>
             </div>
           </div>
+          <!-- 操作按钮区 -->
+          <div class="item-actions">
+            <!-- 反馈按钮 -->
+            <button class="feedback-btn" @click="openFeedbackDrawer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              信息有误？提交反馈
+            </button>
+            <!-- 历史按钮 -->
+            <button class="history-btn" @click="openHistoryModal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              更改历史
+            </button>
+          </div>
         </div>
 
         <!-- 评分卡片 -->
@@ -1041,6 +1123,96 @@ onMounted(() => {
             </div>
           </Transition>
         </Teleport>
+
+        <!-- 反馈抽屉 -->
+        <FeedbackDrawer
+          :is-open="isFeedbackOpen"
+          :contribution-type="1"
+          :target-type="3"
+          :target-id="itemId"
+          :current-name="detail.name"
+          :current-description="detail.description"
+          @close="closeFeedbackDrawer"
+          @success="handleFeedbackSuccess"
+        />
+
+        <!-- 更改历史弹窗 -->
+        <Teleport to="body">
+          <Transition name="modal">
+            <div v-if="isHistoryOpen" class="modal-overlay" @click.self="closeHistoryModal">
+              <div class="history-modal">
+                <div class="history-header">
+                  <h3>更改历史</h3>
+                  <button class="history-close" @click="closeHistoryModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+                <div class="history-content">
+                  <!-- 加载中 -->
+                  <div v-if="isLoadingHistory" class="history-loading">
+                    <div class="loading-spinner"></div>
+                    <span>加载中...</span>
+                  </div>
+                  <!-- 空状态 -->
+                  <div v-else-if="historyList.length === 0" class="history-empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <p>暂无更改历史</p>
+                  </div>
+                  <!-- 历史列表 -->
+                  <div v-else class="history-list">
+                    <div v-for="item in historyList" :key="item.contributionId" class="history-item">
+                      <div class="history-item-header">
+                        <span class="history-type" :class="item.contributionType === 1 ? 'modify' : 'create'">
+                          {{ item.contributionTypeDisplay }}
+                        </span>
+                        <span class="history-user">{{ item.nickname }}</span>
+                        <span class="history-time">{{ formatHistoryTime(item.reviewedAt) }}</span>
+                      </div>
+                      <div class="history-details">
+                        <div v-for="(detail, idx) in item.details" :key="idx" class="history-detail">
+                          <span class="detail-field">{{ detail.fieldNameDisplay || getFieldLabel(detail.fieldName) }}</span>
+                          <template v-if="detail.fieldName === 'image'">
+                            <div class="detail-images">
+                              <template v-if="item.contributionType === 1">
+                                <img v-if="detail.oldImageUrl" :src="detail.oldImageUrl" class="detail-thumb" alt="旧图" />
+                                <span v-else class="no-image">无</span>
+                                <span class="arrow">→</span>
+                                <img v-if="detail.newImageUrl" :src="detail.newImageUrl" class="detail-thumb" alt="新图" />
+                                <span v-else class="no-image">无</span>
+                              </template>
+                              <template v-else>
+                                <img v-if="detail.newImageUrl" :src="detail.newImageUrl" class="detail-thumb" alt="新图" />
+                                <span v-else class="no-image">无</span>
+                              </template>
+                            </div>
+                          </template>
+                          <template v-else>
+                            <div class="detail-text">
+                              <template v-if="item.contributionType === 1 && detail.oldValue !== undefined">
+                                <span class="old-text">{{ detail.oldValue || '（空）' }}</span>
+                                <span class="arrow">→</span>
+                                <span class="new-text">{{ detail.newValue }}</span>
+                              </template>
+                              <template v-else>
+                                <span class="new-text">{{ detail.newValue }}</span>
+                              </template>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </Teleport>
       </template>
 
       <!-- 错误状态 -->
@@ -1145,6 +1317,74 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ===== Feedback Button ===== */
+.feedback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.feedback-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.feedback-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ===== Item Actions ===== */
+.item-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.item-actions .feedback-btn {
+  flex: 1;
+  margin-top: 0;
+}
+
+.history-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.history-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.history-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* ===== Score Card ===== */
@@ -2109,6 +2349,244 @@ onMounted(() => {
 
 .modal-enter-from .modal-content,
 .modal-leave-to .modal-content {
+  transform: scale(0.95);
+}
+
+/* ===== History Modal ===== */
+.history-modal {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.history-header h3 {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin: 0;
+}
+
+.history-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
+
+.history-close:hover {
+  background: var(--color-bg);
+}
+
+.history-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.history-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+}
+
+.history-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  color: var(--color-text-secondary);
+}
+
+.history-empty svg {
+  width: 48px;
+  height: 48px;
+  opacity: 0.4;
+  margin-bottom: var(--spacing-sm);
+}
+
+.history-empty p {
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.history-item {
+  padding: var(--spacing-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.history-item-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.history-type {
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-sm);
+}
+
+.history-type.modify {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.history-type.create {
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.history-user {
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  font-weight: var(--font-medium);
+}
+
+.history-time {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+  margin-left: auto;
+}
+
+.history-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.history-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  font-size: var(--text-xs);
+}
+
+.detail-field {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  min-width: 32px;
+}
+
+.detail-field::after {
+  content: '：';
+}
+
+.detail-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-text .old-text {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+  word-break: break-word;
+}
+
+.detail-text .new-text {
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.detail-text .arrow,
+.detail-images .arrow {
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
+}
+
+.detail-images {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.detail-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.no-image {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-hover);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+}
+
+.modal-enter-active .history-modal,
+.modal-leave-active .history-modal {
+  transition: transform 0.2s ease;
+}
+
+.modal-enter-from .history-modal,
+.modal-leave-to .history-modal {
   transform: scale(0.95);
 }
 </style>

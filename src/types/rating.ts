@@ -536,3 +536,138 @@ export interface BatchAddCollectionItemsRequest {
 export interface UpdateCollectionItemSortRequest {
   sortOrder: number
 }
+
+// ==================== 用户贡献 (Contribution) ====================
+
+/**
+ * 贡献类型
+ * 1=修改现有内容, 2=新增内容
+ */
+export type ContributionType = 1 | 2
+
+/**
+ * 目标类型
+ * 1=大分区, 2=小分区, 3=评分项目, 4=合集
+ */
+export type TargetType = 1 | 2 | 3 | 4
+
+/**
+ * 贡献状态
+ * 0=待审核, 1=已通过, 2=已拒绝
+ */
+export type ContributionStatus = 0 | 1 | 2
+
+/**
+ * 字段名称
+ */
+export type FieldName = 'name' | 'description' | 'image'
+
+/**
+ * 贡献详情项
+ */
+export interface ContributionDetail {
+  id?: number
+  fieldName: FieldName
+  fieldNameDisplay?: string
+  oldValue?: string | null
+  newValue: string
+  oldImageUrl?: string | null
+  newImageUrl?: string | null
+  createdAt?: string
+}
+
+/**
+ * 提交贡献请求
+ */
+export interface SubmitContributionRequest {
+  contributionType: ContributionType
+  targetType: TargetType
+  targetId?: number | null
+  parentId?: number | null
+  reason: string
+  details: ContributionDetail[]
+}
+
+/**
+ * 贡献响应
+ */
+export interface Contribution {
+  id: number
+  userId: number
+  username: string
+  nickname: string
+  contributionType: ContributionType
+  contributionTypeDisplay: string
+  targetType: TargetType
+  targetTypeDisplay: string
+  targetId: number | null
+  targetName: string | null
+  parentId: number | null
+  parentName: string | null
+  status: ContributionStatus
+  statusDisplay: string
+  reason: string
+  rejectReason: string | null
+  reviewerId: number | null
+  reviewerUsername: string | null
+  reviewedAt: string | null
+  createdAt: string
+  updatedAt: string
+  details: ContributionDetail[]
+}
+
+/**
+ * 贡献图片上传响应
+ */
+export interface ContributionImageUploadResponse {
+  id: number
+  fileUrl: string
+}
+
+/**
+ * 我的贡献列表项（简化版）
+ */
+export interface MyContribution {
+  id: number
+  userId: number
+  username: string
+  nickname: string
+  contributionType: ContributionType
+  contributionTypeDisplay: string
+  targetType: TargetType
+  targetTypeDisplay: string
+  targetId: number | null
+  targetName: string | null
+  status: ContributionStatus
+  statusDisplay: string
+  reason: string
+  rejectReason: string | null
+  reviewedAt: string | null
+  createdAt: string
+  details: ContributionDetail[]
+}
+
+/**
+ * 我的贡献列表响应
+ */
+export interface MyContributionsResponse {
+  items: MyContribution[]
+  total: number
+  page: number
+  size: number
+  totalPages: number
+}
+
+/**
+ * 贡献历史项
+ */
+export interface ContributionHistoryItem {
+  contributionId: number
+  contributionType: ContributionType
+  contributionTypeDisplay: string
+  userId: number
+  username: string
+  nickname: string
+  details: ContributionDetail[]
+  reviewedAt: string
+}

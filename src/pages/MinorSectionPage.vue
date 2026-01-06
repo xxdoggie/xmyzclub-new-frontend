@@ -6,6 +6,7 @@ import { getMinorSections } from '@/api/rating'
 import type { MinorSection } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
+import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -17,6 +18,21 @@ const majorId = Number(route.params.majorId)
 // 状态
 const isLoading = ref(true)
 const minorSections = ref<MinorSection[]>([])
+
+// 反馈抽屉状态
+const isFeedbackOpen = ref(false)
+
+function openFeedbackDrawer() {
+  isFeedbackOpen.value = true
+}
+
+function closeFeedbackDrawer() {
+  isFeedbackOpen.value = false
+}
+
+function handleFeedbackSuccess() {
+  // 可以在这里做额外处理，比如显示提示
+}
 
 // 加载小分区列表
 async function loadMinorSections() {
@@ -121,10 +137,32 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
+        <!-- 反馈提示 -->
+        <div class="feedback-prompt" v-if="!isLoading">
+          <button class="feedback-link" @click="openFeedbackDrawer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            没找到想要的分区？点我发起新建请求
+          </button>
+        </div>
       </div>
     </main>
 
     <PageFooter />
+
+    <!-- 反馈抽屉 -->
+    <FeedbackDrawer
+      :is-open="isFeedbackOpen"
+      :contribution-type="2"
+      :target-type="2"
+      :parent-id="majorId"
+      @close="closeFeedbackDrawer"
+      @success="handleFeedbackSuccess"
+    />
   </div>
 </template>
 
@@ -300,6 +338,34 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+/* ===== Feedback Prompt ===== */
+.feedback-prompt {
+  margin-top: var(--spacing-lg);
+  text-align: center;
+}
+
+.feedback-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.feedback-link:hover {
+  opacity: 0.8;
+}
+
+.feedback-link svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
   .desktop-only {
@@ -330,6 +396,10 @@ onMounted(() => {
 
   .section-desc {
     font-size: var(--text-sm);
+  }
+
+  .feedback-prompt {
+    margin-top: var(--spacing-xl);
   }
 }
 </style>

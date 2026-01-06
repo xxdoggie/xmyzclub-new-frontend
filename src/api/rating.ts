@@ -38,6 +38,12 @@ import type {
   AddCollectionItemRequest,
   BatchAddCollectionItemsRequest,
   UpdateCollectionItemSortRequest,
+  SubmitContributionRequest,
+  Contribution,
+  ContributionImageUploadResponse,
+  MyContributionsResponse,
+  ContributionHistoryItem,
+  TargetType,
 } from '@/types/rating'
 
 /**
@@ -585,4 +591,47 @@ export function updateCollectionItemSort(collectionId: number, ratingItemId: num
  */
 export function batchAddCollectionItems(collectionId: number, data: BatchAddCollectionItemsRequest) {
   return api.post<ApiResponse<null>>(`${ADMIN_BASE}/collections/${collectionId}/items/batch`, data)
+}
+
+// ==================== 用户端贡献 API ====================
+
+/**
+ * 提交贡献
+ */
+export function submitContribution(data: SubmitContributionRequest) {
+  return api.post<ApiResponse<Contribution>>('/rating-community/contributions', data)
+}
+
+/**
+ * 上传贡献图片
+ */
+export function uploadContributionImage(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResponse<ContributionImageUploadResponse>>('/rating-community/contributions/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
+ * 获取我的贡献列表
+ */
+export function getMyContributions(params?: { page?: number; size?: number; status?: number }) {
+  return api.get<ApiResponse<MyContributionsResponse>>('/rating-community/contributions/my', { params })
+}
+
+/**
+ * 获取贡献详情
+ */
+export function getContributionDetail(id: number) {
+  return api.get<ApiResponse<Contribution>>(`/rating-community/contributions/${id}`)
+}
+
+/**
+ * 获取实体贡献历史
+ */
+export function getContributionHistory(targetType: TargetType, targetId: number) {
+  return api.get<ApiResponse<ContributionHistoryItem[]>>('/rating-community/contributions/history', {
+    params: { targetType, targetId },
+  })
 }

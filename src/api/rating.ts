@@ -126,6 +126,15 @@ export function getRandomItems(schoolId: number, count: number = 10) {
   })
 }
 
+/**
+ * 获取热门评分项目（按评分人数排序）
+ */
+export function getHotItems(count: number = 10) {
+  return api.get<ApiResponse<RandomRatingItem[]>>('/rating-community/hot-items', {
+    params: { count },
+  })
+}
+
 // ==================== 管理端 API ====================
 
 const ADMIN_BASE = '/admin/rating-community'

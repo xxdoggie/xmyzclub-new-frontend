@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
-import { getMajorSections, getRandomItems } from '@/api/rating'
+import { getMajorSections, getRandomItems, getHotItems } from '@/api/rating'
 import type { MajorSection, RandomRatingItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
@@ -16,7 +16,9 @@ const SCHOOL_ID = 1
 // 状态
 const isLoading = ref(true)
 const majorSections = ref<MajorSection[]>([])
+const hotItems = ref<RandomRatingItem[]>([])
 const randomItems = ref<RandomRatingItem[]>([])
+const isLoadingHot = ref(true)
 const isLoadingRandom = ref(false)
 
 // 加载大分区列表
@@ -36,11 +38,26 @@ async function loadMajorSections() {
   }
 }
 
+// 加载热门项目
+async function loadHotItems() {
+  isLoadingHot.value = true
+  try {
+    const res = await getHotItems(8)
+    if (res.data.code === 200) {
+      hotItems.value = res.data.data
+    }
+  } catch {
+    // 静默失败
+  } finally {
+    isLoadingHot.value = false
+  }
+}
+
 // 加载随机推荐
 async function loadRandomItems() {
   isLoadingRandom.value = true
   try {
-    const res = await getRandomItems(SCHOOL_ID, 10)
+    const res = await getRandomItems(SCHOOL_ID, 8)
     if (res.data.code === 200) {
       // 有图片的排前面
       randomItems.value = res.data.data.sort((a, b) => {
@@ -50,7 +67,7 @@ async function loadRandomItems() {
       })
     }
   } catch {
-    // 静默失败，推荐区域可选
+    // 静默失败
   } finally {
     isLoadingRandom.value = false
   }
@@ -101,6 +118,7 @@ function getSectionIcon(name: string): string {
 
 onMounted(() => {
   loadMajorSections()
+  loadHotItems()
   loadRandomItems()
 })
 </script>
@@ -136,32 +154,9 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 快捷提示 -->
-      <div class="quick-tips">
-        <div class="tip-item">
-          <svg class="tip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-          <span class="tip-text">点击分区探索更多</span>
-        </div>
-        <div class="tip-divider"></div>
-        <div class="tip-item">
-          <svg class="tip-icon" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-          </svg>
-          <span class="tip-text">给你喜欢的打分</span>
-        </div>
-      </div>
-
       <!-- 加载状态 -->
       <div v-if="isLoading" class="loading-state">
-        <div class="skeleton-grid">
-          <div v-for="i in 4" :key="i" class="skeleton-card">
-            <div class="skeleton-icon"></div>
-            <div class="skeleton-text"></div>
-          </div>
-        </div>
+        <div class="skeleton-circle"></div>
       </div>
 
       <!-- 空状态 -->
@@ -178,18 +173,24 @@ onMounted(() => {
         <p>稍后再来看看吧</p>
       </div>
 
-      <!-- 分区列表 -->
+      <!-- 四分区圆形导航 -->
       <div v-else class="sections-wrapper">
-        <div class="section-grid">
+        <div class="circle-nav">
+          <div class="circle-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>探索</span>
+          </div>
           <div
-            v-for="section in majorSections"
+            v-for="(section, index) in majorSections.slice(0, 4)"
             :key="section.id"
-            class="section-card"
+            class="quarter-section"
+            :class="`quarter-${index + 1}`"
             @click="goToMajorSection(section)"
           >
-            <!-- 卡片内容 -->
-            <div class="card-content">
-              <div class="card-icon">
+            <div class="quarter-content">
+              <div class="quarter-icon">
                 <!-- 餐厅图标 -->
                 <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
@@ -215,34 +216,97 @@ onMounted(() => {
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
-                <!-- 图书图标 -->
-                <svg v-else-if="getSectionIcon(section.name) === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
-                <!-- 运动图标 -->
-                <svg v-else-if="getSectionIcon(section.name) === 'trophy'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                  <path d="M4 22h16"></path>
-                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-                </svg>
                 <!-- 默认星星图标 -->
                 <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
               </div>
-              <div class="card-info">
-                <h3 class="card-title">{{ section.name }}</h3>
-                <p v-if="section.description" class="card-desc">{{ section.description }}</p>
-                <p v-else class="card-desc">点击探索更多内容</p>
-              </div>
-              <div class="card-arrow">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="9 18 15 12 9 6"></polyline>
+              <span class="quarter-label">{{ section.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 更多分区（如果超过4个） -->
+        <div v-if="majorSections.length > 4" class="more-sections">
+          <div
+            v-for="section in majorSections.slice(4)"
+            :key="section.id"
+            class="more-section-item"
+            @click="goToMajorSection(section)"
+          >
+            <span class="more-section-name">{{ section.name }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 热门评分 -->
+      <div class="hot-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <path d="M2 12l10 5 10-5"></path>
+            </svg>
+            <span>热门评分</span>
+          </h2>
+        </div>
+
+        <!-- 热门加载状态 -->
+        <div v-if="isLoadingHot" class="item-grid">
+          <div v-for="i in 4" :key="i" class="item-skeleton">
+            <div class="skeleton-cover"></div>
+            <div class="skeleton-info">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-meta"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 热门列表 -->
+        <div v-else-if="hotItems.length > 0" class="item-grid">
+          <div
+            v-for="item in hotItems"
+            :key="item.id"
+            class="item-card"
+            @click="goToRatingItem(item)"
+          >
+            <!-- 封面图 -->
+            <div class="item-cover">
+              <img
+                v-if="item.url"
+                :src="item.url"
+                :alt="item.name"
+                loading="lazy"
+              />
+              <div v-else class="cover-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
+              </div>
+              <!-- 评分标签 -->
+              <div class="score-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <span>{{ formatScore(item.averageScore) }}</span>
+              </div>
+              <!-- 热度标签 -->
+              <div class="hot-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 23c-4.97 0-9-3.58-9-8 0-1.95.7-3.76 1.86-5.14A7.5 7.5 0 0 1 9 5c0 .91.2 1.76.56 2.53.49 1.03 1.24 1.91 2.19 2.55A6.18 6.18 0 0 0 12 5.5a5.87 5.87 0 0 1 5.14 3A9.03 9.03 0 0 1 21 15c0 4.42-4.03 8-9 8z"></path>
+                </svg>
+              </div>
+            </div>
+            <!-- 信息区 -->
+            <div class="item-info">
+              <h3 class="item-name">{{ item.name }}</h3>
+              <p class="item-breadcrumb">{{ item.breadcrumb.minorSection.name }}</p>
+              <div class="item-stats">
+                <span class="stat-item">{{ item.ratingCount }} 人评分</span>
               </div>
             </div>
           </div>
@@ -251,8 +315,8 @@ onMounted(() => {
 
       <!-- 随机推荐 -->
       <div class="recommend-section">
-        <div class="recommend-header">
-          <h2 class="recommend-title">
+        <div class="section-header">
+          <h2 class="section-title">
             <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
               <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
@@ -273,8 +337,8 @@ onMounted(() => {
         </div>
 
         <!-- 推荐加载状态 -->
-        <div v-if="isLoadingRandom && randomItems.length === 0" class="recommend-loading">
-          <div v-for="i in 4" :key="i" class="recommend-skeleton">
+        <div v-if="isLoadingRandom && randomItems.length === 0" class="item-grid">
+          <div v-for="i in 4" :key="i" class="item-skeleton">
             <div class="skeleton-cover"></div>
             <div class="skeleton-info">
               <div class="skeleton-title"></div>
@@ -284,15 +348,15 @@ onMounted(() => {
         </div>
 
         <!-- 推荐列表 -->
-        <div v-else-if="randomItems.length > 0" class="recommend-grid">
+        <div v-else-if="randomItems.length > 0" class="item-grid">
           <div
             v-for="item in randomItems"
             :key="item.id"
-            class="recommend-card"
+            class="item-card"
             @click="goToRatingItem(item)"
           >
             <!-- 封面图 -->
-            <div class="recommend-cover">
+            <div class="item-cover">
               <img
                 v-if="item.url"
                 :src="item.url"
@@ -313,15 +377,15 @@ onMounted(() => {
               </div>
             </div>
             <!-- 信息区 -->
-            <div class="recommend-info">
-              <h3 class="recommend-name">{{ item.name }}</h3>
-              <p class="recommend-breadcrumb">{{ item.breadcrumb.minorSection.name }}</p>
+            <div class="item-info">
+              <h3 class="item-name">{{ item.name }}</h3>
+              <p class="item-breadcrumb">{{ item.breadcrumb.minorSection.name }}</p>
               <!-- 热评 -->
-              <div v-if="item.topComment" class="recommend-comment">
+              <div v-if="item.topComment" class="item-comment">
                 <span class="comment-text">"{{ item.topComment.commentText }}"</span>
               </div>
               <!-- 统计 -->
-              <div class="recommend-stats">
+              <div class="item-stats">
                 <span class="stat-item">{{ item.ratingCount }} 人评分</span>
               </div>
             </div>
@@ -420,76 +484,19 @@ onMounted(() => {
   }
 }
 
-/* ===== Quick Tips ===== */
-.quick-tips {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-lg);
-}
-
-.tip-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.tip-icon {
-  width: 16px;
-  height: 16px;
-  color: var(--color-primary);
-}
-
-.tip-text {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-.tip-divider {
-  width: 1px;
-  height: 16px;
-  background: var(--color-border);
-}
-
 /* ===== Loading State ===== */
 .loading-state {
-  padding: var(--spacing-md) 0;
-}
-
-.skeleton-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-sm);
-}
-
-.skeleton-card {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
+  justify-content: center;
+  padding: var(--spacing-lg) 0;
 }
 
-.skeleton-icon {
-  width: 48px;
-  height: 48px;
+.skeleton-circle {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
   background: var(--color-border);
-  border-radius: var(--radius-md);
   animation: pulse 1.5s ease-in-out infinite;
-}
-
-.skeleton-text {
-  flex: 1;
-  height: 20px;
-  background: var(--color-border);
-  border-radius: var(--radius-sm);
-  animation: pulse 1.5s ease-in-out infinite;
-  animation-delay: 0.2s;
 }
 
 @keyframes pulse {
@@ -530,118 +537,192 @@ onMounted(() => {
   font-size: var(--text-sm);
 }
 
-/* ===== Sections ===== */
+/* ===== Circle Navigation ===== */
 .sections-wrapper {
   margin-bottom: var(--spacing-lg);
 }
 
-.section-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-sm);
+.circle-nav {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto var(--spacing-md);
 }
 
-.section-card {
-  position: relative;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+.circle-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px;
+  height: 72px;
+  background: var(--color-card);
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.circle-center svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-primary);
+}
+
+.circle-center span {
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+}
+
+.quarter-section {
+  position: absolute;
+  width: 50%;
+  height: 50%;
   cursor: pointer;
   transition: all var(--transition-normal);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
-.section-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+.quarter-1 {
+  top: 0;
+  left: 0;
+  border-radius: 100% 0 0 0;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
 }
 
-.section-card:active {
-  transform: translateY(0);
+.quarter-2 {
+  top: 0;
+  right: 0;
+  border-radius: 0 100% 0 0;
+  background: linear-gradient(225deg, #4ECDC4, #44A08D);
 }
 
-.card-content {
-  position: relative;
+.quarter-3 {
+  bottom: 0;
+  left: 0;
+  border-radius: 0 0 0 100%;
+  background: linear-gradient(45deg, #A29BFE, #6C5CE7);
+}
+
+.quarter-4 {
+  bottom: 0;
+  right: 0;
+  border-radius: 0 0 100% 0;
+  background: linear-gradient(315deg, #FDCB6E, #F39C12);
+}
+
+.quarter-section:hover {
+  transform: scale(1.05);
+  z-index: 5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.quarter-section:active {
+  transform: scale(1);
+}
+
+.quarter-content {
+  position: absolute;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--color-card);
-  border-left: 4px solid transparent;
-  border-image: var(--card-gradient, linear-gradient(135deg, var(--color-primary), #8B5CF6)) 1;
+  justify-content: center;
+  gap: 4px;
+  color: white;
 }
 
-.section-card:nth-child(1) .card-content { --card-gradient: linear-gradient(135deg, #FF6B6B, #FF8E53); }
-.section-card:nth-child(2) .card-content { --card-gradient: linear-gradient(135deg, #4ECDC4, #44A08D); }
-.section-card:nth-child(3) .card-content { --card-gradient: linear-gradient(135deg, #A29BFE, #6C5CE7); }
-.section-card:nth-child(4) .card-content { --card-gradient: linear-gradient(135deg, #FDCB6E, #F39C12); }
-.section-card:nth-child(5) .card-content { --card-gradient: linear-gradient(135deg, #74B9FF, #0984E3); }
-.section-card:nth-child(6) .card-content { --card-gradient: linear-gradient(135deg, #55EFC4, #00B894); }
+.quarter-1 .quarter-content {
+  bottom: 16px;
+  right: 16px;
+}
 
-.card-icon {
-  width: 48px;
-  height: 48px;
+.quarter-2 .quarter-content {
+  bottom: 16px;
+  left: 16px;
+}
+
+.quarter-3 .quarter-content {
+  top: 16px;
+  right: 16px;
+}
+
+.quarter-4 .quarter-content {
+  top: 16px;
+  left: 16px;
+}
+
+.quarter-icon {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-  color: var(--color-text-secondary);
 }
 
-.card-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.card-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.card-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  margin-bottom: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.card-desc {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.card-arrow {
-  width: 20px;
-  height: 20px;
-  color: var(--color-text-placeholder);
-  flex-shrink: 0;
-}
-
-.card-arrow svg {
+.quarter-icon svg {
   width: 100%;
   height: 100%;
 }
 
-/* ===== Recommend Section ===== */
-.recommend-section {
-  margin-top: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
+.quarter-label {
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  max-width: 60px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.recommend-header {
+/* 更多分区 */
+.more-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  justify-content: center;
+}
+
+.more-section-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.more-section-item:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+  border-color: var(--color-primary);
+}
+
+.more-section-item svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ===== Sections Common ===== */
+.section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--spacing-md);
 }
 
-.recommend-title {
+.section-title {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -649,7 +730,7 @@ onMounted(() => {
   font-weight: var(--font-semibold);
 }
 
-.recommend-title .title-icon {
+.section-title .title-icon {
   width: 18px;
   height: 18px;
   color: var(--color-primary);
@@ -693,30 +774,40 @@ onMounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* 推荐加载骨架 */
-.recommend-loading {
+/* ===== Hot Section ===== */
+.hot-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+/* ===== Recommend Section ===== */
+.recommend-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+/* ===== Item Grid ===== */
+.item-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-sm);
 }
 
-.recommend-skeleton {
+.item-skeleton {
   background: var(--color-card);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
-.recommend-skeleton .skeleton-cover {
+.item-skeleton .skeleton-cover {
   aspect-ratio: 4 / 3;
   background: var(--color-border);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.recommend-skeleton .skeleton-info {
+.item-skeleton .skeleton-info {
   padding: var(--spacing-sm);
 }
 
-.recommend-skeleton .skeleton-title {
+.item-skeleton .skeleton-title {
   height: 16px;
   background: var(--color-border);
   border-radius: var(--radius-sm);
@@ -724,7 +815,7 @@ onMounted(() => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.recommend-skeleton .skeleton-meta {
+.item-skeleton .skeleton-meta {
   height: 12px;
   width: 60%;
   background: var(--color-border);
@@ -732,14 +823,7 @@ onMounted(() => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* 推荐网格 */
-.recommend-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-sm);
-}
-
-.recommend-card {
+.item-card {
   background: var(--color-card);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -748,24 +832,24 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.recommend-card:hover {
+.item-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-.recommend-card:active {
+.item-card:active {
   transform: translateY(0);
 }
 
 /* 封面 */
-.recommend-cover {
+.item-cover {
   position: relative;
   aspect-ratio: 4 / 3;
   background: var(--color-bg);
   overflow: hidden;
 }
 
-.recommend-cover img {
+.item-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -785,8 +869,8 @@ onMounted(() => {
 }
 
 .cover-placeholder svg {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   color: var(--color-primary);
   opacity: 0.4;
 }
@@ -814,12 +898,33 @@ onMounted(() => {
   color: #FBBF24;
 }
 
+/* 热度标签 */
+.hot-badge {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 107, 0.9);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+}
+
+.hot-badge svg {
+  width: 14px;
+  height: 14px;
+  color: white;
+}
+
 /* 信息区 */
-.recommend-info {
+.item-info {
   padding: var(--spacing-sm);
 }
 
-.recommend-name {
+.item-name {
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   margin-bottom: 2px;
@@ -828,7 +933,7 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.recommend-breadcrumb {
+.item-breadcrumb {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-xs);
@@ -837,7 +942,7 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.recommend-comment {
+.item-comment {
   margin-bottom: var(--spacing-xs);
 }
 
@@ -851,7 +956,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.recommend-stats {
+.item-stats {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -886,48 +991,61 @@ onMounted(() => {
     height: 28px;
   }
 
-  .quick-tips {
-    gap: var(--spacing-xl);
+  .circle-nav {
+    width: 280px;
+    height: 280px;
   }
 
-  .tip-text {
-    font-size: var(--text-sm);
+  .circle-center {
+    width: 90px;
+    height: 90px;
   }
 
-  .section-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-md);
+  .circle-center svg {
+    width: 24px;
+    height: 24px;
   }
 
-  .card-content {
-    padding: var(--spacing-lg);
+  .circle-center span {
+    font-size: 12px;
   }
 
-  .card-icon {
-    width: 56px;
-    height: 56px;
+  .quarter-icon {
+    width: 36px;
+    height: 36px;
   }
 
-  .card-icon svg {
-    width: 28px;
-    height: 28px;
+  .quarter-label {
+    font-size: 13px;
+    max-width: 80px;
   }
 
-  .card-title {
-    font-size: var(--text-lg);
+  .quarter-1 .quarter-content {
+    bottom: 24px;
+    right: 24px;
   }
 
-  .card-desc {
-    font-size: var(--text-sm);
+  .quarter-2 .quarter-content {
+    bottom: 24px;
+    left: 24px;
   }
 
-  .recommend-loading,
-  .recommend-grid {
+  .quarter-3 .quarter-content {
+    top: 24px;
+    right: 24px;
+  }
+
+  .quarter-4 .quarter-content {
+    top: 24px;
+    left: 24px;
+  }
+
+  .item-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-md);
   }
 
-  .recommend-name {
+  .item-name {
     font-size: var(--text-base);
   }
 }
@@ -942,12 +1060,56 @@ onMounted(() => {
     padding: var(--spacing-lg) var(--spacing-xl);
   }
 
-  .section-grid {
-    grid-template-columns: repeat(3, 1fr);
+  .circle-nav {
+    width: 320px;
+    height: 320px;
   }
 
-  .recommend-loading,
-  .recommend-grid {
+  .circle-center {
+    width: 100px;
+    height: 100px;
+  }
+
+  .circle-center svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .circle-center span {
+    font-size: 13px;
+  }
+
+  .quarter-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .quarter-label {
+    font-size: 14px;
+    max-width: 90px;
+  }
+
+  .quarter-1 .quarter-content {
+    bottom: 32px;
+    right: 32px;
+  }
+
+  .quarter-2 .quarter-content {
+    bottom: 32px;
+    left: 32px;
+  }
+
+  .quarter-3 .quarter-content {
+    top: 32px;
+    right: 32px;
+  }
+
+  .quarter-4 .quarter-content {
+    top: 32px;
+    left: 32px;
+  }
+
+  .item-grid {
     grid-template-columns: repeat(4, 1fr);
   }
 }

@@ -50,9 +50,13 @@ onMounted(async () => {
       alert(result.message || '登录失败')
       router.push('/')
     }
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('QQ登录失败', err)
-    alert('网络错误')
+    // 临时调试：显示完整错误信息
+    const errorDetail = err instanceof Error
+      ? `${err.name}: ${err.message}\n\nStack: ${err.stack || '无'}`
+      : JSON.stringify(err, null, 2)
+    alert(`[调试] QQ登录回调处理失败\n\ncode: ${code}\nstate: ${state}\n\n错误详情:\n${errorDetail}`)
     router.push('/')
   }
 })

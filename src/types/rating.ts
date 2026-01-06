@@ -649,8 +649,9 @@ export interface MyContribution {
  * 我的贡献列表响应
  */
 export interface MyContributionsResponse {
-  list: MyContribution[]
+  items: MyContribution[]
   total: number
   page: number
   size: number
+  totalPages: number
 }

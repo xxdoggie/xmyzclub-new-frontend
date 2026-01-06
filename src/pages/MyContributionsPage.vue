@@ -54,9 +54,9 @@ async function loadContributions(reset = false) {
     const res = await getMyContributions(params)
     if (res.data.code === 200) {
       if (reset) {
-        contributions.value = res.data.data.list
+        contributions.value = res.data.data.items
       } else {
-        contributions.value = [...contributions.value, ...res.data.data.list]
+        contributions.value = [...contributions.value, ...res.data.data.items]
       }
       total.value = res.data.data.total
     } else {

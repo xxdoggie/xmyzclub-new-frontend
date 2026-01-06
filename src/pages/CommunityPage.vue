@@ -161,9 +161,9 @@ onMounted(() => {
         <div class="hero-bg"></div>
         <div class="hero-content">
           <h1 class="hero-title">发现 · 评价 · 分享</h1>
-          <p class="hero-subtitle">和同学们一起探索校园的每一个角落</p>
-          <!-- 我的反馈入口 -->
-          <button class="my-contributions-btn" @click="goToMyContributions">
+          <p class="hero-subtitle desktop-only">和同学们一起探索校园的每一个角落</p>
+          <!-- 我的反馈入口（仅桌面端显示） -->
+          <button class="my-contributions-btn desktop-only" @click="goToMyContributions">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
               <rect x="9" y="3" width="6" height="4" rx="1"></rect>
@@ -523,6 +523,11 @@ onMounted(() => {
 .hero-subtitle {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+}
+
+/* 仅桌面端显示 */
+.desktop-only {
+  display: none;
 }
 
 .my-contributions-btn {
@@ -1048,6 +1053,14 @@ onMounted(() => {
 
 /* ===== Desktop ===== */
 @media (min-width: 640px) {
+  .desktop-only {
+    display: block;
+  }
+
+  .my-contributions-btn.desktop-only {
+    display: inline-flex;
+  }
+
   .page-content {
     padding: var(--spacing-lg);
   }

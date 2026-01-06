@@ -655,6 +655,7 @@ onMounted(() => {
 .item-scroll::before {
   content: '';
   flex: 0 0 calc(var(--spacing-md) - var(--spacing-sm));
+  scroll-snap-align: start;
 }
 
 .item-scroll::-webkit-scrollbar {

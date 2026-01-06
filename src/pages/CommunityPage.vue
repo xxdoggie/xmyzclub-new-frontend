@@ -162,9 +162,9 @@ onMounted(() => {
       </div>
 
       <!-- 分区入口 -->
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">探索分区</h2>
+      <div class="content-card">
+        <div class="card-header">
+          <h2 class="card-header-title">探索分区</h2>
         </div>
 
         <!-- 加载状态 -->
@@ -189,11 +189,11 @@ onMounted(() => {
           <div
             v-for="(section, index) in majorSections"
             :key="section.id"
-            class="section-card"
-            :class="`section-card-${(index % 4) + 1}`"
+            class="section-item"
+            :class="`section-item-${(index % 4) + 1}`"
             @click="goToMajorSection(section)"
           >
-            <div class="card-icon">
+            <div class="section-icon">
               <!-- 餐厅图标 -->
               <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
@@ -224,20 +224,15 @@ onMounted(() => {
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
               </svg>
             </div>
-            <h3 class="card-title">{{ section.name }}</h3>
-            <span class="card-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </span>
+            <span class="section-name">{{ section.name }}</span>
           </div>
         </div>
-      </section>
+      </div>
 
       <!-- 热门评分 -->
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">
+      <div class="content-card">
+        <div class="card-header">
+          <h2 class="card-header-title">
             <svg class="title-icon hot" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 23c-4.97 0-9-3.58-9-8 0-1.95.7-3.76 1.86-5.14A7.5 7.5 0 0 1 9 5c0 .91.2 1.76.56 2.53.49 1.03 1.24 1.91 2.19 2.55A6.18 6.18 0 0 0 12 5.5a5.87 5.87 0 0 1 5.14 3A9.03 9.03 0 0 1 21 15c0 4.42-4.03 8-9 8z"></path>
             </svg>
@@ -294,13 +289,7 @@ onMounted(() => {
               <h3 class="item-name">{{ item.name }}</h3>
               <p class="item-breadcrumb">{{ item.breadcrumb.minorSection.name }}</p>
               <div class="item-stats">
-                <span class="stat-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                  </svg>
-                  {{ item.ratingCount }} 人评分
-                </span>
+                <span class="stat-item">{{ item.ratingCount }} 人评分</span>
               </div>
             </div>
           </div>
@@ -310,12 +299,12 @@ onMounted(() => {
         <div v-else class="empty-state small">
           <p>暂无热门评分</p>
         </div>
-      </section>
+      </div>
 
       <!-- 随机推荐 -->
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">
+      <div class="content-card">
+        <div class="card-header">
+          <h2 class="card-header-title">
             <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
               <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -378,19 +367,9 @@ onMounted(() => {
             <div class="item-info">
               <h3 class="item-name">{{ item.name }}</h3>
               <p class="item-breadcrumb">{{ item.breadcrumb.minorSection.name }}</p>
-              <!-- 热评 -->
-              <div v-if="item.topComment" class="item-comment">
-                <span class="comment-text">"{{ item.topComment.commentText }}"</span>
-              </div>
               <!-- 统计 -->
               <div class="item-stats">
-                <span class="stat-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                  </svg>
-                  {{ item.ratingCount }} 人评分
-                </span>
+                <span class="stat-item">{{ item.ratingCount }} 人评分</span>
               </div>
             </div>
           </div>
@@ -400,7 +379,7 @@ onMounted(() => {
         <div v-else class="empty-state small">
           <p>暂无推荐</p>
         </div>
-      </section>
+      </div>
 
     </main>
 
@@ -489,105 +468,99 @@ onMounted(() => {
   }
 }
 
-/* ===== Section ===== */
-.section {
-  margin-bottom: var(--spacing-xl);
+/* ===== Content Card ===== */
+.content-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+  overflow: hidden;
 }
 
-.section-header {
+.card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.section-title {
+.card-header-title {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
 }
 
-.section-title .title-icon {
-  width: 18px;
-  height: 18px;
+.card-header-title .title-icon {
+  width: 16px;
+  height: 16px;
   color: var(--color-primary);
 }
 
-.section-title .title-icon.hot {
+.card-header-title .title-icon.hot {
   color: #FF6B6B;
 }
 
 /* ===== Section Grid (分区卡片) ===== */
 .section-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-sm);
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
 }
 
-.section-card {
+.section-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--spacing-md);
-  border-radius: var(--radius-lg);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-normal);
-  min-height: 90px;
 }
 
-.section-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+.section-item:hover {
+  background: var(--color-bg-hover);
 }
 
-.section-card:active {
-  transform: translateY(0);
+.section-item:active {
+  transform: scale(0.96);
 }
 
-/* 分区卡片颜色主题 */
-.section-card-1 { --card-color: #FF6B6B; --card-bg: rgba(255, 107, 107, 0.1); }
-.section-card-2 { --card-color: #4ECDC4; --card-bg: rgba(78, 205, 196, 0.1); }
-.section-card-3 { --card-color: #A29BFE; --card-bg: rgba(162, 155, 254, 0.1); }
-.section-card-4 { --card-color: #FDCB6E; --card-bg: rgba(253, 203, 110, 0.1); }
+/* 分区颜色主题 */
+.section-item-1 { --item-color: #FF6B6B; --item-bg: rgba(255, 107, 107, 0.1); }
+.section-item-2 { --item-color: #4ECDC4; --item-bg: rgba(78, 205, 196, 0.1); }
+.section-item-3 { --item-color: #A29BFE; --item-bg: rgba(162, 155, 254, 0.1); }
+.section-item-4 { --item-color: #FDCB6E; --item-bg: rgba(253, 203, 110, 0.1); }
 
-.section-card-1:hover,
-.section-card-2:hover,
-.section-card-3:hover,
-.section-card-4:hover {
-  background: var(--card-bg);
-  border-color: var(--card-color);
-}
-
-.card-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--card-bg);
+.section-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--item-bg);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--spacing-xs);
-  color: var(--card-color);
+  margin-bottom: 4px;
+  color: var(--item-color);
 }
 
-.card-icon svg {
-  width: 20px;
-  height: 20px;
+.section-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
-.card-title {
-  font-size: var(--text-sm);
+.section-name {
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-text);
   text-align: center;
-}
-
-.card-arrow {
-  display: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Skeleton */
@@ -690,9 +663,7 @@ onMounted(() => {
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: var(--spacing-xs);
-  margin: 0 calc(-1 * var(--spacing-md));
-  padding-left: var(--spacing-md);
+  padding: var(--spacing-sm);
   padding-right: var(--spacing-md);
 }
 
@@ -707,9 +678,9 @@ onMounted(() => {
 
 .item-skeleton {
   flex: 0 0 auto;
-  width: 140px;
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
+  width: 120px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
   overflow: hidden;
   scroll-snap-align: start;
 }
@@ -721,11 +692,11 @@ onMounted(() => {
 }
 
 .item-skeleton .skeleton-info {
-  padding: var(--spacing-sm);
+  padding: var(--spacing-xs);
 }
 
 .item-skeleton .skeleton-title {
-  height: 14px;
+  height: 12px;
   background: var(--color-border);
   border-radius: var(--radius-sm);
   margin-bottom: var(--spacing-xs);
@@ -733,7 +704,7 @@ onMounted(() => {
 }
 
 .item-skeleton .skeleton-meta {
-  height: 12px;
+  height: 10px;
   width: 60%;
   background: var(--color-border);
   border-radius: var(--radius-sm);
@@ -742,22 +713,17 @@ onMounted(() => {
 
 .item-card {
   flex: 0 0 auto;
-  width: 140px;
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
+  width: 120px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
   transition: all var(--transition-normal);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   scroll-snap-align: start;
 }
 
-.item-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
 .item-card:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 /* 封面 */
@@ -847,11 +813,11 @@ onMounted(() => {
 
 /* 信息区 */
 .item-info {
-  padding: var(--spacing-sm);
+  padding: var(--spacing-xs);
 }
 
 .item-name {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   margin-bottom: 2px;
   overflow: hidden;
@@ -860,45 +826,22 @@ onMounted(() => {
 }
 
 .item-breadcrumb {
-  font-size: var(--text-xs);
+  font-size: 10px;
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.item-comment {
-  margin-bottom: var(--spacing-xs);
-}
-
-.comment-text {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  font-style: italic;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .item-stats {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
 }
 
 .item-stats .stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
+  font-size: 10px;
   color: var(--color-text-placeholder);
-}
-
-.item-stats .stat-item svg {
-  width: 12px;
-  height: 12px;
 }
 
 /* ===== Desktop ===== */
@@ -920,39 +863,50 @@ onMounted(() => {
     height: 24px;
   }
 
-  .section-grid {
-    gap: var(--spacing-md);
+  .card-header {
+    padding: var(--spacing-md);
   }
 
-  .section-card {
-    padding: var(--spacing-lg);
-    min-height: 100px;
-  }
-
-  .card-icon {
-    width: 48px;
-    height: 48px;
-  }
-
-  .card-icon svg {
-    width: 24px;
-    height: 24px;
-  }
-
-  .card-title {
+  .card-header-title {
     font-size: var(--text-base);
   }
 
+  .section-grid {
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+  }
+
+  .section-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .section-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .section-name {
+    font-size: var(--text-sm);
+  }
+
   .item-scroll {
-    margin: 0 calc(-1 * var(--spacing-lg));
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
+    padding: var(--spacing-md);
     gap: var(--spacing-md);
   }
 
   .item-card,
   .item-skeleton {
-    width: 160px;
+    width: 140px;
+  }
+
+  .item-name {
+    font-size: var(--text-sm);
+  }
+
+  .item-breadcrumb,
+  .item-stats .stat-item {
+    font-size: var(--text-xs);
   }
 }
 
@@ -963,7 +917,7 @@ onMounted(() => {
 
   .item-card,
   .item-skeleton {
-    width: 180px;
+    width: 160px;
   }
 }
 </style>

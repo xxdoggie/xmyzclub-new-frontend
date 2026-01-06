@@ -479,7 +479,7 @@ export function getCollectionDetail(collectionId: number) {
  * 获取合集列表（管理端）
  */
 export function getAdminCollections(params?: { page?: number; size?: number; status?: number }) {
-  return api.get<ApiResponse<{ list: AdminCollection[]; total: number; page: number; size: number }>>(
+  return api.get<ApiResponse<PaginatedResponse<AdminCollection>>>(
     `${ADMIN_BASE}/collections`,
     { params }
   )

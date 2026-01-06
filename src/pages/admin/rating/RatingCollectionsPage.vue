@@ -91,7 +91,7 @@ async function loadCollections() {
     }
     const res = await getAdminCollections(params)
     if (res.data.code === 200) {
-      collections.value = res.data.data.list
+      collections.value = res.data.data.items
       total.value = res.data.data.total
     } else {
       toast.error(res.data.message || '获取合集列表失败')

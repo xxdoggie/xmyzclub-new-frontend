@@ -2,8 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
-import { getMajorSections, getRandomItems, getHotItems } from '@/api/rating'
-import type { MajorSection, RandomRatingItem } from '@/types/rating'
+import { getMajorSections, getRandomItems, getHotItems, getCollections } from '@/api/rating'
+import type { MajorSection, RandomRatingItem, Collection } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
@@ -18,8 +18,10 @@ const isLoading = ref(true)
 const majorSections = ref<MajorSection[]>([])
 const hotItems = ref<RandomRatingItem[]>([])
 const randomItems = ref<RandomRatingItem[]>([])
+const collections = ref<Collection[]>([])
 const isLoadingHot = ref(true)
 const isLoadingRandom = ref(false)
+const isLoadingCollections = ref(true)
 
 // 加载大分区列表
 async function loadMajorSections() {
@@ -73,6 +75,21 @@ async function loadRandomItems() {
   }
 }
 
+// 加载合集列表
+async function loadCollections() {
+  isLoadingCollections.value = true
+  try {
+    const res = await getCollections()
+    if (res.data.code === 200) {
+      collections.value = res.data.data
+    }
+  } catch {
+    // 静默失败
+  } finally {
+    isLoadingCollections.value = false
+  }
+}
+
 // 刷新推荐
 async function refreshRandom() {
   await loadRandomItems()
@@ -81,6 +98,11 @@ async function refreshRandom() {
 // 进入评分详情
 function goToRatingItem(item: RandomRatingItem) {
   router.push(`/community/item/${item.id}`)
+}
+
+// 进入合集详情
+function goToCollection(collection: Collection) {
+  router.push(`/community/collection/${collection.id}`)
 }
 
 // 格式化评分显示
@@ -114,6 +136,7 @@ onMounted(() => {
   loadMajorSections()
   loadHotItems()
   loadRandomItems()
+  loadCollections()
 })
 </script>
 
@@ -363,6 +386,63 @@ onMounted(() => {
         <!-- 空状态 -->
         <div v-else class="empty-state small">
           <p>暂无推荐</p>
+        </div>
+      </div>
+
+      <!-- 精选合集 -->
+      <div class="content-card" v-if="isLoadingCollections || collections.length > 0">
+        <div class="card-header">
+          <h2 class="card-header-title">
+            <svg class="title-icon collection" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+            精选合集
+          </h2>
+        </div>
+
+        <!-- 合集加载状态 -->
+        <div v-if="isLoadingCollections" class="item-scroll">
+          <div v-for="i in 4" :key="i" class="collection-skeleton">
+            <div class="skeleton-cover"></div>
+            <div class="skeleton-info">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-meta"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 合集列表 -->
+        <div v-else-if="collections.length > 0" class="item-scroll">
+          <div
+            v-for="collection in collections"
+            :key="collection.id"
+            class="collection-card"
+            @click="goToCollection(collection)"
+          >
+            <!-- 封面图 -->
+            <div class="collection-cover">
+              <img
+                v-if="collection.coverUrl"
+                :src="collection.coverUrl"
+                :alt="collection.name"
+                loading="lazy"
+              />
+              <div v-else class="cover-placeholder collection-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+              <!-- 项目数量标签 -->
+              <div class="count-badge">
+                <span>{{ collection.itemCount }} 项</span>
+              </div>
+            </div>
+            <!-- 信息区 -->
+            <div class="item-info">
+              <h3 class="item-name">{{ collection.name }}</h3>
+              <p class="item-breadcrumb" v-if="collection.description">{{ collection.description }}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -652,6 +732,12 @@ onMounted(() => {
   padding-right: var(--spacing-md);
 }
 
+.item-scroll::before {
+  content: '';
+  flex: 0 0 calc(var(--spacing-md) - var(--spacing-sm));
+  scroll-snap-align: start;
+}
+
 .item-scroll::-webkit-scrollbar {
   display: none;
 }
@@ -829,6 +915,91 @@ onMounted(() => {
   color: var(--color-text-placeholder);
 }
 
+/* ===== Collection Card ===== */
+.card-header-title .title-icon.collection {
+  color: #6366F1;
+}
+
+.collection-card,
+.collection-skeleton {
+  flex: 0 0 auto;
+  width: 120px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  scroll-snap-align: start;
+}
+
+.collection-card:active {
+  transform: scale(0.96);
+}
+
+.collection-cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.collection-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.collection-placeholder {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+}
+
+:root.dark .collection-placeholder {
+  background: linear-gradient(135deg, #312e81 0%, #3730a3 100%);
+}
+
+.collection-placeholder svg {
+  color: #6366F1;
+}
+
+.count-badge {
+  position: absolute;
+  bottom: var(--spacing-xs);
+  right: var(--spacing-xs);
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  color: white;
+}
+
+.collection-skeleton .skeleton-cover {
+  aspect-ratio: 16 / 9;
+  background: var(--color-border);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.collection-skeleton .skeleton-info {
+  padding: var(--spacing-xs);
+}
+
+.collection-skeleton .skeleton-title {
+  height: 12px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-xs);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.collection-skeleton .skeleton-meta {
+  height: 10px;
+  width: 60%;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
 /* ===== Desktop ===== */
 @media (min-width: 640px) {
   .page-content {
@@ -881,7 +1052,9 @@ onMounted(() => {
   }
 
   .item-card,
-  .item-skeleton {
+  .item-skeleton,
+  .collection-card,
+  .collection-skeleton {
     width: 140px;
   }
 
@@ -901,7 +1074,9 @@ onMounted(() => {
   }
 
   .item-card,
-  .item-skeleton {
+  .item-skeleton,
+  .collection-card,
+  .collection-skeleton {
     width: 160px;
   }
 }

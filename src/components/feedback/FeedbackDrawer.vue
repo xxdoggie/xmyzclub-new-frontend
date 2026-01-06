@@ -150,7 +150,7 @@ async function uploadImage(): Promise<number | null> {
   try {
     const res = await uploadContributionImage(imageFile.value)
     if (res.data.code === 200) {
-      return res.data.data.fileId
+      return res.data.data.id
     } else {
       toast.error(res.data.message || '图片上传失败')
       return null

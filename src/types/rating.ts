@@ -618,6 +618,6 @@ export interface Contribution {
  * 贡献图片上传响应
  */
 export interface ContributionImageUploadResponse {
-  fileId: number
+  id: number
   fileUrl: string
 }

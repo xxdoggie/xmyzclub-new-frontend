@@ -131,3 +131,13 @@ body {
 #app {
   width: 100%;
 }
+
+/* === 移动端输入框放大修复 === */
+/* iOS Safari 会在输入框字体小于 16px 时自动放大页面 */
+@media screen and (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

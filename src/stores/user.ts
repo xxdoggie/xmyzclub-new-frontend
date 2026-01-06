@@ -67,6 +67,11 @@ export const useUserStore = defineStore('user', () => {
    */
   const canManageCampaigns = computed(() => hasPermission('campaign.manage'))
 
+  /**
+   * 检查用户是否可以管理评分社区
+   */
+  const canManageRating = computed(() => hasPermission('rating.manage'))
+
   // ==================== Actions ====================
 
   /**
@@ -444,6 +449,7 @@ export const useUserStore = defineStore('user', () => {
     isLoggedIn,
     canManageTickets,
     canManageCampaigns,
+    canManageRating,
 
     // Actions - 认证
     restoreSession,

@@ -309,6 +309,83 @@ const router = createRouter({
         parent: 'admin-campaigns',
       },
     },
+    {
+      path: '/admin/rating',
+      name: 'admin-rating',
+      component: () => import('../pages/admin/rating/RatingSchoolsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '评分社区管理',
+        parent: 'home',
+      },
+    },
+    {
+      path: '/admin/rating/schools/:schoolId',
+      name: 'admin-rating-major-sections',
+      component: () => import('../pages/admin/rating/RatingMajorSectionsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '大分区管理',
+        parent: 'admin-rating',
+      },
+    },
+    {
+      path: '/admin/rating/major-sections/:majorSectionId',
+      name: 'admin-rating-minor-sections',
+      component: () => import('../pages/admin/rating/RatingMinorSectionsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '小分区管理',
+        parent: 'admin-rating-major-sections',
+      },
+    },
+    {
+      path: '/admin/rating/minor-sections/:minorSectionId',
+      name: 'admin-rating-items',
+      component: () => import('../pages/admin/rating/RatingItemsListPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 5,
+        title: '评分项目管理',
+        parent: 'admin-rating-minor-sections',
+      },
+    },
+    {
+      path: '/admin/rating/items/:itemId',
+      name: 'admin-rating-item-detail',
+      component: () => import('../pages/admin/rating/RatingItemDetailPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 6,
+        title: '评分项目详情',
+        parent: 'admin-rating-items',
+      },
+    },
+    {
+      path: '/admin/rating/collections',
+      name: 'admin-rating-collections',
+      component: () => import('../pages/admin/rating/RatingCollectionsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '合集管理',
+        parent: 'admin-rating',
+      },
+    },
+    {
+      path: '/admin/rating/collections/:collectionId',
+      name: 'admin-rating-collection-detail',
+      component: () => import('../pages/admin/rating/RatingCollectionDetailPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '合集详情',
+        parent: 'admin-rating-collections',
+      },
+    },
 
     // ==================== 404 ====================
     {

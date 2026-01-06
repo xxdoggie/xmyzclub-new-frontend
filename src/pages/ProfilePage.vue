@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
-import { getCampusCaptcha } from '@/api/user'
+import { getCampusCaptcha, checkHasPassword, changePassword } from '@/api/user'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -34,6 +34,21 @@ const campusCaptchaImage = ref('')
 const captchaLoading = ref(false)
 const isBinding = ref(false)
 const bindErrorMessage = ref('')
+
+// 修改密码抽屉
+const showPasswordDrawer = ref(false)
+const passwordLoading = ref(false)
+const hasPassword = ref(true) // 是否已设置密码
+const passwordCheckLoading = ref(false)
+const passwordErrorMessage = ref('')
+const passwordForm = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
+const showOldPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 // 编辑表单
 const editForm = ref({
@@ -236,6 +251,83 @@ async function confirmUnbind() {
 function cancelUnbind() {
   showUnbindConfirm.value = false
 }
+
+// 打开修改密码抽屉
+async function openPasswordDrawer() {
+  showPasswordDrawer.value = true
+  passwordErrorMessage.value = ''
+  passwordForm.value = {
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  }
+  showOldPassword.value = false
+  showNewPassword.value = false
+  showConfirmPassword.value = false
+
+  // 检查是否已设置密码
+  passwordCheckLoading.value = true
+  try {
+    const res = await checkHasPassword()
+    if (res.data.code === 200) {
+      hasPassword.value = res.data.data
+    }
+  } catch {
+    // 默认需要旧密码
+    hasPassword.value = true
+  } finally {
+    passwordCheckLoading.value = false
+  }
+}
+
+// 关闭修改密码抽屉
+function closePasswordDrawer() {
+  showPasswordDrawer.value = false
+  passwordErrorMessage.value = ''
+}
+
+// 提交修改密码
+async function submitChangePassword() {
+  const { oldPassword, newPassword, confirmPassword } = passwordForm.value
+
+  // 验证
+  if (hasPassword.value && !oldPassword) {
+    passwordErrorMessage.value = '请输入旧密码'
+    return
+  }
+  if (!newPassword) {
+    passwordErrorMessage.value = '请输入新密码'
+    return
+  }
+  if (newPassword.length < 6 || newPassword.length > 32) {
+    passwordErrorMessage.value = '新密码需要 6-32 位'
+    return
+  }
+  if (newPassword !== confirmPassword) {
+    passwordErrorMessage.value = '两次密码输入不一致'
+    return
+  }
+
+  passwordLoading.value = true
+  passwordErrorMessage.value = ''
+
+  try {
+    const res = await changePassword({
+      oldPassword: hasPassword.value ? oldPassword : undefined,
+      newPassword,
+    })
+    if (res.data.code === 200) {
+      toast.success('密码修改成功')
+      closePasswordDrawer()
+    } else {
+      passwordErrorMessage.value = res.data.message || '修改失败'
+    }
+  } catch {
+    passwordErrorMessage.value = '网络错误，请稍后重试'
+  } finally {
+    passwordLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -436,7 +528,7 @@ function cancelUnbind() {
               </div>
 
               <div class="card">
-                <button class="action-item">
+                <button class="action-item" @click="openPasswordDrawer">
                   <div class="action-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -563,6 +655,142 @@ function cancelUnbind() {
                 {{ isBinding ? '绑定中...' : '绑定' }}
               </button>
             </form>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
+
+    <!-- 修改密码抽屉 -->
+    <Transition name="drawer-fade">
+      <div v-if="showPasswordDrawer" class="drawer-overlay" @click="closePasswordDrawer">
+        <Transition name="drawer-slide">
+          <div v-if="showPasswordDrawer" class="drawer-content" @click.stop>
+            <!-- 抽屉头部 -->
+            <div class="drawer-header">
+              <h3 class="drawer-title">修改密码</h3>
+              <button class="drawer-close" @click="closePasswordDrawer" :disabled="passwordLoading">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <!-- 加载状态 -->
+            <div v-if="passwordCheckLoading" class="password-loading">
+              <div class="loading-spinner small"></div>
+              <span>加载中...</span>
+            </div>
+
+            <template v-else>
+              <!-- 错误提示 -->
+              <div v-if="passwordErrorMessage" class="bind-error">
+                {{ passwordErrorMessage }}
+              </div>
+
+              <!-- QQ账号提示 -->
+              <div v-if="!hasPassword" class="password-hint">
+                您的账号由QQ登录自动创建，尚未设置密码。设置密码后可使用用户名密码登录。
+              </div>
+
+              <!-- 密码表单 -->
+              <form class="bind-form" @submit.prevent="submitChangePassword">
+                <!-- 旧密码 -->
+                <div v-if="hasPassword" class="bind-form-group">
+                  <label class="bind-form-label">旧密码</label>
+                  <div class="password-input-wrapper">
+                    <input
+                      v-model="passwordForm.oldPassword"
+                      :type="showOldPassword ? 'text' : 'password'"
+                      class="bind-form-input"
+                      placeholder="请输入旧密码"
+                      :disabled="passwordLoading"
+                    />
+                    <button
+                      type="button"
+                      class="password-toggle"
+                      @click="showOldPassword = !showOldPassword"
+                      tabindex="-1"
+                    >
+                      <svg v-if="showOldPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 新密码 -->
+                <div class="bind-form-group">
+                  <label class="bind-form-label">新密码</label>
+                  <div class="password-input-wrapper">
+                    <input
+                      v-model="passwordForm.newPassword"
+                      :type="showNewPassword ? 'text' : 'password'"
+                      class="bind-form-input"
+                      placeholder="6-32位密码"
+                      :disabled="passwordLoading"
+                    />
+                    <button
+                      type="button"
+                      class="password-toggle"
+                      @click="showNewPassword = !showNewPassword"
+                      tabindex="-1"
+                    >
+                      <svg v-if="showNewPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 确认新密码 -->
+                <div class="bind-form-group">
+                  <label class="bind-form-label">确认新密码</label>
+                  <div class="password-input-wrapper">
+                    <input
+                      v-model="passwordForm.confirmPassword"
+                      :type="showConfirmPassword ? 'text' : 'password'"
+                      class="bind-form-input"
+                      placeholder="再次输入新密码"
+                      :disabled="passwordLoading"
+                    />
+                    <button
+                      type="button"
+                      class="password-toggle"
+                      @click="showConfirmPassword = !showConfirmPassword"
+                      tabindex="-1"
+                    >
+                      <svg v-if="showConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  class="bind-submit-btn"
+                  :disabled="passwordLoading"
+                >
+                  {{ passwordLoading ? '提交中...' : '确认修改' }}
+                </button>
+              </form>
+            </template>
           </div>
         </Transition>
       </div>
@@ -1325,6 +1553,72 @@ function cancelUnbind() {
 .bind-submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ===== 密码输入框 ===== */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .bind-form-input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.password-toggle:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-border);
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 密码加载状态 */
+.password-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.loading-spinner.small {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+/* 密码提示 */
+.password-hint {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-info-bg, rgba(59, 130, 246, 0.1));
+  color: var(--color-info, #3b82f6);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  line-height: var(--leading-relaxed);
 }
 
 /* Drawer Animations */

@@ -8,7 +8,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const toast = useToast()
 
-const isDark = ref(false)
+const isDark = ref(document.documentElement.classList.contains('dark'))
 const isMobileMenuOpen = ref(false)
 const currentBannerIndex = ref(0)
 

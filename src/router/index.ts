@@ -230,6 +230,19 @@ const router = createRouter({
       },
     },
 
+    // ==================== 用户绑定相关页面 ====================
+    {
+      path: '/user/bindqq/callback',
+      name: 'user-bindqq-callback',
+      component: () => import('../pages/user/QQBindCallbackPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: 'QQ 绑定',
+        parent: 'profile',
+      },
+    },
+
     // ==================== 管理后台页面 ====================
     {
       path: '/admin/tickets',

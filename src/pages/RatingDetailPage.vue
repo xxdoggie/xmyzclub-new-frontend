@@ -65,6 +65,10 @@ const isDeleting = ref(false)
 const isFeedbackOpen = ref(false)
 
 function openFeedbackDrawer() {
+  if (!userStore.isLoggedIn) {
+    userStore.openLoginModal()
+    return
+  }
   isFeedbackOpen.value = true
 }
 

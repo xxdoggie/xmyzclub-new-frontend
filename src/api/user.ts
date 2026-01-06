@@ -94,3 +94,19 @@ export function bindQQ(data: BindQQRequest) {
 export function unbindQQ() {
   return api.delete<ApiResponse<{ message: string }>>('/user/unbind-qq')
 }
+
+// ==================== 密码管理 ====================
+
+/**
+ * 检查是否已设置密码
+ */
+export function checkHasPassword() {
+  return api.get<ApiResponse<boolean>>('/user/has-password')
+}
+
+/**
+ * 修改密码
+ */
+export function changePassword(data: { oldPassword?: string; newPassword: string }) {
+  return api.put<ApiResponse<{ message: string }>>('/user/password', data)
+}

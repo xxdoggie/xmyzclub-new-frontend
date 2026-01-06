@@ -3,12 +3,20 @@ import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
+import { bindQQ } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 const toast = useToast()
 
 onMounted(async () => {
+  // 检查登录状态
+  if (!userStore.isLoggedIn) {
+    toast.error('请先登录')
+    router.push('/')
+    return
+  }
+
   const urlParams = new URLSearchParams(window.location.search)
   const code = urlParams.get('code')
   const state = urlParams.get('state')
@@ -16,64 +24,45 @@ onMounted(async () => {
 
   // 处理授权错误
   if (error) {
-    alert('QQ授权失败: ' + decodeURIComponent(error))
-    router.push('/')
+    toast.error('QQ授权失败: ' + decodeURIComponent(error))
+    router.push('/profile')
     return
   }
 
   // 参数缺失
   if (!code || !state) {
-    alert('授权参数缺失')
-    router.push('/')
+    toast.error('授权参数缺失')
+    router.push('/profile')
     return
   }
 
   try {
-    const result = await userStore.qqLogin(code, state)
+    const res = await bindQQ({ code, state })
 
-    if (result.code === 200) {
-      // 登录成功
-      if ('isNewUser' in result.data && result.data.isNewUser) {
-        toast.success('欢迎！建议您前往设置页修改用户名')
-      } else {
-        toast.success('登录成功')
-      }
-      const redirect = userStore.consumeRedirectRoute()
-      router.push(redirect || '/')
-    } else if (result.code === 40007 && 'needBinding' in result.data) {
-      // 需要绑定或注册
-      const data = result.data
-      router.push({
-        path: '/auth/qq/bindOrRegister',
-        query: {
-          openid: data.openid,
-          unionid: data.unionid || '',
-          nickname: data.nickname || '',
-          avatar: data.avatar || '',
-        },
-      })
+    if (res.data.code === 200) {
+      toast.success('QQ 绑定成功')
+      router.push('/profile')
     } else {
-      // 其他错误
-      alert(result.message || '登录失败')
-      router.push('/')
+      toast.error(res.data.message || '绑定失败')
+      router.push('/profile')
     }
   } catch (err) {
-    console.error('QQ登录失败', err)
-    alert('网络错误')
-    router.push('/')
+    console.error('QQ绑定失败', err)
+    toast.error('网络错误，请稍后重试')
+    router.push('/profile')
   }
 })
 </script>
 
 <template>
-  <div class="qq-callback">
+  <div class="qq-bind-callback">
     <div class="loading-spinner"></div>
-    <p>正在处理 QQ 登录...</p>
+    <p>正在处理 QQ 绑定...</p>
   </div>
 </template>
 
 <style scoped>
-.qq-callback {
+.qq-bind-callback {
   min-height: 100vh;
   display: flex;
   flex-direction: column;

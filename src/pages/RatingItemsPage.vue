@@ -26,6 +26,10 @@ const currentFilter = ref<'hot' | 'high' | 'low'>('hot')
 const isFeedbackOpen = ref(false)
 
 function openFeedbackDrawer() {
+  if (!userStore.isLoggedIn) {
+    userStore.openLoginModal()
+    return
+  }
   isFeedbackOpen.value = true
 }
 

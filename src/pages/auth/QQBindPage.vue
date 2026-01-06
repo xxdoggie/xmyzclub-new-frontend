@@ -2,11 +2,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useToast } from '@/composables/useToast'
 import type { QQData } from '@/types/user'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const toast = useToast()
 
 type Mode = 'choose' | 'bind' | 'register'
 const mode = ref<Mode>('choose')
@@ -58,6 +60,7 @@ async function handleBind() {
       qqData
     )
     if (result.code === 200) {
+      toast.success('绑定成功')
       const redirect = userStore.consumeRedirectRoute()
       router.push(redirect || '/')
     } else {
@@ -94,6 +97,7 @@ async function handleRegister() {
       qqData
     )
     if (result.code === 200) {
+      toast.success('注册成功')
       const redirect = userStore.consumeRedirectRoute()
       router.push(redirect || '/')
     } else {

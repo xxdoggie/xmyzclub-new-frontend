@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from '@/composables/useToast'
+import { useUserStore } from '@/stores/user'
 import { getMinorSections } from '@/api/rating'
 import type { MinorSection } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -11,6 +12,7 @@ import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
+const userStore = useUserStore()
 
 // 获取路由参数
 const majorId = Number(route.params.majorId)
@@ -23,6 +25,10 @@ const minorSections = ref<MinorSection[]>([])
 const isFeedbackOpen = ref(false)
 
 function openFeedbackDrawer() {
+  if (!userStore.isLoggedIn) {
+    userStore.openLoginModal()
+    return
+  }
   isFeedbackOpen.value = true
 }
 

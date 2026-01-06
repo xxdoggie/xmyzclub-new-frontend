@@ -8,6 +8,27 @@ import type {
   RatingItemDetail,
   Comment,
   RandomRatingItem,
+  PaginatedResponse,
+  AdminSchool,
+  AdminMajorSection,
+  AdminMinorSection,
+  AdminRatingItem,
+  AdminComment,
+  AdminUserRating,
+  RatingStatistics,
+  ImageUploadResponse,
+  CreateSchoolRequest,
+  UpdateSchoolRequest,
+  UpdateStatusRequest,
+  CreateMajorSectionRequest,
+  UpdateMajorSectionRequest,
+  CreateMinorSectionRequest,
+  UpdateMinorSectionRequest,
+  CreateRatingItemRequest,
+  UpdateRatingItemRequest,
+  MoveRatingItemRequest,
+  BatchDeleteCommentsRequest,
+  BatchDeleteRatingsRequest,
 } from '@/types/rating'
 
 /**
@@ -94,4 +115,333 @@ export function getRandomItems(schoolId: number, count: number = 10) {
   return api.get<ApiResponse<RandomRatingItem[]>>('/rating-community/random-items', {
     params: { schoolId, count },
   })
+}
+
+// ==================== 管理端 API ====================
+
+const ADMIN_BASE = '/admin/rating-community'
+
+// ----- 统计 -----
+
+/**
+ * 获取统计概览
+ */
+export function getStatistics() {
+  return api.get<ApiResponse<RatingStatistics>>(`${ADMIN_BASE}/statistics/overview`)
+}
+
+// ----- 学校管理 -----
+
+/**
+ * 获取学校列表（管理端）
+ */
+export function getAdminSchools(params?: { page?: number; size?: number; status?: number }) {
+  return api.get<ApiResponse<PaginatedResponse<AdminSchool>>>(`${ADMIN_BASE}/schools`, { params })
+}
+
+/**
+ * 获取学校详情（管理端）
+ */
+export function getAdminSchoolDetail(id: number) {
+  return api.get<ApiResponse<AdminSchool>>(`${ADMIN_BASE}/schools/${id}`)
+}
+
+/**
+ * 创建学校
+ */
+export function createSchool(data: CreateSchoolRequest) {
+  return api.post<ApiResponse<AdminSchool>>(`${ADMIN_BASE}/schools`, data)
+}
+
+/**
+ * 更新学校
+ */
+export function updateSchool(id: number, data: UpdateSchoolRequest) {
+  return api.put<ApiResponse<AdminSchool>>(`${ADMIN_BASE}/schools/${id}`, data)
+}
+
+/**
+ * 删除学校
+ */
+export function deleteSchool(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/schools/${id}`)
+}
+
+/**
+ * 更新学校状态
+ */
+export function updateSchoolStatus(id: number, data: UpdateStatusRequest) {
+  return api.put<ApiResponse<AdminSchool>>(`${ADMIN_BASE}/schools/${id}/status`, data)
+}
+
+// ----- 大分区管理 -----
+
+/**
+ * 获取大分区列表（管理端）
+ */
+export function getAdminMajorSections(params?: {
+  page?: number
+  size?: number
+  schoolId?: number
+  status?: number
+}) {
+  return api.get<ApiResponse<PaginatedResponse<AdminMajorSection>>>(`${ADMIN_BASE}/major-sections`, { params })
+}
+
+/**
+ * 获取大分区详情（管理端）
+ */
+export function getAdminMajorSectionDetail(id: number) {
+  return api.get<ApiResponse<AdminMajorSection>>(`${ADMIN_BASE}/major-sections/${id}`)
+}
+
+/**
+ * 创建大分区
+ */
+export function createMajorSection(data: CreateMajorSectionRequest) {
+  return api.post<ApiResponse<AdminMajorSection>>(`${ADMIN_BASE}/major-sections`, data)
+}
+
+/**
+ * 更新大分区
+ */
+export function updateMajorSection(id: number, data: UpdateMajorSectionRequest) {
+  return api.put<ApiResponse<AdminMajorSection>>(`${ADMIN_BASE}/major-sections/${id}`, data)
+}
+
+/**
+ * 删除大分区
+ */
+export function deleteMajorSection(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/major-sections/${id}`)
+}
+
+/**
+ * 更新大分区状态
+ */
+export function updateMajorSectionStatus(id: number, data: UpdateStatusRequest) {
+  return api.put<ApiResponse<AdminMajorSection>>(`${ADMIN_BASE}/major-sections/${id}/status`, data)
+}
+
+/**
+ * 上传大分区图片
+ */
+export function uploadMajorSectionImage(id: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResponse<ImageUploadResponse>>(`${ADMIN_BASE}/major-sections/${id}/image`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
+ * 删除大分区图片
+ */
+export function deleteMajorSectionImage(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/major-sections/${id}/image`)
+}
+
+// ----- 小分区管理 -----
+
+/**
+ * 获取小分区列表（管理端）
+ */
+export function getAdminMinorSections(params?: {
+  page?: number
+  size?: number
+  majorSectionId?: number
+  status?: number
+}) {
+  return api.get<ApiResponse<PaginatedResponse<AdminMinorSection>>>(`${ADMIN_BASE}/minor-sections`, { params })
+}
+
+/**
+ * 获取小分区详情（管理端）
+ */
+export function getAdminMinorSectionDetail(id: number) {
+  return api.get<ApiResponse<AdminMinorSection>>(`${ADMIN_BASE}/minor-sections/${id}`)
+}
+
+/**
+ * 创建小分区
+ */
+export function createMinorSection(data: CreateMinorSectionRequest) {
+  return api.post<ApiResponse<AdminMinorSection>>(`${ADMIN_BASE}/minor-sections`, data)
+}
+
+/**
+ * 更新小分区
+ */
+export function updateMinorSection(id: number, data: UpdateMinorSectionRequest) {
+  return api.put<ApiResponse<AdminMinorSection>>(`${ADMIN_BASE}/minor-sections/${id}`, data)
+}
+
+/**
+ * 删除小分区
+ */
+export function deleteMinorSection(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/minor-sections/${id}`)
+}
+
+/**
+ * 更新小分区状态
+ */
+export function updateMinorSectionStatus(id: number, data: UpdateStatusRequest) {
+  return api.put<ApiResponse<AdminMinorSection>>(`${ADMIN_BASE}/minor-sections/${id}/status`, data)
+}
+
+/**
+ * 上传小分区图片
+ */
+export function uploadMinorSectionImage(id: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResponse<ImageUploadResponse>>(`${ADMIN_BASE}/minor-sections/${id}/image`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
+ * 删除小分区图片
+ */
+export function deleteMinorSectionImage(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/minor-sections/${id}/image`)
+}
+
+// ----- 评分项目管理 -----
+
+/**
+ * 获取评分项目列表（管理端）
+ */
+export function getAdminRatingItems(params?: {
+  page?: number
+  size?: number
+  minorSectionId?: number
+  status?: number
+  keyword?: string
+}) {
+  return api.get<ApiResponse<PaginatedResponse<AdminRatingItem>>>(`${ADMIN_BASE}/rating-items`, { params })
+}
+
+/**
+ * 获取评分项目详情（管理端）
+ */
+export function getAdminRatingItemDetail(id: number) {
+  return api.get<ApiResponse<AdminRatingItem>>(`${ADMIN_BASE}/rating-items/${id}`)
+}
+
+/**
+ * 创建评分项目
+ */
+export function createRatingItem(data: CreateRatingItemRequest) {
+  return api.post<ApiResponse<AdminRatingItem>>(`${ADMIN_BASE}/rating-items`, data)
+}
+
+/**
+ * 更新评分项目
+ */
+export function updateRatingItem(id: number, data: UpdateRatingItemRequest) {
+  return api.put<ApiResponse<AdminRatingItem>>(`${ADMIN_BASE}/rating-items/${id}`, data)
+}
+
+/**
+ * 删除评分项目
+ */
+export function deleteRatingItem(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/rating-items/${id}`)
+}
+
+/**
+ * 更新评分项目状态
+ */
+export function updateRatingItemStatus(id: number, data: UpdateStatusRequest) {
+  return api.put<ApiResponse<AdminRatingItem>>(`${ADMIN_BASE}/rating-items/${id}/status`, data)
+}
+
+/**
+ * 移动评分项目
+ */
+export function moveRatingItem(id: number, data: MoveRatingItemRequest) {
+  return api.put<ApiResponse<AdminRatingItem>>(`${ADMIN_BASE}/rating-items/${id}/move`, data)
+}
+
+/**
+ * 上传评分项目图片
+ */
+export function uploadRatingItemImage(id: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResponse<ImageUploadResponse>>(`${ADMIN_BASE}/rating-items/${id}/image`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
+ * 删除评分项目图片
+ */
+export function deleteRatingItemImage(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/rating-items/${id}/image`)
+}
+
+// ----- 评论管理 -----
+
+/**
+ * 获取评论列表（管理端）
+ */
+export function getAdminComments(params?: {
+  page?: number
+  size?: number
+  ratingItemId?: number
+  userId?: number
+}) {
+  return api.get<ApiResponse<PaginatedResponse<AdminComment>>>(`${ADMIN_BASE}/comments`, { params })
+}
+
+/**
+ * 获取评论详情（管理端）
+ */
+export function getAdminCommentDetail(id: number) {
+  return api.get<ApiResponse<AdminComment>>(`${ADMIN_BASE}/comments/${id}`)
+}
+
+/**
+ * 删除评论（管理端）
+ */
+export function deleteAdminComment(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/comments/${id}`)
+}
+
+/**
+ * 批量删除评论
+ */
+export function batchDeleteComments(data: BatchDeleteCommentsRequest) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/comments/batch`, { data })
+}
+
+// ----- 用户评分管理 -----
+
+/**
+ * 获取用户评分列表（管理端）
+ */
+export function getAdminRatings(params?: {
+  page?: number
+  size?: number
+  ratingItemId?: number
+  userId?: number
+}) {
+  return api.get<ApiResponse<PaginatedResponse<AdminUserRating>>>(`${ADMIN_BASE}/ratings`, { params })
+}
+
+/**
+ * 删除用户评分（管理端）
+ */
+export function deleteAdminRating(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/ratings/${id}`)
+}
+
+/**
+ * 批量删除用户评分
+ */
+export function batchDeleteRatings(data: BatchDeleteRatingsRequest) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/ratings/batch`, { data })
 }

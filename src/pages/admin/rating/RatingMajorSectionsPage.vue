@@ -82,7 +82,6 @@ const isSaving = ref(false)
 // 图片上传
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
-const isUploadingImage = ref(false)
 
 // 删除确认
 const showDeleteConfirm = ref(false)

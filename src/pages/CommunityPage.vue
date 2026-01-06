@@ -21,16 +21,6 @@ const randomItems = ref<RandomRatingItem[]>([])
 const isLoadingHot = ref(true)
 const isLoadingRandom = ref(false)
 
-// 分区颜色和图标配置
-const sectionStyles = [
-  { gradient: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)', icon: 'utensils' },
-  { gradient: 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)', icon: 'building' },
-  { gradient: 'linear-gradient(135deg, #A29BFE 0%, #6C5CE7 100%)', icon: 'clipboard' },
-  { gradient: 'linear-gradient(135deg, #FDCB6E 0%, #F39C12 100%)', icon: 'users' },
-  { gradient: 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)', icon: 'star' },
-  { gradient: 'linear-gradient(135deg, #fd79a8 0%, #e84393 100%)', icon: 'heart' },
-]
-
 // 加载大分区列表
 async function loadMajorSections() {
   isLoading.value = true
@@ -101,11 +91,6 @@ function formatScore(score: number): string {
 // 进入大分区
 function goToMajorSection(section: MajorSection) {
   router.push(`/community/major/${section.id}`)
-}
-
-// 获取分区样式
-function getSectionStyle(index: number) {
-  return sectionStyles[index % sectionStyles.length]
 }
 
 // 获取分区图标类型

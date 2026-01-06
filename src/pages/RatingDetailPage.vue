@@ -70,7 +70,10 @@ function flattenReplies(replies: Comment[] | null, parentNickname?: string): Fla
   const result: FlattenedReply[] = []
   for (const reply of replies) {
     // 直接在原对象上添加 replyToNickname，保持引用以支持点赞等操作
-    (reply as FlattenedReply).replyToNickname = parentNickname
+    // 如果已经设置了 replyToNickname（乐观更新时设置），则不覆盖
+    if ((reply as FlattenedReply).replyToNickname === undefined) {
+      (reply as FlattenedReply).replyToNickname = parentNickname
+    }
     result.push(reply as FlattenedReply)
     // 递归处理嵌套的回复
     if (reply.replies && reply.replies.length > 0) {
@@ -96,6 +99,16 @@ const sortedDrawerReplies = computed(() => {
 function getHotReplies(replies: Comment[] | null): Comment[] {
   if (!replies || replies.length === 0) return []
   return [...replies].sort((a, b) => b.likeCount - a.likeCount).slice(0, 2)
+}
+
+// 递归计算回复总数（包括嵌套回复）
+function getTotalReplyCount(replies: Comment[] | null): number {
+  if (!replies || replies.length === 0) return 0
+  let count = replies.length
+  for (const reply of replies) {
+    count += getTotalReplyCount(reply.replies)
+  }
+  return count
 }
 
 // 打开回复抽屉
@@ -206,9 +219,11 @@ async function submitDrawerReply() {
   // 如果有回复目标（点击了某条评论的回复按钮），使用该评论ID作为parentId
   // 否则（直接在输入框输入），使用一级评论ID作为parentId
   const parentId = drawerReplyTarget.value?.commentId ?? replyDrawerComment.value.id
+  // 保存被回复人的昵称，用于乐观更新时显示"回复 @xxx"
+  const replyToNickname = drawerReplyTarget.value?.nickname
 
-  // 乐观更新：创建临时回复
-  const tempReply: Comment = {
+  // 乐观更新：创建临时回复（使用 FlattenedReply 类型以支持 replyToNickname）
+  const tempReply: FlattenedReply = {
     id: Date.now(),
     commentText,
     username: userStore.user?.username || '',
@@ -220,6 +235,7 @@ async function submitDrawerReply() {
     commenterScore: null,
     commenterStars: null,
     replies: null,
+    replyToNickname, // 设置被回复人昵称，使乐观更新时能正确显示"回复 @xxx"
   }
 
   // 添加到抽屉的回复列表
@@ -427,24 +443,69 @@ function cancelReply() {
   replyText.value = ''
 }
 
-// 提交回复
+// 提交回复（乐观更新）
 async function handleSubmitReply() {
   if (!replyTarget.value || !replyText.value.trim()) return
+
+  const commentText = replyText.value.trim()
+  const parentId = replyTarget.value.commentId
+
+  // 乐观更新：创建临时回复
+  const tempReply: Comment = {
+    id: Date.now(),
+    commentText,
+    username: userStore.user?.username || '',
+    nickname: userStore.user?.nickname || '我',
+    createdAt: new Date().toISOString(),
+    likeCount: 0,
+    isLiked: false,
+    isMyComment: true,
+    commenterScore: null,
+    commenterStars: null,
+    replies: null,
+  }
+
+  // 添加到父评论的回复列表
+  if (detail.value?.comments) {
+    const parentComment = detail.value.comments.find(c => c.id === parentId)
+    if (parentComment) {
+      if (!parentComment.replies) {
+        parentComment.replies = []
+      }
+      parentComment.replies.unshift(tempReply)
+    }
+  }
+
+  cancelReply()
+
   isReplying.value = true
   try {
     const res = await createComment({
       ratingItemId: itemId,
-      commentText: replyText.value.trim(),
-      parentId: replyTarget.value.commentId,
+      commentText,
+      parentId,
     })
     if (res.data.code === 200) {
-      toast.success('回复成功')
-      cancelReply()
-      await loadDetail(true) // 静默重载数据
+      // 成功后静默刷新获取真实数据
+      await loadDetail(true)
     } else {
+      // 失败：移除临时回复
+      if (detail.value?.comments) {
+        const parentComment = detail.value.comments.find(c => c.id === parentId)
+        if (parentComment?.replies) {
+          parentComment.replies = parentComment.replies.filter(r => r.id !== tempReply.id)
+        }
+      }
       toast.error(res.data.message || '回复失败')
     }
   } catch {
+    // 失败：移除临时回复
+    if (detail.value?.comments) {
+      const parentComment = detail.value.comments.find(c => c.id === parentId)
+      if (parentComment?.replies) {
+        parentComment.replies = parentComment.replies.filter(r => r.id !== tempReply.id)
+      }
+    }
     toast.error('回复失败')
   } finally {
     isReplying.value = false
@@ -702,7 +763,7 @@ onMounted(() => {
                   class="view-replies-btn"
                   @click="openReplyDrawer(comment)"
                 >
-                  查看全部 {{ comment.replies.length }} 条回复
+                  查看全部 {{ getTotalReplyCount(comment.replies) }} 条回复
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
@@ -812,7 +873,7 @@ onMounted(() => {
 
                   <!-- 回复列表标题和排序 -->
                   <div class="drawer-replies-header">
-                    <span class="drawer-replies-count">相关回复共 {{ replyDrawerComment?.replies?.length || 0 }} 条</span>
+                    <span class="drawer-replies-count">相关回复共 {{ getTotalReplyCount(replyDrawerComment?.replies ?? null) }} 条</span>
                     <div class="sort-tabs">
                       <button
                         class="sort-tab"

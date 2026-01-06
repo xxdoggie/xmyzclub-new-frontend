@@ -165,6 +165,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/community/collection/:collectionId',
+      name: 'community-collection',
+      component: () => import('../pages/CollectionDetailPage.vue'),
+      meta: {
+        level: 2,
+        title: '合集详情',
+        parent: 'community',
+      },
+    },
+    {
       path: '/design-system',
       name: 'design-system',
       component: () => import('../pages/DesignSystemPage.vue'),

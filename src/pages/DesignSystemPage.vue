@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 
-const isDark = ref(false)
+const isDark = ref(document.documentElement.classList.contains('dark'))
 const activeTab = ref('home')
 
 function toggleTheme() {

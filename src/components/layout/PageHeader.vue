@@ -21,8 +21,8 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-// 主题状态
-const isDark = ref(false)
+// 主题状态（从 DOM 读取实际状态）
+const isDark = ref(document.documentElement.classList.contains('dark'))
 
 // 页面标题
 const pageTitle = computed(() => {

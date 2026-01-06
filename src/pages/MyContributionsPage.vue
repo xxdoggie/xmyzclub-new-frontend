@@ -124,19 +124,18 @@ function formatTime(dateStr: string): string {
   }
 }
 
-// 获取详情摘要
-function getDetailsSummary(contribution: MyContribution): string {
-  const parts: string[] = []
-  for (const detail of contribution.details) {
-    if (detail.fieldName === 'name') {
-      parts.push(`名称: ${detail.newValue}`)
-    } else if (detail.fieldName === 'description') {
-      parts.push(`描述: ${detail.newValue.substring(0, 20)}${detail.newValue.length > 20 ? '...' : ''}`)
-    } else if (detail.fieldName === 'image') {
-      parts.push('包含图片')
-    }
+// 获取字段名称显示
+function getFieldNameDisplay(fieldName: string): string {
+  switch (fieldName) {
+    case 'name':
+      return '名称'
+    case 'description':
+      return '描述'
+    case 'image':
+      return '图片'
+    default:
+      return fieldName
   }
-  return parts.join(' · ')
 }
 
 onMounted(() => {
@@ -217,15 +216,94 @@ onMounted(() => {
 
           <!-- 内容 -->
           <div class="card-body">
+            <!-- 标题：修改现有/新建内容 -->
             <h3 class="card-title">
-              <template v-if="contribution.contributionType === 1 && contribution.targetName">
-                修改「{{ contribution.targetName }}」
+              <template v-if="contribution.contributionType === 1">
+                修改「{{ contribution.targetName || '未知目标' }}」
               </template>
               <template v-else>
-                {{ getDetailsSummary(contribution) }}
+                新建{{ contribution.targetTypeDisplay }}
               </template>
             </h3>
-            <p class="card-reason">{{ contribution.reason }}</p>
+
+            <!-- 提交原因 -->
+            <p class="card-reason">提交原因：{{ contribution.reason }}</p>
+
+            <!-- 详细变更内容 -->
+            <div class="card-details">
+              <div
+                v-for="(detail, index) in contribution.details"
+                :key="index"
+                class="detail-item"
+              >
+                <!-- 字段标签 -->
+                <span class="detail-label">{{ detail.fieldNameDisplay || getFieldNameDisplay(detail.fieldName) }}</span>
+
+                <!-- 图片字段 -->
+                <template v-if="detail.fieldName === 'image'">
+                  <div class="detail-images">
+                    <!-- 修改模式：显示旧图 → 新图 -->
+                    <template v-if="contribution.contributionType === 1">
+                      <div class="image-compare">
+                        <div class="image-box">
+                          <span class="image-label">修改前</span>
+                          <img
+                            v-if="detail.oldImageUrl"
+                            :src="detail.oldImageUrl"
+                            alt="修改前图片"
+                            class="detail-image"
+                          />
+                          <div v-else class="image-placeholder">无图片</div>
+                        </div>
+                        <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                        <div class="image-box">
+                          <span class="image-label">修改后</span>
+                          <img
+                            v-if="detail.newImageUrl"
+                            :src="detail.newImageUrl"
+                            alt="修改后图片"
+                            class="detail-image"
+                          />
+                          <div v-else class="image-placeholder">无图片</div>
+                        </div>
+                      </div>
+                    </template>
+                    <!-- 新建模式：只显示新图 -->
+                    <template v-else>
+                      <img
+                        v-if="detail.newImageUrl"
+                        :src="detail.newImageUrl"
+                        alt="新建图片"
+                        class="detail-image single"
+                      />
+                      <div v-else class="image-placeholder">未上传图片</div>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- 文本字段 -->
+                <template v-else>
+                  <div class="detail-content">
+                    <!-- 修改模式：显示旧值 → 新值 -->
+                    <template v-if="contribution.contributionType === 1 && detail.oldValue !== undefined">
+                      <div class="text-compare">
+                        <span class="old-value">{{ detail.oldValue || '（空）' }}</span>
+                        <svg class="arrow-icon small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                        <span class="new-value">{{ detail.newValue }}</span>
+                      </div>
+                    </template>
+                    <!-- 新建模式：只显示新值 -->
+                    <template v-else>
+                      <span class="new-value">{{ detail.newValue }}</span>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </div>
           </div>
 
           <!-- 拒绝原因 -->
@@ -504,10 +582,121 @@ onMounted(() => {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ===== Detail Items ===== */
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
+.detail-content {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.text-compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.old-value {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  word-break: break-word;
+}
+
+.new-value {
+  color: var(--color-text);
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  word-break: break-word;
+}
+
+.arrow-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
+}
+
+.arrow-icon.small {
+  width: 14px;
+  height: 14px;
+}
+
+/* ===== Image Display ===== */
+.detail-images {
+  margin-top: 4px;
+}
+
+.image-compare {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.image-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 100px;
+  max-width: 200px;
+}
+
+.image-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+}
+
+.detail-image {
+  width: 100%;
+  max-height: 120px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.detail-image.single {
+  max-width: 200px;
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-hover);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
 }
 
 .reject-reason {

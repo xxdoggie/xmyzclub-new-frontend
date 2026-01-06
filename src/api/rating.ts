@@ -44,6 +44,8 @@ import type {
   MyContributionsResponse,
   ContributionHistoryItem,
   TargetType,
+  AdminContributionsParams,
+  ReviewContributionRequest,
 } from '@/types/rating'
 
 /**
@@ -634,4 +636,34 @@ export function getContributionHistory(targetType: TargetType, targetId: number)
   return api.get<ApiResponse<ContributionHistoryItem[]>>('/rating-community/contributions/history', {
     params: { targetType, targetId },
   })
+}
+
+// ==================== 管理端贡献审核 API ====================
+
+/**
+ * 获取贡献列表（管理端）
+ */
+export function getAdminContributions(params?: AdminContributionsParams) {
+  return api.get<ApiResponse<PaginatedResponse<Contribution>>>(`${ADMIN_BASE}/contributions`, { params })
+}
+
+/**
+ * 获取待审核贡献数量（管理端）
+ */
+export function getAdminContributionsPendingCount() {
+  return api.get<ApiResponse<number>>(`${ADMIN_BASE}/contributions/pending-count`)
+}
+
+/**
+ * 获取贡献详情（管理端）
+ */
+export function getAdminContributionDetail(id: number) {
+  return api.get<ApiResponse<Contribution>>(`${ADMIN_BASE}/contributions/${id}`)
+}
+
+/**
+ * 审核贡献（管理端）
+ */
+export function reviewContribution(id: number, data: ReviewContributionRequest) {
+  return api.post<ApiResponse<Contribution>>(`${ADMIN_BASE}/contributions/${id}/review`, data)
 }

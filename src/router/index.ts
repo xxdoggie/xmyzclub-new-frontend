@@ -407,6 +407,17 @@ const router = createRouter({
         parent: 'admin-rating-collections',
       },
     },
+    {
+      path: '/admin/rating/contributions',
+      name: 'admin-rating-contributions',
+      component: () => import('../pages/admin/rating/RatingContributionsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '审核反馈',
+        parent: 'admin-rating',
+      },
+    },
 
     // ==================== 404 ====================
     {

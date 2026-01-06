@@ -54,6 +54,11 @@ const drawerReplyTarget = ref<{ commentId: number; nickname: string } | null>(nu
 const drawerReplyText = ref('')
 const isSubmittingDrawerReply = ref(false)
 
+// 删除确认模态框状态
+const showDeleteConfirm = ref(false)
+const deleteTargetId = ref<number | null>(null)
+const isDeleting = ref(false)
+
 // 排序后的评论列表
 const sortedComments = computed(() => {
   if (!detail.value?.comments) return []
@@ -70,7 +75,10 @@ function flattenReplies(replies: Comment[] | null, parentNickname?: string): Fla
   const result: FlattenedReply[] = []
   for (const reply of replies) {
     // 直接在原对象上添加 replyToNickname，保持引用以支持点赞等操作
-    (reply as FlattenedReply).replyToNickname = parentNickname
+    // 如果已经设置了 replyToNickname（乐观更新时设置），则不覆盖
+    if ((reply as FlattenedReply).replyToNickname === undefined) {
+      (reply as FlattenedReply).replyToNickname = parentNickname
+    }
     result.push(reply as FlattenedReply)
     // 递归处理嵌套的回复
     if (reply.replies && reply.replies.length > 0) {
@@ -96,6 +104,16 @@ const sortedDrawerReplies = computed(() => {
 function getHotReplies(replies: Comment[] | null): Comment[] {
   if (!replies || replies.length === 0) return []
   return [...replies].sort((a, b) => b.likeCount - a.likeCount).slice(0, 2)
+}
+
+// 递归计算回复总数（包括嵌套回复）
+function getTotalReplyCount(replies: Comment[] | null): number {
+  if (!replies || replies.length === 0) return 0
+  let count = replies.length
+  for (const reply of replies) {
+    count += getTotalReplyCount(reply.replies)
+  }
+  return count
 }
 
 // 打开回复抽屉
@@ -163,7 +181,12 @@ async function submitBottomComment() {
       commentText,
     })
     if (res.data.code === 200) {
-      // 成功后静默刷新获取真实数据
+      // 成功：用服务器返回的真实 ID 更新临时评论，确保点赞等操作使用正确的 ID
+      const realComment = res.data.data
+      if (realComment) {
+        tempComment.id = realComment.id
+      }
+      // 静默刷新获取最新数据
       await loadDetail(true)
     } else {
       // 失败：移除临时评论
@@ -206,9 +229,11 @@ async function submitDrawerReply() {
   // 如果有回复目标（点击了某条评论的回复按钮），使用该评论ID作为parentId
   // 否则（直接在输入框输入），使用一级评论ID作为parentId
   const parentId = drawerReplyTarget.value?.commentId ?? replyDrawerComment.value.id
+  // 保存被回复人的昵称，用于乐观更新时显示"回复 @xxx"
+  const replyToNickname = drawerReplyTarget.value?.nickname
 
-  // 乐观更新：创建临时回复
-  const tempReply: Comment = {
+  // 乐观更新：创建临时回复（使用 FlattenedReply 类型以支持 replyToNickname）
+  const tempReply: FlattenedReply = {
     id: Date.now(),
     commentText,
     username: userStore.user?.username || '',
@@ -220,6 +245,7 @@ async function submitDrawerReply() {
     commenterScore: null,
     commenterStars: null,
     replies: null,
+    replyToNickname, // 设置被回复人昵称，使乐观更新时能正确显示"回复 @xxx"
   }
 
   // 添加到抽屉的回复列表
@@ -249,13 +275,20 @@ async function submitDrawerReply() {
       commentText,
       parentId,
     })
-    if (res.data.code !== 200) {
+    if (res.data.code === 200) {
+      // 成功：用服务器返回的真实 ID 更新临时回复，确保点赞等操作使用正确的 ID
+      const realReply = res.data.data
+      if (realReply) {
+        // 由于 tempReply 同时被添加到两个列表中（同一引用），直接修改对象属性即可
+        tempReply.id = realReply.id
+      }
+    } else {
       // 失败：移除临时回复
       if (replyDrawerComment.value?.replies) {
         replyDrawerComment.value.replies = replyDrawerComment.value.replies.filter(r => r.id !== tempReply.id)
       }
       if (detail.value?.comments) {
-        const mainComment = detail.value.comments.find(c => c.id === parentId)
+        const mainComment = detail.value.comments.find(c => c.id === replyDrawerComment.value?.id)
         if (mainComment?.replies) {
           mainComment.replies = mainComment.replies.filter(r => r.id !== tempReply.id)
         }
@@ -268,7 +301,7 @@ async function submitDrawerReply() {
       replyDrawerComment.value.replies = replyDrawerComment.value.replies.filter(r => r.id !== tempReply.id)
     }
     if (detail.value?.comments) {
-      const mainComment = detail.value.comments.find(c => c.id === parentId)
+      const mainComment = detail.value.comments.find(c => c.id === replyDrawerComment.value?.id)
       if (mainComment?.replies) {
         mainComment.replies = mainComment.replies.filter(r => r.id !== tempReply.id)
       }
@@ -427,43 +460,111 @@ function cancelReply() {
   replyText.value = ''
 }
 
-// 提交回复
+// 提交回复（乐观更新）
 async function handleSubmitReply() {
   if (!replyTarget.value || !replyText.value.trim()) return
+
+  const commentText = replyText.value.trim()
+  const parentId = replyTarget.value.commentId
+
+  // 乐观更新：创建临时回复
+  const tempReply: Comment = {
+    id: Date.now(),
+    commentText,
+    username: userStore.user?.username || '',
+    nickname: userStore.user?.nickname || '我',
+    createdAt: new Date().toISOString(),
+    likeCount: 0,
+    isLiked: false,
+    isMyComment: true,
+    commenterScore: null,
+    commenterStars: null,
+    replies: null,
+  }
+
+  // 添加到父评论的回复列表
+  if (detail.value?.comments) {
+    const parentComment = detail.value.comments.find(c => c.id === parentId)
+    if (parentComment) {
+      if (!parentComment.replies) {
+        parentComment.replies = []
+      }
+      parentComment.replies.unshift(tempReply)
+    }
+  }
+
+  cancelReply()
+
   isReplying.value = true
   try {
     const res = await createComment({
       ratingItemId: itemId,
-      commentText: replyText.value.trim(),
-      parentId: replyTarget.value.commentId,
+      commentText,
+      parentId,
     })
     if (res.data.code === 200) {
-      toast.success('回复成功')
-      cancelReply()
-      await loadDetail(true) // 静默重载数据
+      // 成功：用服务器返回的真实 ID 更新临时回复，确保点赞等操作使用正确的 ID
+      const realReply = res.data.data
+      if (realReply) {
+        tempReply.id = realReply.id
+      }
+      // 静默刷新获取最新数据
+      await loadDetail(true)
     } else {
+      // 失败：移除临时回复
+      if (detail.value?.comments) {
+        const parentComment = detail.value.comments.find(c => c.id === parentId)
+        if (parentComment?.replies) {
+          parentComment.replies = parentComment.replies.filter(r => r.id !== tempReply.id)
+        }
+      }
       toast.error(res.data.message || '回复失败')
     }
   } catch {
+    // 失败：移除临时回复
+    if (detail.value?.comments) {
+      const parentComment = detail.value.comments.find(c => c.id === parentId)
+      if (parentComment?.replies) {
+        parentComment.replies = parentComment.replies.filter(r => r.id !== tempReply.id)
+      }
+    }
     toast.error('回复失败')
   } finally {
     isReplying.value = false
   }
 }
 
-// 删除评论
-async function handleDeleteComment(commentId: number) {
-  if (!confirm('确定要删除这条评论吗？')) return
+// 打开删除确认模态框
+function openDeleteConfirm(commentId: number) {
+  deleteTargetId.value = commentId
+  showDeleteConfirm.value = true
+}
+
+// 取消删除
+function cancelDeleteComment() {
+  showDeleteConfirm.value = false
+  deleteTargetId.value = null
+}
+
+// 确认删除评论
+async function confirmDeleteComment() {
+  if (!deleteTargetId.value) return
+
+  isDeleting.value = true
   try {
-    const res = await deleteComment(commentId)
+    const res = await deleteComment(deleteTargetId.value)
     if (res.data.code === 200) {
       toast.success('删除成功')
+      showDeleteConfirm.value = false
+      deleteTargetId.value = null
       await loadDetail(true) // 静默重载数据
     } else {
       toast.error(res.data.message || '删除失败')
     }
   } catch {
     toast.error('删除失败')
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -678,7 +779,7 @@ onMounted(() => {
                       <button
                         v-if="comment.isMyComment"
                         class="action-btn delete"
-                        @click="handleDeleteComment(comment.id)"
+                        @click="openDeleteConfirm(comment.id)"
                       >
                         删除
                       </button>
@@ -702,7 +803,7 @@ onMounted(() => {
                   class="view-replies-btn"
                   @click="openReplyDrawer(comment)"
                 >
-                  查看全部 {{ comment.replies.length }} 条回复
+                  查看全部 {{ getTotalReplyCount(comment.replies) }} 条回复
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
@@ -812,7 +913,7 @@ onMounted(() => {
 
                   <!-- 回复列表标题和排序 -->
                   <div class="drawer-replies-header">
-                    <span class="drawer-replies-count">相关回复共 {{ replyDrawerComment?.replies?.length || 0 }} 条</span>
+                    <span class="drawer-replies-count">相关回复共 {{ getTotalReplyCount(replyDrawerComment?.replies ?? null) }} 条</span>
                     <div class="sort-tabs">
                       <button
                         class="sort-tab"
@@ -881,7 +982,7 @@ onMounted(() => {
                             <button
                               v-if="reply.isMyComment"
                               class="action-btn delete"
-                              @click="handleDeleteComment(reply.id)"
+                              @click="openDeleteConfirm(reply.id)"
                             >
                               删除
                             </button>
@@ -914,6 +1015,26 @@ onMounted(() => {
                     @click="submitDrawerReply"
                   >
                     {{ isSubmittingDrawerReply ? '...' : '发送' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </Teleport>
+
+        <!-- 删除确认模态框 -->
+        <Teleport to="body">
+          <Transition name="modal">
+            <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDeleteComment">
+              <div class="modal-content">
+                <h3 class="modal-title">确认删除</h3>
+                <p class="modal-desc">确定要删除这条评论吗？此操作不可撤销。</p>
+                <div class="modal-actions">
+                  <button class="modal-btn cancel" @click="cancelDeleteComment" :disabled="isDeleting">
+                    取消
+                  </button>
+                  <button class="modal-btn confirm" @click="confirmDeleteComment" :disabled="isDeleting">
+                    {{ isDeleting ? '删除中...' : '确认删除' }}
                   </button>
                 </div>
               </div>
@@ -1896,5 +2017,98 @@ onMounted(() => {
     min-height: 70vh;
     max-height: 85vh;
   }
+}
+
+/* ===== Delete Confirm Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: var(--spacing-md);
+}
+
+.modal-content {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  max-width: 320px;
+  width: 100%;
+}
+
+.modal-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.modal-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-btn.cancel {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.modal-btn.cancel:hover:not(:disabled) {
+  background: var(--color-text-placeholder);
+}
+
+.modal-btn.confirm {
+  background: var(--color-error);
+  color: white;
+}
+
+.modal-btn.confirm:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* Modal Transition */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-active .modal-content,
+.modal-leave-active .modal-content {
+  transition: transform 0.2s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-content,
+.modal-leave-to .modal-content {
+  transform: scale(0.95);
 }
 </style>

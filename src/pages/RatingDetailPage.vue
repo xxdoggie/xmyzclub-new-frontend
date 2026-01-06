@@ -176,7 +176,15 @@ async function submitBottomComment() {
       commentText,
     })
     if (res.data.code === 200) {
-      // 成功后静默刷新获取真实数据
+      // 成功：用服务器返回的真实评论替换临时评论，确保 ID 正确
+      const realComment = res.data.data
+      if (detail.value?.comments && realComment) {
+        const index = detail.value.comments.findIndex(c => c.id === tempComment.id)
+        if (index !== -1) {
+          detail.value.comments[index] = realComment
+        }
+      }
+      // 静默刷新获取最新数据
       await loadDetail(true)
     } else {
       // 失败：移除临时评论
@@ -265,13 +273,20 @@ async function submitDrawerReply() {
       commentText,
       parentId,
     })
-    if (res.data.code !== 200) {
+    if (res.data.code === 200) {
+      // 成功：用服务器返回的真实 ID 更新临时回复，确保点赞等操作使用正确的 ID
+      const realReply = res.data.data
+      if (realReply) {
+        // 由于 tempReply 同时被添加到两个列表中（同一引用），直接修改对象属性即可
+        tempReply.id = realReply.id
+      }
+    } else {
       // 失败：移除临时回复
       if (replyDrawerComment.value?.replies) {
         replyDrawerComment.value.replies = replyDrawerComment.value.replies.filter(r => r.id !== tempReply.id)
       }
       if (detail.value?.comments) {
-        const mainComment = detail.value.comments.find(c => c.id === parentId)
+        const mainComment = detail.value.comments.find(c => c.id === replyDrawerComment.value?.id)
         if (mainComment?.replies) {
           mainComment.replies = mainComment.replies.filter(r => r.id !== tempReply.id)
         }
@@ -284,7 +299,7 @@ async function submitDrawerReply() {
       replyDrawerComment.value.replies = replyDrawerComment.value.replies.filter(r => r.id !== tempReply.id)
     }
     if (detail.value?.comments) {
-      const mainComment = detail.value.comments.find(c => c.id === parentId)
+      const mainComment = detail.value.comments.find(c => c.id === replyDrawerComment.value?.id)
       if (mainComment?.replies) {
         mainComment.replies = mainComment.replies.filter(r => r.id !== tempReply.id)
       }
@@ -486,7 +501,12 @@ async function handleSubmitReply() {
       parentId,
     })
     if (res.data.code === 200) {
-      // 成功后静默刷新获取真实数据
+      // 成功：用服务器返回的真实 ID 更新临时回复，确保点赞等操作使用正确的 ID
+      const realReply = res.data.data
+      if (realReply) {
+        tempReply.id = realReply.id
+      }
+      // 静默刷新获取最新数据
       await loadDetail(true)
     } else {
       // 失败：移除临时回复

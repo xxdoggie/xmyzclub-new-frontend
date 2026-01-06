@@ -149,12 +149,6 @@ onMounted(() => {
     <PageHeader back-to="/community" />
 
     <main class="page-content">
-      <!-- 页面标题 -->
-      <div class="page-title">
-        <h1>我的反馈</h1>
-        <p class="page-subtitle">查看你提交的所有贡献记录</p>
-      </div>
-
       <!-- 状态筛选 -->
       <div class="filter-tabs">
         <button
@@ -285,22 +279,6 @@ onMounted(() => {
   max-width: 600px;
   margin: 0 auto;
   width: 100%;
-}
-
-/* ===== Page Title ===== */
-.page-title {
-  margin-bottom: var(--spacing-lg);
-}
-
-.page-title h1 {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-xs);
-}
-
-.page-subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
 }
 
 /* ===== Filter Tabs ===== */
@@ -594,10 +572,6 @@ onMounted(() => {
 @media (min-width: 640px) {
   .page-content {
     padding: var(--spacing-lg);
-  }
-
-  .page-title h1 {
-    font-size: var(--text-2xl);
   }
 
   .contribution-card {

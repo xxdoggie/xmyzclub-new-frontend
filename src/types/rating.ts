@@ -569,8 +569,10 @@ export interface ContributionDetail {
   id?: number
   fieldName: FieldName
   fieldNameDisplay?: string
-  oldValue?: string
+  oldValue?: string | null
   newValue: string
+  oldImageUrl?: string | null
+  newImageUrl?: string | null
   createdAt?: string
 }
 

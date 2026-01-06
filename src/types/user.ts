@@ -40,6 +40,7 @@ export interface LoginResponse {
   user: UserInfo
   expiresAt: number
   campusInfo?: CampusInfo
+  isNewUser?: boolean
 }
 
 /**

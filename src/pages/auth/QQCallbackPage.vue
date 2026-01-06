@@ -33,7 +33,11 @@ onMounted(async () => {
 
     if (result.code === 200) {
       // 登录成功
-      toast.success('登录成功')
+      if ('isNewUser' in result.data && result.data.isNewUser) {
+        toast.success('欢迎！建议您前往设置页修改用户名')
+      } else {
+        toast.success('登录成功')
+      }
       const redirect = userStore.consumeRedirectRoute()
       router.push(redirect || '/')
     } else if (result.code === 40007 && 'needBinding' in result.data) {

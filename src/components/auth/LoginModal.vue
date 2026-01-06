@@ -135,7 +135,11 @@ async function handleLogin() {
   try {
     const result = await userStore.login(username, password)
     if (result.code === 200) {
-      toast.success('登录成功')
+      if (result.data.isNewUser) {
+        toast.success('欢迎！建议您前往设置页修改用户名')
+      } else {
+        toast.success('登录成功')
+      }
       handleLoginSuccess()
     } else {
       toast.error(result.message || '登录失败')
@@ -206,7 +210,11 @@ async function handleCampusLogin() {
       jsessionId
     )
     if (result.code === 200) {
-      toast.success('登录成功')
+      if (result.data.isNewUser) {
+        toast.success('欢迎！建议您前往设置页修改用户名')
+      } else {
+        toast.success('登录成功')
+      }
       handleLoginSuccess()
     } else {
       toast.error(result.message || '登录失败')

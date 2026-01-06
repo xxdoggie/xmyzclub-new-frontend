@@ -364,6 +364,28 @@ const router = createRouter({
         parent: 'admin-rating-items',
       },
     },
+    {
+      path: '/admin/rating/collections',
+      name: 'admin-rating-collections',
+      component: () => import('../pages/admin/rating/RatingCollectionsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '合集管理',
+        parent: 'admin-rating',
+      },
+    },
+    {
+      path: '/admin/rating/collections/:collectionId',
+      name: 'admin-rating-collection-detail',
+      component: () => import('../pages/admin/rating/RatingCollectionDetailPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '合集详情',
+        parent: 'admin-rating-collections',
+      },
+    },
 
     // ==================== 404 ====================
     {

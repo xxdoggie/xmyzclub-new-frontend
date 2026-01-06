@@ -8,6 +8,8 @@ import type {
   RatingItemDetail,
   Comment,
   RandomRatingItem,
+  Collection,
+  CollectionDetail,
   PaginatedResponse,
   AdminSchool,
   AdminMajorSection,
@@ -15,6 +17,8 @@ import type {
   AdminRatingItem,
   AdminComment,
   AdminUserRating,
+  AdminCollection,
+  AdminCollectionItem,
   RatingStatistics,
   ImageUploadResponse,
   CreateSchoolRequest,
@@ -29,6 +33,11 @@ import type {
   MoveRatingItemRequest,
   BatchDeleteCommentsRequest,
   BatchDeleteRatingsRequest,
+  CreateCollectionRequest,
+  UpdateCollectionRequest,
+  AddCollectionItemRequest,
+  BatchAddCollectionItemsRequest,
+  UpdateCollectionItemSortRequest,
 } from '@/types/rating'
 
 /**
@@ -444,4 +453,127 @@ export function deleteAdminRating(id: number) {
  */
 export function batchDeleteRatings(data: BatchDeleteRatingsRequest) {
   return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/ratings/batch`, { data })
+}
+
+// ==================== 用户端合集 API ====================
+
+/**
+ * 获取所有合集（用户端）
+ */
+export function getCollections() {
+  return api.get<ApiResponse<Collection[]>>('/rating-community/collections')
+}
+
+/**
+ * 获取合集详情（用户端）
+ */
+export function getCollectionDetail(collectionId: number) {
+  return api.get<ApiResponse<CollectionDetail>>(`/rating-community/collections/${collectionId}`)
+}
+
+// ==================== 管理端合集 API ====================
+
+// ----- 合集管理 -----
+
+/**
+ * 获取合集列表（管理端）
+ */
+export function getAdminCollections(params?: { page?: number; size?: number; status?: number }) {
+  return api.get<ApiResponse<{ list: AdminCollection[]; total: number; page: number; size: number }>>(
+    `${ADMIN_BASE}/collections`,
+    { params }
+  )
+}
+
+/**
+ * 获取合集详情（管理端）
+ */
+export function getAdminCollectionDetail(id: number) {
+  return api.get<ApiResponse<AdminCollection>>(`${ADMIN_BASE}/collections/${id}`)
+}
+
+/**
+ * 创建合集
+ */
+export function createCollection(data: CreateCollectionRequest) {
+  return api.post<ApiResponse<AdminCollection>>(`${ADMIN_BASE}/collections`, data)
+}
+
+/**
+ * 更新合集
+ */
+export function updateCollection(id: number, data: UpdateCollectionRequest) {
+  return api.put<ApiResponse<AdminCollection>>(`${ADMIN_BASE}/collections/${id}`, data)
+}
+
+/**
+ * 删除合集
+ */
+export function deleteCollection(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/collections/${id}`)
+}
+
+/**
+ * 更新合集状态
+ */
+export function updateCollectionStatus(id: number, data: UpdateStatusRequest) {
+  return api.put<ApiResponse<AdminCollection>>(`${ADMIN_BASE}/collections/${id}/status`, data)
+}
+
+/**
+ * 上传合集封面
+ */
+export function uploadCollectionImage(id: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResponse<ImageUploadResponse>>(`${ADMIN_BASE}/collections/${id}/image`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
+ * 删除合集封面
+ */
+export function deleteCollectionImage(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/collections/${id}/image`)
+}
+
+// ----- 合集项目管理 -----
+
+/**
+ * 获取合集内的评分项目列表
+ */
+export function getAdminCollectionItems(collectionId: number, params?: { page?: number; size?: number }) {
+  return api.get<ApiResponse<PaginatedResponse<AdminCollectionItem>>>(
+    `${ADMIN_BASE}/collections/${collectionId}/items`,
+    { params }
+  )
+}
+
+/**
+ * 添加评分项目到合集
+ */
+export function addCollectionItem(collectionId: number, data: AddCollectionItemRequest) {
+  return api.post<ApiResponse<AdminCollectionItem>>(`${ADMIN_BASE}/collections/${collectionId}/items`, data)
+}
+
+/**
+ * 从合集移除评分项目
+ */
+export function removeCollectionItem(collectionId: number, ratingItemId: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/collections/${collectionId}/items/${ratingItemId}`)
+}
+
+/**
+ * 更新合集项目排序
+ */
+export function updateCollectionItemSort(collectionId: number, ratingItemId: number, data: UpdateCollectionItemSortRequest) {
+  return api.put<ApiResponse<null>>(`${ADMIN_BASE}/collections/${collectionId}/items/${ratingItemId}/sort`, data)
+}
+
+/**
+ * 批量添加评分项目到合集
+ */
+export function batchAddCollectionItems(collectionId: number, data: BatchAddCollectionItemsRequest) {
+  return api.post<ApiResponse<null>>(`${ADMIN_BASE}/collections/${collectionId}/items/batch`, data)
 }

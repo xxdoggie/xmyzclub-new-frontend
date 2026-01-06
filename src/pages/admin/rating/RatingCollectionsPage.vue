@@ -4,17 +4,18 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
-  getStatistics,
-  getAdminSchools,
-  createSchool,
-  updateSchool,
-  deleteSchool,
-  updateSchoolStatus,
+  getAdminCollections,
+  createCollection,
+  updateCollection,
+  deleteCollection,
+  updateCollectionStatus,
+  uploadCollectionImage,
+  deleteCollectionImage,
 } from '@/api/rating'
 import type {
-  RatingStatistics,
-  AdminSchool,
-  CreateSchoolRequest,
+  AdminCollection,
+  CreateCollectionRequest,
+  UpdateCollectionRequest,
   RatingStatus,
 } from '@/types/rating'
 import { getRatingStatusInfo } from '@/types/rating'
@@ -29,11 +30,8 @@ const toast = useToast()
 // 加载状态
 const isLoading = ref(true)
 
-// 统计数据
-const statistics = ref<RatingStatistics | null>(null)
-
-// 学校列表
-const schools = ref<AdminSchool[]>([])
+// 合集列表
+const collections = ref<AdminCollection[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
@@ -51,7 +49,7 @@ watch(statusFilter, (newVal, oldVal) => {
   const newIndex = tabOrder.indexOf(newVal as typeof tabOrder[number])
   slideDirection.value = newIndex > oldIndex ? 'left' : 'right'
   isAnimating.value = true
-  loadSchools()
+  loadCollections()
 
   nextTick(() => {
     setTimeout(() => {
@@ -62,31 +60,27 @@ watch(statusFilter, (newVal, oldVal) => {
 })
 
 // 创建/编辑模态框
-const showSchoolModal = ref(false)
-const schoolModalMode = ref<'create' | 'edit'>('create')
-const editingSchool = ref<AdminSchool | null>(null)
-const schoolForm = ref<CreateSchoolRequest>({ name: '' })
-const isSavingSchool = ref(false)
+const showModal = ref(false)
+const modalMode = ref<'create' | 'edit'>('create')
+const editingItem = ref<AdminCollection | null>(null)
+const form = ref<CreateCollectionRequest & { description: string }>({
+  name: '',
+  description: '',
+  sortOrder: 0,
+})
+const isSaving = ref(false)
+
+// 图片上传
+const imageFile = ref<File | null>(null)
+const imagePreview = ref<string | null>(null)
 
 // 删除确认
 const showDeleteConfirm = ref(false)
-const deleteTarget = ref<AdminSchool | null>(null)
+const deleteTarget = ref<AdminCollection | null>(null)
 const isDeleting = ref(false)
 
-// 加载统计数据
-async function loadStatistics() {
-  try {
-    const res = await getStatistics()
-    if (res.data.code === 200) {
-      statistics.value = res.data.data
-    }
-  } catch (error) {
-    console.error('获取统计数据失败', error)
-  }
-}
-
-// 加载学校列表
-async function loadSchools() {
+// 加载合集列表
+async function loadCollections() {
   try {
     const params: { page?: number; size?: number; status?: number } = {
       page: page.value,
@@ -95,15 +89,15 @@ async function loadSchools() {
     if (statusFilter.value !== 'all') {
       params.status = statusFilter.value
     }
-    const res = await getAdminSchools(params)
+    const res = await getAdminCollections(params)
     if (res.data.code === 200) {
-      schools.value = res.data.data.items
+      collections.value = res.data.data.list
       total.value = res.data.data.total
     } else {
-      toast.error(res.data.message || '获取学校列表失败')
+      toast.error(res.data.message || '获取合集列表失败')
     }
   } catch (error) {
-    toast.error('获取学校列表失败')
+    toast.error('获取合集列表失败')
   }
 }
 
@@ -111,7 +105,7 @@ async function loadSchools() {
 async function loadAllData() {
   isLoading.value = true
   try {
-    await Promise.all([loadStatistics(), loadSchools()])
+    await loadCollections()
   } finally {
     isLoading.value = false
   }
@@ -119,72 +113,131 @@ async function loadAllData() {
 
 // 打开创建模态框
 function openCreateModal() {
-  schoolModalMode.value = 'create'
-  editingSchool.value = null
-  schoolForm.value = { name: '' }
-  showSchoolModal.value = true
+  modalMode.value = 'create'
+  editingItem.value = null
+  form.value = { name: '', description: '', sortOrder: 0 }
+  imageFile.value = null
+  imagePreview.value = null
+  showModal.value = true
 }
 
 // 打开编辑模态框
-function openEditModal(school: AdminSchool, event: Event) {
+function openEditModal(item: AdminCollection, event: Event) {
   event.stopPropagation()
-  schoolModalMode.value = 'edit'
-  editingSchool.value = school
-  schoolForm.value = { name: school.name }
-  showSchoolModal.value = true
+  modalMode.value = 'edit'
+  editingItem.value = item
+  form.value = {
+    name: item.name,
+    description: item.description || '',
+    sortOrder: item.sortOrder,
+  }
+  imageFile.value = null
+  imagePreview.value = item.coverUrl
+  showModal.value = true
 }
 
 // 关闭模态框
-function closeSchoolModal() {
-  showSchoolModal.value = false
-  editingSchool.value = null
-  schoolForm.value = { name: '' }
+function closeModal() {
+  showModal.value = false
+  editingItem.value = null
+  form.value = { name: '', description: '', sortOrder: 0 }
+  imageFile.value = null
+  imagePreview.value = null
 }
 
-// 保存学校
-async function saveSchool() {
-  if (!schoolForm.value.name.trim()) {
-    toast.error('请填写学校名称')
+// 处理图片选择
+function handleImageSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    const file = input.files[0]
+    // 验证文件类型
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('只支持 JPEG/PNG/GIF/WebP/BMP 格式')
+      return
+    }
+    // 验证文件大小（10MB）
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('图片大小不能超过 10MB')
+      return
+    }
+    imageFile.value = file
+    // 创建预览
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      imagePreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+// 移除图片
+function removeImage() {
+  imageFile.value = null
+  imagePreview.value = null
+}
+
+// 保存
+async function save() {
+  if (!form.value.name.trim()) {
+    toast.error('请填写名称')
     return
   }
 
-  isSavingSchool.value = true
+  isSaving.value = true
   try {
-    if (schoolModalMode.value === 'create') {
-      const res = await createSchool(schoolForm.value)
+    if (modalMode.value === 'create') {
+      const res = await createCollection(form.value)
       if (res.data.code === 200) {
-        toast.success('学校创建成功')
-        closeSchoolModal()
-        await loadAllData()
+        // 如果有图片，上传图片
+        if (imageFile.value) {
+          await uploadCollectionImage(res.data.data.id, imageFile.value)
+        }
+        toast.success('创建成功')
+        closeModal()
+        await loadCollections()
       } else {
         toast.error(res.data.message || '创建失败')
       }
-    } else if (editingSchool.value) {
-      const res = await updateSchool(editingSchool.value.id, schoolForm.value)
+    } else if (editingItem.value) {
+      const updateData: UpdateCollectionRequest = {
+        name: form.value.name,
+        description: form.value.description,
+        sortOrder: form.value.sortOrder,
+      }
+      const res = await updateCollection(editingItem.value.id, updateData)
       if (res.data.code === 200) {
-        toast.success('学校更新成功')
-        closeSchoolModal()
-        await loadSchools()
+        // 处理图片
+        if (imageFile.value) {
+          // 上传新图片
+          await uploadCollectionImage(editingItem.value.id, imageFile.value)
+        } else if (!imagePreview.value && editingItem.value.coverUrl) {
+          // 删除原图片
+          await deleteCollectionImage(editingItem.value.id)
+        }
+        toast.success('更新成功')
+        closeModal()
+        await loadCollections()
       } else {
         toast.error(res.data.message || '更新失败')
       }
     }
   } catch (error) {
-    toast.error(schoolModalMode.value === 'create' ? '创建失败' : '更新失败')
+    toast.error(modalMode.value === 'create' ? '创建失败' : '更新失败')
   } finally {
-    isSavingSchool.value = false
+    isSaving.value = false
   }
 }
 
 // 切换状态
-async function toggleStatus(school: AdminSchool, event: Event) {
+async function toggleStatus(item: AdminCollection, event: Event) {
   event.stopPropagation()
-  const newStatus = school.status === 1 ? 0 : 1
+  const newStatus = item.status === 1 ? 0 : 1
   try {
-    const res = await updateSchoolStatus(school.id, { status: newStatus as RatingStatus })
+    const res = await updateCollectionStatus(item.id, { status: newStatus as RatingStatus })
     if (res.data.code === 200) {
       toast.success(newStatus === 1 ? '已启用' : '已禁用')
-      await loadSchools()
+      await loadCollections()
     } else {
       toast.error(res.data.message || '操作失败')
     }
@@ -194,9 +247,9 @@ async function toggleStatus(school: AdminSchool, event: Event) {
 }
 
 // 打开删除确认
-function openDeleteConfirm(school: AdminSchool, event: Event) {
+function openDeleteConfirm(item: AdminCollection, event: Event) {
   event.stopPropagation()
-  deleteTarget.value = school
+  deleteTarget.value = item
   showDeleteConfirm.value = true
 }
 
@@ -206,12 +259,12 @@ async function confirmDelete() {
 
   isDeleting.value = true
   try {
-    const res = await deleteSchool(deleteTarget.value.id)
+    const res = await deleteCollection(deleteTarget.value.id)
     if (res.data.code === 200) {
-      toast.success('学校已删除')
+      toast.success('已删除')
       showDeleteConfirm.value = false
       deleteTarget.value = null
-      await loadAllData()
+      await loadCollections()
     } else {
       toast.error(res.data.message || '删除失败')
     }
@@ -228,9 +281,14 @@ function cancelDelete() {
   deleteTarget.value = null
 }
 
-// 进入大分区列表
-function goToMajorSections(school: AdminSchool) {
-  router.push(`/admin/rating/schools/${school.id}`)
+// 进入合集详情（管理项目）
+function goToCollectionDetail(item: AdminCollection) {
+  router.push(`/admin/rating/collections/${item.id}`)
+}
+
+// 返回
+function goBack() {
+  router.push('/admin/rating')
 }
 
 // 格式化日期
@@ -255,7 +313,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <PageHeader back-to="/" />
+    <PageHeader back-to="/admin/rating" />
 
     <main class="page-content">
       <div class="content-container">
@@ -268,25 +326,22 @@ onMounted(() => {
         <div class="page-header-section">
           <div class="header-main">
             <div class="header-text">
-              <h1 class="page-title">评分社区管理</h1>
-              <p class="page-subtitle">管理学校、分区和评分项目</p>
+              <h1 class="page-title">合集管理</h1>
+              <p class="page-subtitle">管理评分项目合集</p>
             </div>
             <div class="header-actions">
-              <button class="action-button secondary" @click="router.push('/admin/rating/collections')">
+              <button class="action-button secondary" @click="goBack">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="3" width="7" height="7"></rect>
-                  <rect x="3" y="14" width="7" height="7"></rect>
-                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
-                合集管理
+                返回
               </button>
               <button class="action-button primary" @click="openCreateModal">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                添加学校
+                添加合集
               </button>
             </div>
           </div>
@@ -299,40 +354,7 @@ onMounted(() => {
         </div>
 
         <template v-else>
-          <!-- 统计概览 -->
-          <div v-if="statistics" class="statistics-grid">
-            <div class="stat-card">
-              <div class="stat-value">{{ statistics.schoolCount }}</div>
-              <div class="stat-label">学校总数</div>
-              <div class="stat-sub">{{ statistics.enabledSchoolCount }} 个启用</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">{{ statistics.majorSectionCount }}</div>
-              <div class="stat-label">大分区</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">{{ statistics.minorSectionCount }}</div>
-              <div class="stat-label">小分区</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">{{ statistics.ratingItemCount }}</div>
-              <div class="stat-label">评分项目</div>
-              <div class="stat-sub">{{ statistics.enabledRatingItemCount }} 个启用</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">{{ statistics.userRatingCount }}</div>
-              <div class="stat-label">用户评分</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">{{ statistics.commentCount }}</div>
-              <div class="stat-label">评论数</div>
-            </div>
-          </div>
-
           <!-- 状态筛选 -->
-          <div class="section-header">
-            <h2 class="section-title">学校列表</h2>
-          </div>
           <div class="status-tabs">
             <button
               class="status-tab"
@@ -357,7 +379,7 @@ onMounted(() => {
             </button>
           </div>
 
-          <!-- 内容区域（带动画） -->
+          <!-- 内容区域 -->
           <div
             class="content-slide-wrapper"
             :class="{
@@ -366,39 +388,62 @@ onMounted(() => {
             }"
           >
             <!-- 空状态 -->
-            <div v-if="schools.length === 0" class="empty-container">
+            <div v-if="collections.length === 0" class="empty-container">
               <div class="empty-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4z"></path>
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
                 </svg>
               </div>
-              <h2>{{ statusFilter === 'all' ? '暂无学校' : '暂无相关学校' }}</h2>
-              <p>{{ statusFilter === 'all' ? '还没有添加任何学校' : '没有找到该状态的学校' }}</p>
+              <h2>{{ statusFilter === 'all' ? '暂无合集' : '暂无相关合集' }}</h2>
+              <p>{{ statusFilter === 'all' ? '还没有添加任何合集' : '没有找到该状态的合集' }}</p>
               <button v-if="statusFilter === 'all'" class="empty-action-btn" @click="openCreateModal">
-                添加第一个学校
+                添加第一个合集
               </button>
             </div>
 
-            <!-- 学校列表 -->
+            <!-- 列表 -->
             <div v-else class="items-list">
               <div
-                v-for="school in schools"
-                :key="school.id"
+                v-for="item in collections"
+                :key="item.id"
                 class="item-card"
-                @click="goToMajorSections(school)"
+                @click="goToCollectionDetail(item)"
               >
-                <!-- 学校信息 -->
+                <!-- 封面图 -->
+                <div class="item-cover">
+                  <img
+                    v-if="item.coverUrl"
+                    :src="item.coverUrl"
+                    :alt="item.name"
+                    class="cover-image"
+                  />
+                  <div v-else class="cover-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- 信息 -->
                 <div class="item-info">
                   <div class="item-header">
-                    <h3 class="item-name">{{ school.name }}</h3>
-                    <span class="status-badge" :class="getRatingStatusInfo(school.status).class">
-                      {{ getRatingStatusInfo(school.status).label }}
+                    <h3 class="item-name">{{ item.name }}</h3>
+                    <span class="status-badge" :class="getRatingStatusInfo(item.status).class">
+                      {{ getRatingStatusInfo(item.status).label }}
                     </span>
                   </div>
+                  <p v-if="item.description" class="item-desc">{{ item.description }}</p>
                   <div class="item-meta">
-                    <span class="meta-item">{{ school.majorSectionCount }} 个大分区</span>
+                    <span class="meta-item">{{ item.itemCount }} 个项目</span>
                     <span class="meta-divider">·</span>
-                    <span class="meta-item">{{ formatDate(school.createdAt) }}</span>
+                    <span class="meta-item">排序: {{ item.sortOrder }}</span>
+                    <span class="meta-divider">·</span>
+                    <span class="meta-item">{{ formatDate(item.createdAt) }}</span>
                   </div>
                 </div>
 
@@ -406,15 +451,15 @@ onMounted(() => {
                 <div class="item-actions">
                   <button
                     class="action-btn toggle"
-                    :class="{ 'is-enabled': school.status === 1 }"
-                    @click="toggleStatus(school, $event)"
+                    :class="{ 'is-enabled': item.status === 1 }"
+                    @click="toggleStatus(item, $event)"
                   >
-                    {{ school.status === 1 ? '禁用' : '启用' }}
+                    {{ item.status === 1 ? '禁用' : '启用' }}
                   </button>
-                  <button class="action-btn edit" @click="openEditModal(school, $event)">
+                  <button class="action-btn edit" @click="openEditModal(item, $event)">
                     编辑
                   </button>
-                  <button class="action-btn delete" @click="openDeleteConfirm(school, $event)">
+                  <button class="action-btn delete" @click="openDeleteConfirm(item, $event)">
                     删除
                   </button>
                   <div class="arrow-icon">
@@ -432,30 +477,80 @@ onMounted(() => {
 
     <PageFooter />
 
-    <!-- 创建/编辑学校模态框 -->
+    <!-- 创建/编辑模态框 -->
     <Transition name="modal-fade">
-      <div v-if="showSchoolModal" class="modal-overlay" @click.self="closeSchoolModal">
+      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
         <Transition name="modal-scale" appear>
-          <div v-if="showSchoolModal" class="modal-content" @click.stop>
+          <div v-if="showModal" class="modal-content modal-large" @click.stop>
             <h3 class="modal-title">
-              {{ schoolModalMode === 'create' ? '添加学校' : '编辑学校' }}
+              {{ modalMode === 'create' ? '添加合集' : '编辑合集' }}
             </h3>
             <div class="form-group">
-              <label class="form-label">学校名称</label>
+              <label class="form-label">名称 *</label>
               <input
-                v-model="schoolForm.name"
+                v-model="form.name"
                 type="text"
                 class="form-input"
-                placeholder="例如：西门一中"
+                placeholder="例如：新年晚会合集"
                 maxlength="50"
               />
             </div>
+            <div class="form-group">
+              <label class="form-label">描述</label>
+              <textarea
+                v-model="form.description"
+                class="form-textarea"
+                placeholder="简单描述一下这个合集..."
+                rows="3"
+                maxlength="200"
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">排序权重</label>
+              <input
+                v-model.number="form.sortOrder"
+                type="number"
+                class="form-input"
+                placeholder="数字越小排序越靠前"
+                min="0"
+              />
+              <p class="form-hint">数字越小排序越靠前，默认为0</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">封面图片</label>
+              <div class="image-upload-area">
+                <div v-if="imagePreview" class="image-preview">
+                  <img :src="imagePreview" alt="预览" />
+                  <button class="remove-image-btn" @click="removeImage" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+                <label v-else class="upload-placeholder">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
+                    @change="handleImageSelect"
+                    class="hidden-input"
+                  />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span>点击上传图片</span>
+                  <span class="upload-hint">支持 JPEG/PNG/GIF/WebP/BMP，最大 10MB</span>
+                </label>
+              </div>
+            </div>
             <div class="modal-actions">
-              <button class="modal-btn cancel" @click="closeSchoolModal" :disabled="isSavingSchool">
+              <button class="modal-btn cancel" @click="closeModal" :disabled="isSaving">
                 取消
               </button>
-              <button class="modal-btn confirm primary" @click="saveSchool" :disabled="isSavingSchool">
-                {{ isSavingSchool ? '保存中...' : '保存' }}
+              <button class="modal-btn confirm primary" @click="save" :disabled="isSaving">
+                {{ isSaving ? '保存中...' : '保存' }}
               </button>
             </div>
           </div>
@@ -470,9 +565,9 @@ onMounted(() => {
           <div v-if="showDeleteConfirm" class="modal-content" @click.stop>
             <h3 class="modal-title">确认删除</h3>
             <p class="modal-desc">
-              确定要删除学校"{{ deleteTarget?.name }}"吗？此操作不可撤销。
+              确定要删除合集"{{ deleteTarget?.name }}"吗？此操作不可撤销。
             </p>
-            <p class="modal-warning">注意：如果该学校下有大分区，将无法删除。</p>
+            <p class="modal-warning">注意：删除合集不会删除其中的评分项目。</p>
             <div class="modal-actions">
               <button class="modal-btn cancel" @click="cancelDelete" :disabled="isDeleting">
                 取消
@@ -607,50 +702,6 @@ onMounted(() => {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ===== Statistics ===== */
-.statistics-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
-}
-
-.stat-card {
-  padding: var(--spacing-md);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  text-align: center;
-}
-
-.stat-value {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  color: var(--color-primary);
-  margin-bottom: 2px;
-}
-
-.stat-label {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-.stat-sub {
-  font-size: 10px;
-  color: var(--color-text-placeholder);
-  margin-top: 2px;
-}
-
-/* ===== Section Header ===== */
-.section-header {
-  margin-bottom: var(--spacing-sm);
-}
-
-.section-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
 }
 
 /* ===== Status Tabs ===== */
@@ -811,6 +862,35 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+.item-cover {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border);
+  color: var(--color-text-placeholder);
+}
+
+.cover-placeholder svg {
+  width: 24px;
+  height: 24px;
+}
+
 .item-info {
   flex: 1;
   min-width: 0;
@@ -850,14 +930,13 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-.status-badge.status-pending {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.status-badge.status-rejected {
-  background: var(--color-error-bg);
-  color: var(--color-error);
+.item-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .item-meta {
@@ -957,6 +1036,12 @@ onMounted(() => {
   padding: var(--spacing-lg);
   max-width: 400px;
   width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content.modal-large {
+  max-width: 500px;
 }
 
 .modal-title {
@@ -988,7 +1073,8 @@ onMounted(() => {
   margin-bottom: var(--spacing-xs);
 }
 
-.form-input {
+.form-input,
+.form-textarea {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--text-sm);
@@ -997,21 +1083,127 @@ onMounted(() => {
   background: var(--color-bg);
   color: var(--color-text);
   transition: border-color var(--transition-fast);
+  font-family: inherit;
 }
 
-.form-input:focus {
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-input:focus,
+.form-textarea:focus {
   outline: none;
   border-color: var(--color-primary);
 }
 
-.form-input::placeholder {
+.form-input::placeholder,
+.form-textarea::placeholder {
   color: var(--color-text-placeholder);
+}
+
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  margin-top: var(--spacing-xs);
+}
+
+/* ===== Image Upload ===== */
+.image-upload-area {
+  width: 100%;
+}
+
+.image-preview {
+  position: relative;
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.remove-image-btn:hover {
+  background: var(--color-error);
+}
+
+.remove-image-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 16/9;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+  padding: var(--spacing-sm);
+}
+
+.upload-placeholder:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.upload-placeholder svg {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.upload-placeholder span {
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.upload-hint {
+  font-size: var(--text-xs) !important;
+  color: var(--color-text-placeholder) !important;
+  white-space: normal !important;
+  line-height: 1.3;
+}
+
+.hidden-input {
+  display: none;
 }
 
 .modal-actions {
   display: flex;
   gap: var(--spacing-sm);
   justify-content: flex-end;
+  margin-top: var(--spacing-lg);
 }
 
 .modal-btn {
@@ -1117,30 +1309,22 @@ onMounted(() => {
     font-size: var(--text-base);
   }
 
-  .statistics-grid {
-    grid-template-columns: repeat(6, 1fr);
-    gap: var(--spacing-md);
-  }
-
-  .stat-value {
-    font-size: var(--text-2xl);
-  }
-
-  .stat-label {
-    font-size: var(--text-sm);
-  }
-
-  .section-title {
-    font-size: var(--text-lg);
-  }
-
   .status-tab {
     font-size: var(--text-sm);
     padding: var(--spacing-sm) var(--spacing-md);
   }
 
+  .item-cover {
+    width: 80px;
+    height: 80px;
+  }
+
   .item-name {
     font-size: var(--text-base);
+  }
+
+  .item-desc {
+    font-size: var(--text-sm);
   }
 
   .item-meta {

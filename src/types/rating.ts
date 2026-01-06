@@ -420,7 +420,119 @@ export interface ImageUploadResponse {
   fileUrl: string
   fileSize: number
   fileType: string
-  businessType: 'major_rating' | 'minor_rating' | 'rating_item'
+  businessType: 'major_rating' | 'minor_rating' | 'rating_item' | 'collection'
   businessId: number
   createdAt: string
+}
+
+// ==================== 合集 (Collection) ====================
+
+/**
+ * 用户端合集列表项
+ */
+export interface Collection {
+  id: number
+  name: string
+  description: string
+  coverUrl: string | null
+  itemCount: number
+}
+
+/**
+ * 用户端合集详情
+ */
+export interface CollectionDetail {
+  id: number
+  name: string
+  description: string
+  coverUrl: string | null
+  itemCount: number
+  items: CollectionRatingItem[]
+}
+
+/**
+ * 合集内的评分项目（用户端）
+ */
+export interface CollectionRatingItem {
+  id: number
+  name: string
+  description: string
+  url: string | null
+  averageScore: number
+  ratingCount: number
+  topComment: TopComment | null
+  breadcrumb: Breadcrumb
+  myScore: number | null
+  myStars: number | null
+}
+
+/**
+ * 管理端合集信息
+ */
+export interface AdminCollection {
+  id: number
+  name: string
+  description: string
+  coverUrl: string | null
+  sortOrder: number
+  status: RatingStatus
+  itemCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * 创建合集请求
+ */
+export interface CreateCollectionRequest {
+  name: string
+  description?: string
+  sortOrder?: number
+}
+
+/**
+ * 更新合集请求
+ */
+export interface UpdateCollectionRequest {
+  name?: string
+  description?: string
+  sortOrder?: number
+}
+
+/**
+ * 合集内的评分项目（管理端）
+ */
+export interface AdminCollectionItem {
+  id: number
+  collectionId: number
+  ratingItemId: number
+  ratingItemName: string
+  ratingItemImageUrl: string | null
+  breadcrumb: AdminRatingBreadcrumb
+  averageScore: number
+  ratingCount: number
+  sortOrder: number
+  createdAt: string
+}
+
+/**
+ * 添加评分项目到合集请求
+ */
+export interface AddCollectionItemRequest {
+  ratingItemId: number
+  sortOrder?: number
+}
+
+/**
+ * 批量添加评分项目到合集请求
+ */
+export interface BatchAddCollectionItemsRequest {
+  ids: number[]
+}
+
+/**
+ * 更新合集项目排序请求
+ */
+export interface UpdateCollectionItemSortRequest {
+  sortOrder: number
 }

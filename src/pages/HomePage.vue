@@ -358,10 +358,11 @@ function goToBanner(index: number) {
 
     <!-- Main Content -->
     <main class="main">
-      <!-- Hero Banner Section -->
+      <!-- Hero Banner Section - 轻量现代风格 -->
       <section class="hero-section">
         <div class="hero-container">
-          <div class="hero-banner" :class="currentBanner.gradient">
+          <div class="hero-banner-modern">
+            <div class="hero-bg"></div>
             <div class="hero-content">
               <Transition name="fade" mode="out-in">
                 <div :key="currentBannerIndex" class="hero-text">
@@ -369,98 +370,88 @@ function goToBanner(index: number) {
                   <p class="hero-subtitle">{{ currentBanner.subtitle }}</p>
                 </div>
               </Transition>
+              <!-- Banner Indicators 内嵌 -->
+              <div class="hero-indicators-inline">
+                <button
+                  v-for="(_, index) in banners"
+                  :key="index"
+                  class="indicator-dot"
+                  :class="{ active: currentBannerIndex === index }"
+                  @click="goToBanner(index)"
+                ></button>
+              </div>
             </div>
+            <!-- 浮动装饰图标 -->
             <div class="hero-decoration">
-              <div class="decoration-circle decoration-circle-1"></div>
-              <div class="decoration-circle decoration-circle-2"></div>
-              <div class="decoration-circle decoration-circle-3"></div>
+              <svg class="float-icon" style="--delay: 0s; --x: 75%; --y: 15%;" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <svg class="float-icon" style="--delay: 0.5s; --x: 88%; --y: 40%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+              </svg>
+              <svg class="float-icon" style="--delay: 1s; --x: 80%; --y: 70%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+              </svg>
             </div>
-          </div>
-          <!-- Banner Indicators -->
-          <div class="hero-indicators">
-            <button
-              v-for="(_, index) in banners"
-              :key="index"
-              class="indicator-dot"
-              :class="{ active: currentBannerIndex === index }"
-              @click="goToBanner(index)"
-            ></button>
           </div>
         </div>
       </section>
 
-      <!-- Quick Actions Section -->
+      <!-- Quick Actions Section - 网格图标风格 -->
       <section class="quick-section">
         <div class="quick-container">
-          <h3 class="section-label">快捷入口</h3>
-          <div class="quick-actions-grid">
-            <router-link to="/ticket" class="action-card">
-              <div class="action-icon-wrapper primary">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-              </div>
-              <div class="action-content">
-                <span class="action-title">活动抢票</span>
-                <span class="action-desc">校园活动门票预约</span>
-              </div>
-              <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </router-link>
+          <div class="content-card">
+            <div class="card-header">
+              <h3 class="card-header-title">快捷入口</h3>
+            </div>
+            <div class="quick-grid">
+              <router-link to="/ticket" class="quick-item quick-item-1">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <span class="quick-label">活动抢票</span>
+              </router-link>
 
-            <router-link to="/ringtone" class="action-card">
-              <div class="action-icon-wrapper secondary">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 18V5l12-2v13"></path>
-                  <circle cx="6" cy="18" r="3"></circle>
-                  <circle cx="18" cy="16" r="3"></circle>
-                </svg>
-              </div>
-              <div class="action-content">
-                <span class="action-title">宿舍铃声</span>
-                <span class="action-desc">投稿投票你喜欢的歌</span>
-              </div>
-              <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </router-link>
+              <router-link to="/ringtone" class="quick-item quick-item-2">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
+                </div>
+                <span class="quick-label">宿舍铃声</span>
+              </router-link>
 
-            <router-link to="/grade" class="action-card">
-              <div class="action-icon-wrapper info">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-              </div>
-              <div class="action-content">
-                <span class="action-title">分数查询</span>
-                <span class="action-desc">查看好分数考试成绩</span>
-              </div>
-              <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </router-link>
+              <router-link to="/grade" class="quick-item quick-item-3">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                  </svg>
+                </div>
+                <span class="quick-label">分数查询</span>
+              </router-link>
 
-            <router-link to="/community" class="action-card">
-              <div class="action-icon-wrapper accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-              </div>
-              <div class="action-content">
-                <span class="action-title">评分社区</span>
-                <span class="action-desc">万物皆可评分</span>
-              </div>
-              <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </router-link>
+              <router-link to="/community" class="quick-item quick-item-4">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <span class="quick-label">评分社区</span>
+              </router-link>
+            </div>
           </div>
         </div>
       </section>
@@ -468,8 +459,19 @@ function goToBanner(index: number) {
       <!-- Update Log Section -->
       <section class="changelog-section">
         <div class="changelog-container">
-          <h3 class="section-label">更新日志</h3>
-          <div class="changelog-card">
+          <div class="content-card">
+            <div class="card-header">
+              <h3 class="card-header-title">
+                <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <line x1="10" y1="9" x2="8" y2="9"></line>
+                </svg>
+                更新日志
+              </h3>
+            </div>
             <ul class="changelog-list">
               <li class="changelog-item">
                 <div class="changelog-dot"></div>
@@ -1096,143 +1098,69 @@ function goToBanner(index: number) {
   flex: 1;
 }
 
-/* Hero Section */
+/* ===== Hero Section - 轻量现代风格 ===== */
 .hero-section {
-  padding: 10px;
+  padding: var(--spacing-md);
   padding-bottom: 0;
 }
 
 .hero-container {
-  max-width: 1400px;
+  max-width: 800px;
   margin: 0 auto;
 }
 
-.hero-banner {
+.hero-banner-modern {
   position: relative;
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg) var(--spacing-md);
   overflow: hidden;
-  min-height: 220px;
-  display: flex;
-  align-items: flex-start;
+  padding: var(--spacing-lg);
 }
 
-.hero-banner.from-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-}
-
-.hero-banner.from-secondary {
-  background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-info) 100%);
-}
-
-.hero-banner.from-accent {
-  background: linear-gradient(135deg, var(--color-accent) 0%, #D97706 100%);
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
-  color: white;
-}
-
-.hero-text {
-  margin-bottom: var(--spacing-md);
-}
-
-.hero-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-xs);
-  line-height: var(--leading-tight);
-}
-
-.hero-subtitle {
-  font-size: var(--text-sm);
-  opacity: 0.9;
-}
-
-.hero-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-.btn-hero-primary {
-  background: white;
-  color: var(--color-primary);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-hero-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-hero-ghost {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-hero-ghost:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.hero-decoration {
+.hero-banner-modern .hero-bg {
   position: absolute;
   inset: 0;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.hero-banner-modern .hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-banner-modern .hero-text {
+  margin-bottom: var(--spacing-sm);
+}
+
+.hero-banner-modern .hero-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-xs);
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.hero-banner-modern .hero-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  pointer-events: none;
 }
 
-.decoration-circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.decoration-circle-1 {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-
-.decoration-circle-2 {
-  width: 150px;
-  height: 150px;
-  bottom: -40px;
-  right: 80px;
-}
-
-.decoration-circle-3 {
-  width: 80px;
-  height: 80px;
-  top: 50%;
-  right: 200px;
-}
-
-.hero-indicators {
+/* 轮播指示点 - 内嵌样式 */
+.hero-indicators-inline {
   display: flex;
-  justify-content: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   margin-top: var(--spacing-md);
 }
 
-.indicator-dot {
-  width: 8px;
-  height: 8px;
+.hero-indicators-inline .indicator-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--color-border);
   border: none;
@@ -1240,15 +1168,45 @@ function goToBanner(index: number) {
   transition: all var(--transition-fast);
 }
 
-.indicator-dot.active {
+.hero-indicators-inline .indicator-dot.active {
   background: var(--color-primary);
-  width: 24px;
+  width: 18px;
   border-radius: var(--radius-full);
 }
 
-/* ===== Quick Actions Section ===== */
+/* 浮动装饰图标 */
+.hero-banner-modern .hero-decoration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero-banner-modern .float-icon {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 18px;
+  height: 18px;
+  color: var(--color-primary);
+  opacity: 0.35;
+  animation: float 3s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(5deg);
+  }
+}
+
+/* ===== Quick Actions Section - 网格图标风格 ===== */
 .quick-section {
-  padding: var(--spacing-md) 10px;
+  padding: var(--spacing-md);
+  padding-top: var(--spacing-sm);
 }
 
 .quick-container {
@@ -1256,114 +1214,101 @@ function goToBanner(index: number) {
   margin: 0 auto;
 }
 
-.section-label {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-md);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.quick-actions-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
+/* 内容卡片 */
+.content-card {
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+/* 快捷入口网格 */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+}
+
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
   text-decoration: none;
-  color: inherit;
-  transition: all var(--transition-fast);
+  cursor: pointer;
+  transition: all var(--transition-normal);
 }
 
-.action-card:hover {
-  border-color: var(--color-primary);
-  transform: translateX(4px);
-  box-shadow: var(--shadow-sm);
+.quick-item:hover {
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.03));
 }
 
-.action-card:active {
-  transform: scale(0.98);
+.quick-item:active {
+  transform: scale(0.96);
 }
 
-.action-icon-wrapper {
-  width: 48px;
-  height: 48px;
+/* 快捷入口颜色主题 */
+.quick-item-1 { --item-color: #FF6B6B; --item-bg: rgba(255, 107, 107, 0.1); }
+.quick-item-2 { --item-color: #4ECDC4; --item-bg: rgba(78, 205, 196, 0.1); }
+.quick-item-3 { --item-color: #A29BFE; --item-bg: rgba(162, 155, 254, 0.1); }
+.quick-item-4 { --item-color: #FDCB6E; --item-bg: rgba(253, 203, 110, 0.1); }
+
+.quick-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--item-bg);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-lg);
-  flex-shrink: 0;
-}
-
-.action-icon-wrapper.primary {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
-
-.action-icon-wrapper.secondary {
-  background: rgba(6, 182, 212, 0.1);
-  color: var(--color-secondary);
-}
-
-.action-icon-wrapper.info {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-}
-
-.action-icon-wrapper.accent {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--color-accent);
-}
-
-.action-icon-wrapper svg {
-  width: 24px;
-  height: 24px;
-}
-
-.action-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.action-title {
-  display: block;
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: var(--color-text);
-  margin-bottom: 2px;
-}
-
-.action-desc {
-  display: block;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-.action-arrow {
-  width: 20px;
-  height: 20px;
-  color: var(--color-text-placeholder);
-  flex-shrink: 0;
+  margin-bottom: 6px;
+  color: var(--item-color);
   transition: transform var(--transition-fast);
 }
 
-.action-card:hover .action-arrow {
-  transform: translateX(4px);
-  color: var(--color-primary);
+.quick-item:hover .quick-icon {
+  transform: scale(1.08);
+}
+
+.quick-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.quick-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* ===== Changelog Section ===== */
 .changelog-section {
-  padding: var(--spacing-md) 10px;
+  padding: var(--spacing-md);
+  padding-top: 0;
   padding-bottom: var(--spacing-lg);
 }
 
@@ -1372,16 +1317,16 @@ function goToBanner(index: number) {
   margin: 0 auto;
 }
 
-.changelog-card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-md);
+/* 标题图标样式 */
+.card-header-title .title-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary);
 }
 
 .changelog-list {
   list-style: none;
-  padding: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -1518,42 +1463,50 @@ function goToBanner(index: number) {
     display: block;
   }
 
-  .hero-title {
-    font-size: var(--text-2xl);
+  /* 轮播图 Tablet 适配 */
+  .hero-banner-modern {
+    padding: var(--spacing-xl);
   }
 
-  .hero-subtitle {
+  .hero-banner-modern .hero-title {
+    font-size: var(--text-xl);
+  }
+
+  .hero-banner-modern .hero-subtitle {
+    -webkit-line-clamp: 4;
+  }
+
+  .hero-banner-modern .float-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* 快捷入口 Tablet 适配 */
+  .quick-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .quick-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .quick-label {
+    font-size: var(--text-sm);
+  }
+
+  .card-header {
+    padding: var(--spacing-md);
+  }
+
+  .card-header-title {
     font-size: var(--text-base);
   }
 
-  .hero-banner {
-    min-height: 240px;
-    padding: var(--spacing-2xl) var(--spacing-xl);
-  }
-
-  .action-icon-wrapper {
-    width: 52px;
-    height: 52px;
-  }
-
-  .action-icon-wrapper svg {
-    width: 26px;
-    height: 26px;
-  }
-
-  .decoration-circle-1 {
-    width: 300px;
-    height: 300px;
-  }
-
-  .decoration-circle-2 {
-    width: 200px;
-    height: 200px;
-  }
-
-  .decoration-circle-3 {
-    width: 120px;
-    height: 120px;
+  .quick-grid {
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
   }
 }
 
@@ -1586,24 +1539,36 @@ function goToBanner(index: number) {
     display: inline-flex;
   }
 
+  /* 轮播图 Desktop 适配 */
   .hero-section {
     padding: var(--spacing-lg) var(--spacing-xl);
     padding-bottom: 0;
   }
 
-  .hero-banner {
-    min-height: 280px;
+  .hero-container {
+    max-width: 900px;
+  }
+
+  .hero-banner-modern {
     padding: var(--spacing-2xl);
   }
 
-  .hero-title {
-    font-size: var(--text-3xl);
+  .hero-banner-modern .hero-title {
+    font-size: var(--text-2xl);
   }
 
-  .hero-subtitle {
-    font-size: var(--text-lg);
+  .hero-banner-modern .hero-subtitle {
+    font-size: var(--text-base);
+    -webkit-line-clamp: none;
+    display: block;
   }
 
+  .hero-banner-modern .float-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* 快捷入口 Desktop 适配 */
   .quick-section,
   .changelog-section {
     padding: var(--spacing-xl);
@@ -1614,10 +1579,14 @@ function goToBanner(index: number) {
     max-width: 900px;
   }
 
-  .quick-actions-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-md);
+  .quick-icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .quick-icon svg {
+    width: 26px;
+    height: 26px;
   }
 
   .changelog-card {

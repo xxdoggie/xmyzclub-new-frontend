@@ -12,6 +12,7 @@ import {
 } from '@/api/rating'
 import type { RatingItemDetail, Comment } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
 
 // 扁平化的回复类型，包含被回复人信息
 interface FlattenedReply extends Comment {
@@ -58,6 +59,21 @@ const isSubmittingDrawerReply = ref(false)
 const showDeleteConfirm = ref(false)
 const deleteTargetId = ref<number | null>(null)
 const isDeleting = ref(false)
+
+// 反馈抽屉状态
+const isFeedbackOpen = ref(false)
+
+function openFeedbackDrawer() {
+  isFeedbackOpen.value = true
+}
+
+function closeFeedbackDrawer() {
+  isFeedbackOpen.value = false
+}
+
+function handleFeedbackSuccess() {
+  // 可以在这里做额外处理
+}
 
 // 排序后的评论列表
 const sortedComments = computed(() => {
@@ -640,6 +656,14 @@ onMounted(() => {
               <p v-if="detail.description" class="item-desc">{{ detail.description }}</p>
             </div>
           </div>
+          <!-- 反馈按钮 -->
+          <button class="feedback-btn" @click="openFeedbackDrawer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            信息有误？提交反馈
+          </button>
         </div>
 
         <!-- 评分卡片 -->
@@ -1041,6 +1065,18 @@ onMounted(() => {
             </div>
           </Transition>
         </Teleport>
+
+        <!-- 反馈抽屉 -->
+        <FeedbackDrawer
+          :is-open="isFeedbackOpen"
+          :contribution-type="1"
+          :target-type="3"
+          :target-id="itemId"
+          :current-name="detail.name"
+          :current-description="detail.description"
+          @close="closeFeedbackDrawer"
+          @success="handleFeedbackSuccess"
+        />
       </template>
 
       <!-- 错误状态 -->
@@ -1145,6 +1181,35 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ===== Feedback Button ===== */
+.feedback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.feedback-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.feedback-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* ===== Score Card ===== */

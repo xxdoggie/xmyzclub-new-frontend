@@ -38,6 +38,9 @@ import type {
   AddCollectionItemRequest,
   BatchAddCollectionItemsRequest,
   UpdateCollectionItemSortRequest,
+  SubmitContributionRequest,
+  Contribution,
+  ContributionImageUploadResponse,
 } from '@/types/rating'
 
 /**
@@ -585,4 +588,24 @@ export function updateCollectionItemSort(collectionId: number, ratingItemId: num
  */
 export function batchAddCollectionItems(collectionId: number, data: BatchAddCollectionItemsRequest) {
   return api.post<ApiResponse<null>>(`${ADMIN_BASE}/collections/${collectionId}/items/batch`, data)
+}
+
+// ==================== 用户端贡献 API ====================
+
+/**
+ * 提交贡献
+ */
+export function submitContribution(data: SubmitContributionRequest) {
+  return api.post<ApiResponse<Contribution>>('/rating-community/contributions', data)
+}
+
+/**
+ * 上传贡献图片
+ */
+export function uploadContributionImage(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResponse<ContributionImageUploadResponse>>('/rating-community/contributions/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
 }

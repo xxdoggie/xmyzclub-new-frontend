@@ -181,13 +181,10 @@ async function submitBottomComment() {
       commentText,
     })
     if (res.data.code === 200) {
-      // 成功：用服务器返回的真实评论替换临时评论，确保 ID 正确
+      // 成功：用服务器返回的真实 ID 更新临时评论，确保点赞等操作使用正确的 ID
       const realComment = res.data.data
-      if (detail.value?.comments && realComment) {
-        const index = detail.value.comments.findIndex(c => c.id === tempComment.id)
-        if (index !== -1) {
-          detail.value.comments[index] = realComment
-        }
+      if (realComment) {
+        tempComment.id = realComment.id
       }
       // 静默刷新获取最新数据
       await loadDetail(true)

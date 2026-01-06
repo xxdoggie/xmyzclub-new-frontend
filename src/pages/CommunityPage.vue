@@ -635,26 +635,32 @@ onMounted(() => {
   justify-content: center;
   gap: 4px;
   color: white;
+  text-align: center;
 }
 
+/* 将内容定位在各扇形的视觉中心（约60%半径处，45度角方向） */
 .quarter-1 .quarter-content {
-  bottom: 16px;
-  right: 16px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-110%, -110%);
 }
 
 .quarter-2 .quarter-content {
-  bottom: 16px;
-  left: 16px;
+  top: 50%;
+  right: 50%;
+  transform: translate(110%, -110%);
 }
 
 .quarter-3 .quarter-content {
-  top: 16px;
-  right: 16px;
+  bottom: 50%;
+  left: 50%;
+  transform: translate(-110%, 110%);
 }
 
 .quarter-4 .quarter-content {
-  top: 16px;
-  left: 16px;
+  bottom: 50%;
+  right: 50%;
+  transform: translate(110%, 110%);
 }
 
 .quarter-icon {
@@ -1020,26 +1026,6 @@ onMounted(() => {
     max-width: 80px;
   }
 
-  .quarter-1 .quarter-content {
-    bottom: 24px;
-    right: 24px;
-  }
-
-  .quarter-2 .quarter-content {
-    bottom: 24px;
-    left: 24px;
-  }
-
-  .quarter-3 .quarter-content {
-    top: 24px;
-    right: 24px;
-  }
-
-  .quarter-4 .quarter-content {
-    top: 24px;
-    left: 24px;
-  }
-
   .item-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-md);
@@ -1087,26 +1073,6 @@ onMounted(() => {
   .quarter-label {
     font-size: 14px;
     max-width: 90px;
-  }
-
-  .quarter-1 .quarter-content {
-    bottom: 32px;
-    right: 32px;
-  }
-
-  .quarter-2 .quarter-content {
-    bottom: 32px;
-    left: 32px;
-  }
-
-  .quarter-3 .quarter-content {
-    top: 32px;
-    right: 32px;
-  }
-
-  .quarter-4 .quarter-content {
-    top: 32px;
-    left: 32px;
   }
 
   .item-grid {

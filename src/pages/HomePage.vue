@@ -15,6 +15,18 @@ const currentBannerIndex = ref(0)
 // 退出确认弹窗
 const showLogoutConfirm = ref(false)
 
+// 抽屉分组折叠状态（默认全部展开）
+const drawerSections = ref({
+  nav: true,      // 导航
+  admin: true,    // 管理
+  account: true,  // 账户
+})
+
+// 切换分组折叠状态
+function toggleSection(section: 'nav' | 'admin' | 'account') {
+  drawerSections.value[section] = !drawerSections.value[section]
+}
+
 // Banner 轮播数据
 const banners: Array<{
   title: string
@@ -172,7 +184,7 @@ function goToBanner(index: number) {
     </Transition>
     <Transition name="menu-slide">
       <div v-if="isMobileMenuOpen" class="mobile-menu">
-        <!-- 用户区域 -->
+        <!-- 用户区域（固定在顶部） -->
         <div class="drawer-user-section" @click="goToProfile">
           <template v-if="userStore.isLoggedIn">
             <div class="drawer-user-info">
@@ -189,123 +201,149 @@ function goToBanner(index: number) {
           </template>
         </div>
 
-        <!-- 导航区域 -->
+        <!-- 可滚动内容区域 -->
+        <div class="drawer-scroll-content">
+          <!-- 导航区域 -->
         <div class="drawer-nav-section">
-          <p class="drawer-section-title">导航</p>
-          <nav class="drawer-nav">
-            <a class="drawer-nav-item active" @click="navigateTo('/')">
-              <div class="drawer-nav-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-              </div>
-              <span>首页</span>
-            </a>
-            <a class="drawer-nav-item" @click="navigateTo('/ticket')">
-              <div class="drawer-nav-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-              </div>
-              <span>活动抢票</span>
-            </a>
-            <a class="drawer-nav-item" @click="navigateTo('/ringtone')">
-              <div class="drawer-nav-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-              </div>
-              <span>宿舍铃声</span>
-            </a>
-            <a class="drawer-nav-item" @click="navigateTo('/grade')">
-              <div class="drawer-nav-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-              </div>
-              <span>分数查询</span>
-            </a>
-            <a class="drawer-nav-item" @click="navigateTo('/community')">
-              <div class="drawer-nav-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-              </div>
-              <span>评分社区</span>
-            </a>
-          </nav>
+          <button class="drawer-section-header" @click="toggleSection('nav')">
+            <span class="drawer-section-title">导航</span>
+            <svg class="drawer-section-arrow" :class="{ collapsed: !drawerSections.nav }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <Transition name="collapse">
+            <nav v-show="drawerSections.nav" class="drawer-nav">
+              <a class="drawer-nav-item active" @click="navigateTo('/')">
+                <div class="drawer-nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                </div>
+                <span>首页</span>
+              </a>
+              <a class="drawer-nav-item" @click="navigateTo('/ticket')">
+                <div class="drawer-nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <span>活动抢票</span>
+              </a>
+              <a class="drawer-nav-item" @click="navigateTo('/ringtone')">
+                <div class="drawer-nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                </div>
+                <span>宿舍铃声</span>
+              </a>
+              <a class="drawer-nav-item" @click="navigateTo('/grade')">
+                <div class="drawer-nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </div>
+                <span>分数查询</span>
+              </a>
+              <a class="drawer-nav-item" @click="navigateTo('/community')">
+                <div class="drawer-nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <span>评分社区</span>
+              </a>
+            </nav>
+          </Transition>
         </div>
 
         <!-- 管理区域 -->
         <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns">
-          <p class="drawer-section-title">管理</p>
-          <nav class="drawer-nav">
-            <a v-if="userStore.canManageTickets" class="drawer-nav-item" @click="navigateTo('/admin/tickets')">
-              <div class="drawer-nav-icon admin">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-              </div>
-              <span>票务管理</span>
-            </a>
-            <a v-if="userStore.canManageCampaigns" class="drawer-nav-item" @click="navigateTo('/admin/dorm')">
-              <div class="drawer-nav-icon admin">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M12 3l9 4H3l9-4z"></path>
-                </svg>
-              </div>
-              <span>宿舍管理</span>
-            </a>
-            <a v-if="userStore.canManageCampaigns" class="drawer-nav-item" @click="navigateTo('/admin/campaigns')">
-              <div class="drawer-nav-icon admin">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 18V5l12-2v13"></path>
-                  <circle cx="6" cy="18" r="3"></circle>
-                  <circle cx="18" cy="16" r="3"></circle>
-                </svg>
-              </div>
-              <span>活动管理</span>
-            </a>
-          </nav>
+          <button class="drawer-section-header" @click="toggleSection('admin')">
+            <span class="drawer-section-title">管理</span>
+            <svg class="drawer-section-arrow" :class="{ collapsed: !drawerSections.admin }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <Transition name="collapse">
+            <nav v-show="drawerSections.admin" class="drawer-nav">
+              <a v-if="userStore.canManageTickets" class="drawer-nav-item" @click="navigateTo('/admin/tickets')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                  </svg>
+                </div>
+                <span>票务管理</span>
+              </a>
+              <a v-if="userStore.canManageCampaigns" class="drawer-nav-item" @click="navigateTo('/admin/dorm')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M12 3l9 4H3l9-4z"></path>
+                  </svg>
+                </div>
+                <span>宿舍管理</span>
+              </a>
+              <a v-if="userStore.canManageCampaigns" class="drawer-nav-item" @click="navigateTo('/admin/campaigns')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
+                </div>
+                <span>活动管理</span>
+              </a>
+            </nav>
+          </Transition>
         </div>
 
         <!-- 设置区域 -->
         <div class="drawer-settings-section" v-if="userStore.isLoggedIn">
-          <p class="drawer-section-title">账户</p>
-          <a class="drawer-nav-item" @click="navigateTo('/profile')">
-            <div class="drawer-nav-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </div>
-            <span>个人中心</span>
-          </a>
-          <button class="drawer-settings-item" @click="openLogoutConfirm">
-            <div class="drawer-nav-icon logout">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-            </div>
-            <span>退出登录</span>
+          <button class="drawer-section-header" @click="toggleSection('account')">
+            <span class="drawer-section-title">账户</span>
+            <svg class="drawer-section-arrow" :class="{ collapsed: !drawerSections.account }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
           </button>
+          <Transition name="collapse">
+            <div v-show="drawerSections.account" class="drawer-nav">
+              <a class="drawer-nav-item" @click="navigateTo('/profile')">
+                <div class="drawer-nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <span>个人中心</span>
+              </a>
+              <button class="drawer-settings-item" @click="openLogoutConfirm">
+                <div class="drawer-nav-icon logout">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                </div>
+                <span>退出登录</span>
+              </button>
+            </div>
+          </Transition>
         </div>
 
-        <!-- 底部信息 -->
-        <div class="drawer-footer">
-          <p class="drawer-brand">厦门一中学生社区</p>
-          <p class="drawer-credit">designed by 23届玄学狗狗</p>
+          <!-- 底部信息 -->
+          <div class="drawer-footer">
+            <p class="drawer-brand">厦门一中学生社区</p>
+            <p class="drawer-credit">designed by 23届玄学狗狗</p>
+          </div>
         </div>
       </div>
     </Transition>
@@ -647,6 +685,19 @@ function goToBanner(index: number) {
   border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
 }
 
+/* 可滚动内容区域 */
+.drawer-scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  /* iOS 弹性滚动 */
+  -webkit-overflow-scrolling: touch;
+  /* 底部安全区域 padding，确保内容不被浏览器 UI 遮挡 */
+  padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 20px));
+}
+
 
 /* 用户区域 */
 .drawer-user-section {
@@ -765,14 +816,28 @@ function goToBanner(index: number) {
 
 /* 导航区域 */
 .drawer-nav-section {
-  padding: var(--spacing-md);
-  padding-bottom: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
 }
 
-.drawer-nav-section:first-of-type {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
+.drawer-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.drawer-section-header:hover {
+  background: var(--color-border);
+}
+
+.drawer-section-header:active {
+  background: var(--color-bg);
 }
 
 .drawer-section-title {
@@ -781,8 +846,17 @@ function goToBanner(index: number) {
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: var(--spacing-sm);
-  padding-left: var(--spacing-sm);
+}
+
+.drawer-section-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-placeholder);
+  transition: transform 0.25s ease;
+}
+
+.drawer-section-arrow.collapsed {
+  transform: rotate(-90deg);
 }
 
 .drawer-nav {
@@ -1376,6 +1450,27 @@ function goToBanner(index: number) {
 }
 
 /* ===== Animations ===== */
+/* Collapse Animation */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(-8px);
+}
+
+.collapse-enter-to,
+.collapse-leave-from {
+  opacity: 1;
+  max-height: 500px;
+  transform: translateY(0);
+}
+
 /* Menu Fade */
 .menu-fade-enter-active,
 .menu-fade-leave-active {

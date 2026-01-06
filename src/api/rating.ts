@@ -42,6 +42,8 @@ import type {
   Contribution,
   ContributionImageUploadResponse,
   MyContributionsResponse,
+  ContributionHistoryItem,
+  TargetType,
 } from '@/types/rating'
 
 /**
@@ -623,4 +625,13 @@ export function getMyContributions(params?: { page?: number; size?: number; stat
  */
 export function getContributionDetail(id: number) {
   return api.get<ApiResponse<Contribution>>(`/rating-community/contributions/${id}`)
+}
+
+/**
+ * 获取实体贡献历史
+ */
+export function getContributionHistory(targetType: TargetType, targetId: number) {
+  return api.get<ApiResponse<ContributionHistoryItem[]>>('/rating-community/contributions/history', {
+    params: { targetType, targetId },
+  })
 }

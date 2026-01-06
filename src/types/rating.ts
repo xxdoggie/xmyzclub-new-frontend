@@ -657,3 +657,17 @@ export interface MyContributionsResponse {
   size: number
   totalPages: number
 }
+
+/**
+ * 贡献历史项
+ */
+export interface ContributionHistoryItem {
+  contributionId: number
+  contributionType: ContributionType
+  contributionTypeDisplay: string
+  userId: number
+  username: string
+  nickname: string
+  details: ContributionDetail[]
+  reviewedAt: string
+}

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { uploadAvatar, deleteAvatar } from '@/api/user'
+import { uploadAvatar } from '@/api/user'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps<{
@@ -11,7 +11,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   uploaded: [avatarUrl: string]
-  deleted: []
 }>()
 
 const toast = useToast()
@@ -22,7 +21,6 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 const selectedFile = ref<File | null>(null)
 const imageUrl = ref<string | null>(null)
 const isUploading = ref(false)
-const isDeleting = ref(false)
 
 // 裁剪相关状态
 const image = ref<HTMLImageElement | null>(null)
@@ -271,27 +269,6 @@ async function handleUpload() {
   }
 }
 
-// 删除头像
-async function handleDelete() {
-  if (isDeleting.value) return
-
-  isDeleting.value = true
-  try {
-    const res = await deleteAvatar()
-    if (res.data.code === 200) {
-      toast.success('头像已删除')
-      emit('deleted')
-      handleClose()
-    } else {
-      toast.error(res.data.message || '删除失败')
-    }
-  } catch (error) {
-    toast.error('删除失败，请稍后重试')
-  } finally {
-    isDeleting.value = false
-  }
-}
-
 // 关闭弹窗
 function handleClose() {
   selectedFile.value = null
@@ -364,15 +341,6 @@ onUnmounted(() => {
                   <p class="upload-hint">支持 JPEG、PNG、GIF、WebP，最大 10MB</p>
                 </div>
 
-                <div v-if="currentAvatar" class="delete-section">
-                  <button
-                    class="delete-btn"
-                    :disabled="isDeleting"
-                    @click.stop="handleDelete"
-                  >
-                    {{ isDeleting ? '删除中...' : '删除当前头像' }}
-                  </button>
-                </div>
               </template>
 
               <!-- 裁剪界面 -->
@@ -589,32 +557,6 @@ onUnmounted(() => {
 .upload-hint {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-}
-
-.delete-section {
-  margin-top: var(--spacing-md);
-  text-align: center;
-}
-
-.delete-btn {
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--text-sm);
-  color: var(--color-error);
-  background: transparent;
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.delete-btn:hover:not(:disabled) {
-  background: var(--color-error);
-  color: white;
-}
-
-.delete-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Cropper */

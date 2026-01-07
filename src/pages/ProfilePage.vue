@@ -100,15 +100,6 @@ function handleAvatarUploaded(newAvatarUrl: string) {
   }
 }
 
-// 头像删除成功
-function handleAvatarDeleted() {
-  // 清除 profile 中的头像
-  if (userStore.profile) {
-    userStore.profile.hasAvatar = false
-    userStore.profile.avatarUrl = undefined
-  }
-}
-
 // 加载数据
 onMounted(async () => {
   try {
@@ -409,11 +400,14 @@ async function submitChangePassword() {
                   <div class="user-avatar-wrapper" @click="openAvatarUploader">
                     <div v-if="avatarUrl" class="user-avatar">
                       <img :src="avatarUrl" alt="头像" />
+                      <div class="avatar-edit-overlay">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                          <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                      </div>
                     </div>
-                    <div v-else class="user-avatar default">
-                      {{ avatarInitial }}
-                    </div>
-                    <div class="avatar-edit-overlay">
+                    <div v-else class="user-avatar default upload-hint-avatar">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                         <circle cx="12" cy="13" r="4"></circle>
@@ -854,7 +848,6 @@ async function submitChangePassword() {
       :current-avatar="avatarUrl"
       @close="showAvatarUploader = false"
       @uploaded="handleAvatarUploaded"
-      @deleted="handleAvatarDeleted"
     />
   </div>
 </template>
@@ -1005,6 +998,12 @@ async function submitChangePassword() {
 
 .user-avatar.default {
   background: rgba(255, 255, 255, 0.15);
+}
+
+.user-avatar.upload-hint-avatar svg {
+  width: 28px;
+  height: 28px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .avatar-edit-overlay {

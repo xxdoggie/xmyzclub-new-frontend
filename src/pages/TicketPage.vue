@@ -22,6 +22,7 @@ const isLoadingMore = ref(false)
 
 // 筛选状态：undefined=默认(进行中+即将开始), 'all'=全部, 'ended'=已结束
 const statusFilter = ref<string | undefined>(undefined)
+const isFilterLoading = ref(false)
 
 // 筛选选项
 const filterOptions = [
@@ -71,10 +72,10 @@ function loadMore() {
 
 // 切换筛选
 async function changeFilter(value: string | undefined) {
-  if (statusFilter.value === value) return
+  if (statusFilter.value === value || isFilterLoading.value) return
   statusFilter.value = value
   page.value = 1
-  // 不清空列表，不显示 loading，直接在后台加载新数据
+  isFilterLoading.value = true
   try {
     const res = await getTicketActivities(1, pageSize.value, value)
     if (res.data.code === 200) {
@@ -83,6 +84,8 @@ async function changeFilter(value: string | undefined) {
     }
   } catch {
     // 静默失败
+  } finally {
+    isFilterLoading.value = false
   }
 }
 
@@ -190,7 +193,7 @@ onMounted(() => {
             </button>
           </div>
 
-          <div class="activities-list">
+          <div class="activities-list" :class="{ 'is-loading': isFilterLoading }">
             <div
               v-for="activity in activities"
               :key="activity.id"
@@ -475,6 +478,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+  transition: opacity var(--transition-fast);
+}
+
+.activities-list.is-loading {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .activity-card {

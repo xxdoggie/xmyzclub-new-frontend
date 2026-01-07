@@ -623,15 +623,18 @@ onUnmounted(() => {
   margin-bottom: var(--spacing-lg);
 }
 
-/* ===== Tabs - Modern Pill Style ===== */
+/* ===== Tabs - Segmented Control Style ===== */
 .tabs-section {
   margin-bottom: var(--spacing-sm);
 }
 
 .tabs-scroll {
   display: flex;
-  gap: 8px;
-  padding: 4px 0;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -642,48 +645,55 @@ onUnmounted(() => {
 }
 
 .tab-btn {
-  display: inline-flex;
+  flex: 1;
+  min-width: 56px;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
   white-space: nowrap;
-  flex-shrink: 0;
+  text-align: center;
 }
 
 .tab-btn:hover {
   color: var(--color-text);
-  background: var(--color-border);
+}
+
+.tab-btn:active {
+  transform: scale(0.96);
 }
 
 .tab-btn.active {
-  color: white;
-  background: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .tab-badge {
-  font-size: 11px;
-  font-weight: 600;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 6px;
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: var(--color-error);
   color: white;
-  border-radius: 9px;
+  border-radius: 8px;
+  line-height: 1;
 }
 
 .tab-btn.active .tab-badge {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--color-primary);
 }
 
 /* ===== Unread Bar ===== */
@@ -1199,8 +1209,8 @@ onUnmounted(() => {
   }
 
   .tab-btn {
-    padding: 10px 20px;
-    font-size: 14px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--text-sm);
   }
 
   .unread-bar {

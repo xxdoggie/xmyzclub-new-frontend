@@ -874,7 +874,7 @@ onUnmounted(() => {
 .message-card {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 14px 12px;
   background: var(--color-card);
@@ -982,30 +982,32 @@ onUnmounted(() => {
 .message-quote {
   display: flex;
   align-items: flex-start;
-  gap: 2px;
+  gap: 4px;
   margin-top: 6px;
-  padding: 6px 8px;
+  padding: 5px 8px;
   background: var(--color-bg);
   border-radius: 6px;
   border-left: 2px solid var(--color-primary);
 }
 
 .quote-icon {
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-primary);
-  line-height: 1;
-  opacity: 0.6;
+  line-height: 1.3;
+  opacity: 0.5;
+  flex-shrink: 0;
 }
 
 .quote-text {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-secondary);
-  line-height: 1.4;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
 /* Arrow Indicator */
@@ -1013,6 +1015,7 @@ onUnmounted(() => {
   flex-shrink: 0;
   color: var(--color-text-placeholder);
   opacity: 0.5;
+  margin-top: 10px;
 }
 
 .message-arrow svg {

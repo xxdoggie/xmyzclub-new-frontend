@@ -267,7 +267,7 @@ function goToBanner(index: number) {
         </div>
 
         <!-- 管理区域 -->
-        <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating">
+        <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages">
           <button class="drawer-section-header" @click="toggleSection('admin')">
             <span class="drawer-section-title">管理</span>
             <svg class="drawer-section-arrow" :class="{ collapsed: !drawerSections.admin }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -310,6 +310,14 @@ function goToBanner(index: number) {
                 </div>
                 <span>评分社区</span>
               </a>
+              <a v-if="userStore.canManageMessages" class="drawer-nav-item" @click="navigateTo('/admin/messages')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <span>消息管理</span>
+              </a>
             </nav>
           </Transition>
         </div>
@@ -332,6 +340,15 @@ function goToBanner(index: number) {
                   </svg>
                 </div>
                 <span>个人中心</span>
+              </a>
+              <a class="drawer-nav-item" @click="navigateTo('/messages')">
+                <div class="drawer-nav-icon messages">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                </div>
+                <span>我的消息</span>
               </a>
               <button class="drawer-settings-item" @click="openLogoutConfirm">
                 <div class="drawer-nav-icon logout">
@@ -924,6 +941,11 @@ function goToBanner(index: number) {
 }
 
 .drawer-nav-icon.admin {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+}
+
+.drawer-nav-icon.messages {
   background: rgba(139, 92, 246, 0.1);
   color: #8B5CF6;
 }

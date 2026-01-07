@@ -207,6 +207,17 @@ const router = createRouter({
         parent: 'home',
       },
     },
+    {
+      path: '/messages',
+      name: 'messages',
+      component: () => import('../pages/MessagesPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '我的消息',
+        parent: 'profile',
+      },
+    },
 
     // ==================== 认证相关页面 ====================
     {
@@ -429,6 +440,17 @@ const router = createRouter({
         level: 3,
         title: '审核反馈',
         parent: 'admin-rating',
+      },
+    },
+    {
+      path: '/admin/messages',
+      name: 'admin-messages',
+      component: () => import('../pages/admin/MessageManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '消息管理',
+        parent: 'home',
       },
     },
 

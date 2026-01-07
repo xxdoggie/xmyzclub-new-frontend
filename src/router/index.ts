@@ -442,6 +442,17 @@ const router = createRouter({
         parent: 'admin-rating',
       },
     },
+    {
+      path: '/admin/messages',
+      name: 'admin-messages',
+      component: () => import('../pages/admin/MessageManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '消息管理',
+        parent: 'home',
+      },
+    },
 
     // ==================== 404 ====================
     {

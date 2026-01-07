@@ -267,7 +267,7 @@ function goToBanner(index: number) {
         </div>
 
         <!-- 管理区域 -->
-        <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating">
+        <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages">
           <button class="drawer-section-header" @click="toggleSection('admin')">
             <span class="drawer-section-title">管理</span>
             <svg class="drawer-section-arrow" :class="{ collapsed: !drawerSections.admin }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -309,6 +309,14 @@ function goToBanner(index: number) {
                   </svg>
                 </div>
                 <span>评分社区</span>
+              </a>
+              <a v-if="userStore.canManageMessages" class="drawer-nav-item" @click="navigateTo('/admin/messages')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <span>消息管理</span>
               </a>
             </nav>
           </Transition>

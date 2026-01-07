@@ -147,6 +147,11 @@ async function loadResults() {
   }
 }
 
+// API 基础地址（与 api/index.ts 保持一致）
+const apiBaseURL = import.meta.env.PROD
+  ? 'https://api.xmyzstudent.com/api/v2'
+  : '/api/v2'
+
 // 导出投票结果
 async function exportResults() {
   if (isExporting.value) return
@@ -159,7 +164,7 @@ async function exportResults() {
       headers['Authorization'] = `Bearer ${token}`
     }
 
-    const response = await fetch(`/api/v2/admin/voting/campaigns/${campaignId.value}/export`, {
+    const response = await fetch(`${apiBaseURL}/admin/voting/campaigns/${campaignId.value}/export`, {
       method: 'GET',
       headers,
     })

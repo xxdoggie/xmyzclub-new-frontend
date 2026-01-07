@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -20,10 +20,16 @@ const page = ref(1)
 const pageSize = ref(10)
 const isLoadingMore = ref(false)
 
-// 过滤后的活动列表（排除 draft 状态）
-const displayActivities = computed(() => {
-  return activities.value.filter((a) => a.status !== 'draft')
-})
+// 筛选状态：undefined=默认(进行中+即将开始), 'all'=全部, 'ended'=已结束
+const statusFilter = ref<string | undefined>(undefined)
+const isFilterLoading = ref(false)
+
+// 筛选选项
+const filterOptions = [
+  { value: undefined, label: '进行中' },
+  { value: 'all', label: '全部' },
+  { value: 'ended', label: '已结束' },
+]
 
 // 加载活动列表
 async function loadActivities(isLoadMore = false) {
@@ -37,7 +43,7 @@ async function loadActivities(isLoadMore = false) {
   }
 
   try {
-    const res = await getTicketActivities(page.value, pageSize.value)
+    const res = await getTicketActivities(page.value, pageSize.value, statusFilter.value)
     if (res.data.code === 200) {
       if (isLoadMore) {
         activities.value.push(...res.data.data.activities)
@@ -61,6 +67,25 @@ function loadMore() {
   if (activities.value.length < total.value && !isLoadingMore.value) {
     page.value++
     loadActivities(true)
+  }
+}
+
+// 切换筛选
+async function changeFilter(value: string | undefined) {
+  if (statusFilter.value === value || isFilterLoading.value) return
+  statusFilter.value = value
+  page.value = 1
+  isFilterLoading.value = true
+  try {
+    const res = await getTicketActivities(1, pageSize.value, value)
+    if (res.data.code === 200) {
+      activities.value = res.data.data.activities
+      total.value = res.data.data.total
+    }
+  } catch {
+    // 静默失败
+  } finally {
+    isFilterLoading.value = false
   }
 }
 
@@ -132,7 +157,7 @@ onMounted(() => {
         </div>
 
         <!-- 空状态 -->
-        <div v-else-if="displayActivities.length === 0" class="empty-container">
+        <div v-else-if="activities.length === 0" class="empty-container">
           <div class="empty-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -147,9 +172,19 @@ onMounted(() => {
 
         <!-- 活动列表 -->
         <div v-else class="activities-section">
-          <!-- 列表头部：标题 + 我的票据入口 -->
+          <!-- 列表头部：筛选标签 + 我的票据入口 -->
           <div class="section-header">
-            <span class="section-title">全部活动</span>
+            <div class="filter-tabs">
+              <button
+                v-for="option in filterOptions"
+                :key="option.value ?? 'default'"
+                class="filter-tab"
+                :class="{ active: statusFilter === option.value }"
+                @click="changeFilter(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
             <button class="my-tickets-btn" @click="goToMyTickets">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
@@ -158,9 +193,9 @@ onMounted(() => {
             </button>
           </div>
 
-          <div class="activities-list">
+          <div class="activities-list" :class="{ 'is-loading': isFilterLoading }">
             <div
-              v-for="activity in displayActivities"
+              v-for="activity in activities"
               :key="activity.id"
               class="activity-card"
               @click="goToDetail(activity.id)"
@@ -219,7 +254,7 @@ onMounted(() => {
           </div>
 
           <!-- 没有更多 -->
-          <div v-else-if="displayActivities.length > 0" class="no-more">
+          <div v-else-if="activities.length > 0" class="no-more">
             已经到底啦
           </div>
         </div>
@@ -270,10 +305,32 @@ onMounted(() => {
   margin-bottom: var(--spacing-sm);
 }
 
-.section-title {
-  font-size: var(--text-sm);
+.filter-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.filter-tab {
+  padding: 6px 12px;
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-tab:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.filter-tab.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
 }
 
 .my-tickets-btn {
@@ -421,6 +478,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+  transition: opacity var(--transition-fast);
+}
+
+.activities-list.is-loading {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .activity-card {
@@ -597,8 +660,9 @@ onMounted(() => {
     margin-bottom: var(--spacing-md);
   }
 
-  .section-title {
-    font-size: var(--text-base);
+  .filter-tab {
+    padding: 8px 16px;
+    font-size: var(--text-sm);
   }
 
   .my-tickets-btn {

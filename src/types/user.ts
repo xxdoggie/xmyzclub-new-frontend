@@ -142,3 +142,22 @@ export interface CampusCaptchaResponse {
   jsessionId: string
   expiresAt: number
 }
+
+/**
+ * 头像上传响应
+ */
+export interface AvatarUploadResponse {
+  id: number
+  fileUrl: string
+  filePath: string
+  fileSize: number
+  fileType: string
+}
+
+/**
+ * 头像信息响应
+ */
+export interface AvatarInfo {
+  hasAvatar: boolean
+  avatarUrl?: string
+}

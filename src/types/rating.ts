@@ -94,6 +94,7 @@ export interface ScoreDistribution {
  */
 export interface Comment {
   id: number
+  userId: number
   commentText: string
   username: string
   nickname: string

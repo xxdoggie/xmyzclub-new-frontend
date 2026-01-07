@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
-import { getAdminActivityDetail, getReviewTickets, reviewTicket, batchReviewTickets } from '@/api/ticket'
+import { getAdminActivityDetail, getReviewTickets, reviewTicket, batchReviewTickets, exportActivityTickets } from '@/api/ticket'
 import type { TicketActivityDetail, AdminTicket, TicketStatus } from '@/types/ticket'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
@@ -29,6 +29,10 @@ const pageSize = ref(20)
 
 // 筛选
 const statusFilter = ref<TicketStatus | 'all'>('pending')
+const sessionFilter = ref<number | 'all'>('all')
+
+// 导出状态
+const isExporting = ref(false)
 
 // 批量选择
 const selectedIds = ref<number[]>([])
@@ -63,7 +67,8 @@ async function loadActivity() {
 async function loadTickets() {
   try {
     const status = statusFilter.value === 'all' ? undefined : statusFilter.value
-    const res = await getReviewTickets(activityId.value, page.value, pageSize.value, status)
+    const sessionId = sessionFilter.value === 'all' ? undefined : sessionFilter.value
+    const res = await getReviewTickets(activityId.value, page.value, pageSize.value, status, sessionId)
     if (res.data.code === 200) {
       tickets.value = res.data.data.tickets
       total.value = res.data.data.total
@@ -197,8 +202,36 @@ function copyTicketCode(code: string) {
   })
 }
 
+// 导出票据
+async function handleExport() {
+  if (isExporting.value) return
+
+  isExporting.value = true
+  try {
+    const status = statusFilter.value === 'all' ? undefined : statusFilter.value
+    const sessionId = sessionFilter.value === 'all' ? undefined : sessionFilter.value
+    const result = await exportActivityTickets(activityId.value, status, sessionId)
+
+    if (result.success) {
+      toast.success('导出成功')
+    } else {
+      toast.error(result.error || '导出失败，请稍后重试')
+    }
+  } catch (error) {
+    toast.error('导出失败，请稍后重试')
+  } finally {
+    isExporting.value = false
+  }
+}
+
 // 监听筛选变化
 watch(statusFilter, () => {
+  page.value = 1
+  selectedIds.value = []
+  loadTickets()
+})
+
+watch(sessionFilter, () => {
   page.value = 1
   selectedIds.value = []
   loadTickets()
@@ -240,35 +273,55 @@ onMounted(() => {
 
           <!-- 状态筛选 -->
           <div class="filter-section">
-            <div class="status-tabs">
-              <button
-                class="status-tab"
-                :class="{ active: statusFilter === 'pending' }"
-                @click="statusFilter = 'pending'"
-              >
-                待审核
+            <div class="filter-row">
+              <div class="status-tabs">
+                <button
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'pending' }"
+                  @click="statusFilter = 'pending'"
+                >
+                  待审核
+                </button>
+                <button
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'confirmed' }"
+                  @click="statusFilter = 'confirmed'"
+                >
+                  已确认
+                </button>
+                <button
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'used' }"
+                  @click="statusFilter = 'used'"
+                >
+                  已使用
+                </button>
+                <button
+                  class="status-tab"
+                  :class="{ active: statusFilter === 'all' }"
+                  @click="statusFilter = 'all'"
+                >
+                  全部
+                </button>
+              </div>
+              <button class="export-btn" @click="handleExport" :disabled="isExporting">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                {{ isExporting ? '导出中...' : '导出' }}
               </button>
-              <button
-                class="status-tab"
-                :class="{ active: statusFilter === 'confirmed' }"
-                @click="statusFilter = 'confirmed'"
-              >
-                已确认
-              </button>
-              <button
-                class="status-tab"
-                :class="{ active: statusFilter === 'used' }"
-                @click="statusFilter = 'used'"
-              >
-                已使用
-              </button>
-              <button
-                class="status-tab"
-                :class="{ active: statusFilter === 'all' }"
-                @click="statusFilter = 'all'"
-              >
-                全部
-              </button>
+            </div>
+            <!-- 档期筛选 -->
+            <div v-if="activity && activity.sessions.length > 1" class="session-filter">
+              <label class="filter-label">档期：</label>
+              <select v-model="sessionFilter" class="filter-select">
+                <option value="all">全部档期</option>
+                <option v-for="session in activity.sessions" :key="session.id" :value="session.id">
+                  {{ session.name }}
+                </option>
+              </select>
             </div>
           </div>
 
@@ -507,6 +560,12 @@ onMounted(() => {
   margin-bottom: var(--spacing-md);
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .status-tabs {
   display: flex;
   gap: 2px;
@@ -515,6 +574,7 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow-x: auto;
+  flex: 1;
 }
 
 .status-tab {
@@ -540,6 +600,59 @@ onMounted(() => {
 .status-tab.active {
   color: var(--color-primary);
   background: var(--color-primary-bg);
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.export-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.session-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.filter-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.filter-select {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
 }
 
 /* ===== Batch Actions ===== */

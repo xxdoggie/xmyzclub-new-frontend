@@ -148,9 +148,9 @@ export function deleteSession(id: number) {
  * 管理员 - 获取审票列表
  * GET /activities/{activityId}/review
  */
-export function getReviewTickets(activityId: number, page = 1, pageSize = 10, status?: string) {
+export function getReviewTickets(activityId: number, page = 1, pageSize = 10, status?: string, sessionId?: number) {
   return api.get<ApiResponse<ReviewTicketsResponse>>(`/admin/ticket/activities/${activityId}/review`, {
-    params: { page, pageSize, status },
+    params: { page, pageSize, status, sessionId },
   })
 }
 
@@ -188,4 +188,78 @@ export function verifyTicket(code: string) {
  */
 export function useTicket(ticketCode: string) {
   return api.post<ApiResponse<UseTicketResponse>>('/admin/ticket/verify/use', { ticketCode })
+}
+
+// ==================== 导出功能 ====================
+
+// API 基础地址（与 api/index.ts 保持一致）
+const apiBaseURL = import.meta.env.PROD
+  ? 'https://api.xmyzstudent.com/api/v2'
+  : '/api/v2'
+
+/**
+ * 管理员 - 导出活动票据
+ * GET /activities/{activityId}/export
+ * @param activityId 活动 ID
+ * @param status 票据状态筛选（可选）
+ * @param sessionId 档期 ID 筛选（可选）
+ * @returns Promise<void>
+ */
+export async function exportActivityTickets(
+  activityId: number,
+  status?: string,
+  sessionId?: number
+): Promise<{ success: boolean; filename?: string; error?: string }> {
+  try {
+    const token = localStorage.getItem('token')
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    // 构建查询参数
+    const params = new URLSearchParams()
+    if (status && status !== 'all') {
+      params.append('status', status)
+    }
+    if (sessionId) {
+      params.append('sessionId', sessionId.toString())
+    }
+    const queryString = params.toString()
+    const url = `${apiBaseURL}/admin/ticket/activities/${activityId}/export${queryString ? `?${queryString}` : ''}`
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+    })
+
+    if (!response.ok) {
+      throw new Error('导出失败')
+    }
+
+    // 从响应头获取文件名
+    const contentDisposition = response.headers.get('Content-Disposition')
+    let filename = `tickets-${activityId}.xlsx`
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^;\r\n"']*)['"]?/i)
+      if (match && match[1]) {
+        filename = decodeURIComponent(match[1])
+      }
+    }
+
+    // 下载文件
+    const blob = await response.blob()
+    const blobUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(blobUrl)
+
+    return { success: true, filename }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : '导出失败' }
+  }
 }

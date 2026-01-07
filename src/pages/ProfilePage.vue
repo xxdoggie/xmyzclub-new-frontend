@@ -6,6 +6,7 @@ import { getCampusCaptcha, checkHasPassword, changePassword } from '@/api/user'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
+import AvatarUploader from '@/components/ui/AvatarUploader.vue'
 
 const userStore = useUserStore()
 const toast = useToast()
@@ -16,6 +17,9 @@ const isSaving = ref(false)
 
 // 编辑模式
 const isEditing = ref(false)
+
+// 头像上传弹窗
+const showAvatarUploader = ref(false)
 
 // 解绑确认弹窗
 const showUnbindConfirm = ref(false)
@@ -70,6 +74,40 @@ const genderText = computed(() => {
   const option = genderOptions.find((o) => o.value === userStore.profile?.gender)
   return option?.label || '保密'
 })
+
+// 计算头像 URL
+const avatarUrl = computed(() => {
+  return userStore.profile?.avatarUrl
+})
+
+// 计算昵称首字母（用于默认头像）
+const avatarInitial = computed(() => {
+  const nickname = userStore.profile?.nickname || userStore.profile?.username || ''
+  return nickname.charAt(0).toUpperCase()
+})
+
+// 打开头像上传弹窗
+function openAvatarUploader() {
+  showAvatarUploader.value = true
+}
+
+// 头像上传成功
+function handleAvatarUploaded(newAvatarUrl: string) {
+  // 更新 profile 中的头像
+  if (userStore.profile) {
+    userStore.profile.hasAvatar = true
+    userStore.profile.avatarUrl = newAvatarUrl
+  }
+}
+
+// 头像删除成功
+function handleAvatarDeleted() {
+  // 清除 profile 中的头像
+  if (userStore.profile) {
+    userStore.profile.hasAvatar = false
+    userStore.profile.avatarUrl = undefined
+  }
+}
 
 // 加载数据
 onMounted(async () => {
@@ -368,6 +406,20 @@ async function submitChangePassword() {
               <div class="card">
                 <!-- 用户信息头部 - 紧凑版 -->
                 <div class="user-header">
+                  <div class="user-avatar-wrapper" @click="openAvatarUploader">
+                    <div v-if="avatarUrl" class="user-avatar">
+                      <img :src="avatarUrl" alt="头像" />
+                    </div>
+                    <div v-else class="user-avatar default">
+                      {{ avatarInitial }}
+                    </div>
+                    <div class="avatar-edit-overlay">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                    </div>
+                  </div>
                   <div class="user-info">
                     <span class="user-nickname">{{ userStore.profile?.nickname || userStore.profile?.username }}</span>
                     <span class="user-username">@{{ userStore.profile?.username }}</span>
@@ -795,6 +847,15 @@ async function submitChangePassword() {
         </Transition>
       </div>
     </Transition>
+
+    <!-- 头像上传弹窗 -->
+    <AvatarUploader
+      :show="showAvatarUploader"
+      :current-avatar="avatarUrl"
+      @close="showAvatarUploader = false"
+      @uploaded="handleAvatarUploaded"
+      @deleted="handleAvatarDeleted"
+    />
   </div>
 </template>
 
@@ -907,20 +968,84 @@ async function submitChangePassword() {
 
 /* ===== User Header ===== */
 .user-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
   padding: var(--spacing-md);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
+}
+
+.user-avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.user-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  transition: all var(--transition-fast);
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-avatar.default {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.avatar-edit-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.avatar-edit-overlay svg {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.user-avatar-wrapper:hover .avatar-edit-overlay {
+  opacity: 1;
+}
+
+.user-avatar-wrapper:hover .user-avatar {
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .user-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .user-nickname {
   font-size: var(--text-base);
   font-weight: var(--font-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-username {

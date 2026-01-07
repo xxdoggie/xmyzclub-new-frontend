@@ -8,6 +8,8 @@ import type {
   QQAuthorizeUrlResponse,
   BindQQRequest,
   CampusCaptchaResponse,
+  AvatarUploadResponse,
+  AvatarInfo,
 } from '@/types/user'
 
 // ==================== 权限 ====================
@@ -109,4 +111,33 @@ export function checkHasPassword() {
  */
 export function changePassword(data: { oldPassword?: string; newPassword: string }) {
   return api.put<ApiResponse<{ message: string }>>('/user/password', data)
+}
+
+// ==================== 头像管理 ====================
+
+/**
+ * 上传/更新头像
+ */
+export function uploadAvatar(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResponse<AvatarUploadResponse>>('/user/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}
+
+/**
+ * 删除头像
+ */
+export function deleteAvatar() {
+  return api.delete<ApiResponse<{ message: string }>>('/user/avatar')
+}
+
+/**
+ * 通过用户ID获取头像（公开接口）
+ */
+export function getUserAvatar(userId: number) {
+  return api.get<ApiResponse<AvatarInfo>>(`/user/users/${userId}/avatar`)
 }

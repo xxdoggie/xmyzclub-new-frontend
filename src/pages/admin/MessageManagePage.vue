@@ -477,10 +477,6 @@ onMounted(() => {
           <PageBreadcrumb />
         </div>
 
-        <!-- 页面标题 -->
-        <div class="page-header-section">
-          <h1 class="page-title">消息管理</h1>
-        </div>
 
         <!-- 标签页切换 -->
         <div class="tabs-section">
@@ -950,16 +946,6 @@ onMounted(() => {
 .breadcrumb-wrapper {
   display: none;
   margin-bottom: var(--spacing-lg);
-}
-
-/* ===== Page Header ===== */
-.page-header-section {
-  margin-bottom: var(--spacing-md);
-}
-
-.page-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
 }
 
 /* ===== Tabs ===== */
@@ -1708,10 +1694,6 @@ onMounted(() => {
 
   .page-content {
     padding: var(--spacing-xl);
-  }
-
-  .page-title {
-    font-size: var(--text-2xl);
   }
 
   .tab-btn {

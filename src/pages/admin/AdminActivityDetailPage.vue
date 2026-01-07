@@ -12,6 +12,7 @@ import {
   createSession,
   updateSession,
   deleteSession,
+  exportActivityTickets,
 } from '@/api/ticket'
 import { uploadFile } from '@/api/file'
 import type {
@@ -79,6 +80,9 @@ const isDeleting = ref(false)
 // 图片上传
 const isUploadingImage = ref(false)
 const imageInputRef = ref<HTMLInputElement | null>(null)
+
+// 导出状态
+const isExporting = ref(false)
 
 // 额外信息字段类型选项
 const fieldTypes = [
@@ -340,6 +344,25 @@ function goToReview() {
   }
 }
 
+// 导出票据
+async function handleExport() {
+  if (isExporting.value || !activityId.value) return
+
+  isExporting.value = true
+  try {
+    const result = await exportActivityTickets(activityId.value)
+    if (result.success) {
+      toast.success('导出成功')
+    } else {
+      toast.error(result.error || '导出失败，请稍后重试')
+    }
+  } catch (error) {
+    toast.error('导出失败，请稍后重试')
+  } finally {
+    isExporting.value = false
+  }
+}
+
 // 触发图片选择
 function triggerImageUpload() {
   imageInputRef.value?.click()
@@ -494,9 +517,19 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
                 <div class="stat-label">已使用</div>
               </div>
             </div>
-            <button v-if="stats.pendingTickets > 0" class="review-btn" @click="goToReview">
-              查看待审核票据
-            </button>
+            <div class="stats-actions">
+              <button v-if="stats.pendingTickets > 0" class="review-btn" @click="goToReview">
+                查看待审核票据
+              </button>
+              <button class="export-btn" @click="handleExport" :disabled="isExporting">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                {{ isExporting ? '导出中...' : '导出票据' }}
+              </button>
+            </div>
           </div>
 
           <!-- 基本信息 -->
@@ -930,8 +963,13 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
   margin-top: 4px;
 }
 
+.stats-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
 .review-btn {
-  width: 100%;
+  flex: 1;
   padding: var(--spacing-sm);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -946,6 +984,38 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
 .review-btn:hover {
   background: var(--color-warning);
   color: white;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  flex: 1;
+  padding: var(--spacing-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.export-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ===== Form Section ===== */

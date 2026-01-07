@@ -11,6 +11,7 @@ import {
   toggleLike,
   getContributionHistory,
 } from '@/api/rating'
+import { getUserAvatar } from '@/api/user'
 import type { RatingItemDetail, Comment, ContributionHistoryItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
@@ -63,6 +64,9 @@ const isDeleting = ref(false)
 
 // 反馈抽屉状态
 const isFeedbackOpen = ref(false)
+
+// 用户头像缓存（userId -> avatarUrl）
+const userAvatars = ref<Map<number, string | null>>(new Map())
 
 function openFeedbackDrawer() {
   if (!userStore.isLoggedIn) {
@@ -216,6 +220,7 @@ async function submitBottomComment() {
   // 乐观更新：创建临时评论
   const tempComment: Comment = {
     id: Date.now(), // 临时 ID
+    userId: userStore.user?.id || 0,
     commentText,
     username: userStore.user?.username || '',
     nickname: userStore.user?.nickname || '我',
@@ -302,6 +307,7 @@ async function submitDrawerReply() {
   // 乐观更新：创建临时回复（使用 FlattenedReply 类型以支持 replyToNickname）
   const tempReply: FlattenedReply = {
     id: Date.now(),
+    userId: userStore.user?.id || 0,
     commentText,
     username: userStore.user?.username || '',
     nickname: userStore.user?.nickname || '我',
@@ -399,6 +405,8 @@ async function loadDetail(silent = false) {
           replyDrawerComment.value = updatedComment
         }
       }
+      // 异步加载评论区用户头像（不阻塞）
+      loadCommentsAvatars()
     } else if (!silent) {
       toast.error(res.data.message || '获取详情失败')
     }
@@ -537,6 +545,7 @@ async function handleSubmitReply() {
   // 乐观更新：创建临时回复
   const tempReply: Comment = {
     id: Date.now(),
+    userId: userStore.user?.id || 0,
     commentText,
     username: userStore.user?.username || '',
     nickname: userStore.user?.nickname || '我',
@@ -649,6 +658,50 @@ function formatTime(timeStr: string): string {
   if (hours < 24) return `${hours}小时前`
   if (days < 30) return `${days}天前`
   return date.toLocaleDateString('zh-CN')
+}
+
+// 获取用户头像 URL（如果已加载）
+function getAvatarUrl(userId: number): string | null | undefined {
+  return userAvatars.value.get(userId)
+}
+
+// 异步加载评论区用户头像（不阻塞主流程）
+async function loadCommentsAvatars() {
+  if (!detail.value?.comments) return
+
+  // 收集所有需要加载头像的 userId（去重）
+  const userIds = new Set<number>()
+
+  function collectUserIds(comments: Comment[] | null) {
+    if (!comments) return
+    for (const comment of comments) {
+      if (comment.userId && !userAvatars.value.has(comment.userId)) {
+        userIds.add(comment.userId)
+      }
+      if (comment.replies) {
+        collectUserIds(comment.replies)
+      }
+    }
+  }
+
+  collectUserIds(detail.value.comments)
+
+  // 并行请求所有用户头像（每个请求独立，失败不影响其他）
+  for (const userId of userIds) {
+    // 标记为正在加载（设为 null）
+    userAvatars.value.set(userId, null)
+
+    // 异步请求，不等待
+    getUserAvatar(userId)
+      .then((res) => {
+        if (res.data.code === 200 && res.data.data?.hasAvatar && res.data.data?.avatarUrl) {
+          userAvatars.value.set(userId, res.data.data.avatarUrl)
+        }
+      })
+      .catch(() => {
+        // 请求失败，保持 null（显示默认头像）
+      })
+  }
 }
 
 // 获取分数条宽度
@@ -824,8 +877,9 @@ onMounted(() => {
             <div v-for="comment in sortedComments" :key="comment.id" class="comment-card">
               <!-- 主评论 -->
               <div class="comment-main">
-                <div class="comment-avatar">
-                  {{ comment.nickname.charAt(0) }}
+                <div class="comment-avatar" :class="{ 'has-avatar': getAvatarUrl(comment.userId) }">
+                  <img v-if="getAvatarUrl(comment.userId)" :src="getAvatarUrl(comment.userId)!" alt="" class="avatar-img" />
+                  <template v-else>{{ comment.nickname.charAt(0) }}</template>
                 </div>
                 <div class="comment-body">
                   <div class="comment-header">
@@ -954,8 +1008,9 @@ onMounted(() => {
                 <div class="drawer-content">
                   <!-- 原评论 -->
                   <div v-if="replyDrawerComment" class="drawer-original-comment">
-                    <div class="comment-avatar">
-                      {{ replyDrawerComment.nickname.charAt(0) }}
+                    <div class="comment-avatar" :class="{ 'has-avatar': getAvatarUrl(replyDrawerComment.userId) }">
+                      <img v-if="getAvatarUrl(replyDrawerComment.userId)" :src="getAvatarUrl(replyDrawerComment.userId)!" alt="" class="avatar-img" />
+                      <template v-else>{{ replyDrawerComment.nickname.charAt(0) }}</template>
                     </div>
                     <div class="comment-body">
                       <div class="comment-header">
@@ -1025,8 +1080,9 @@ onMounted(() => {
                       :key="reply.id"
                       class="drawer-reply-item"
                     >
-                      <div class="comment-avatar small">
-                        {{ reply.nickname.charAt(0) }}
+                      <div class="comment-avatar small" :class="{ 'has-avatar': getAvatarUrl(reply.userId) }">
+                        <img v-if="getAvatarUrl(reply.userId)" :src="getAvatarUrl(reply.userId)!" alt="" class="avatar-img" />
+                        <template v-else>{{ reply.nickname.charAt(0) }}</template>
                       </div>
                       <div class="comment-body">
                         <div class="comment-header">
@@ -1653,6 +1709,17 @@ onMounted(() => {
   width: 24px;
   height: 24px;
   font-size: 10px;
+}
+
+.comment-avatar.has-avatar {
+  background: transparent;
+  overflow: hidden;
+}
+
+.comment-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .comment-body {

@@ -80,12 +80,6 @@ const avatarUrl = computed(() => {
   return userStore.profile?.avatarUrl
 })
 
-// 计算昵称首字母（用于默认头像）
-const avatarInitial = computed(() => {
-  const nickname = userStore.profile?.nickname || userStore.profile?.username || ''
-  return nickname.charAt(0).toUpperCase()
-})
-
 // 打开头像上传弹窗
 function openAvatarUploader() {
   showAvatarUploader.value = true

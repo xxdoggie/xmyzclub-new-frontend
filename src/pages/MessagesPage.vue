@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -48,6 +48,14 @@ const deletingId = ref<number | null>(null)
 // 消息详情抽屉
 const showDetailDrawer = ref(false)
 const selectedMessage = ref<Message | null>(null)
+
+// 左滑删除状态
+const swipingId = ref<number | null>(null)
+const swipeOffset = ref(0)
+const startX = ref(0)
+const startY = ref(0)
+const isSwiping = ref(false)
+const DELETE_THRESHOLD = 80
 
 // 标签配置
 const tabs = [
@@ -244,6 +252,87 @@ function getMessageTypeClass(type: MessageType) {
   return `type-${type}`
 }
 
+// 左滑删除相关方法
+function handleTouchStart(event: TouchEvent, messageId: number) {
+  // 如果已经有其他消息在滑动状态，先重置
+  if (swipingId.value && swipingId.value !== messageId) {
+    resetSwipe()
+  }
+
+  const touch = event.touches[0]
+  startX.value = touch.clientX
+  startY.value = touch.clientY
+  swipingId.value = messageId
+  isSwiping.value = false
+}
+
+function handleTouchMove(event: TouchEvent, messageId: number) {
+  if (swipingId.value !== messageId) return
+
+  const touch = event.touches[0]
+  const deltaX = startX.value - touch.clientX
+  const deltaY = Math.abs(touch.clientY - startY.value)
+
+  // 如果垂直滑动距离大于水平，不处理
+  if (deltaY > Math.abs(deltaX) && !isSwiping.value) {
+    return
+  }
+
+  isSwiping.value = true
+
+  // 只允许向左滑动
+  if (deltaX > 0) {
+    // 添加阻尼效果
+    swipeOffset.value = Math.min(deltaX, DELETE_THRESHOLD + 20)
+    event.preventDefault()
+  } else {
+    swipeOffset.value = Math.max(deltaX * 0.3, -20)
+  }
+}
+
+function handleTouchEnd(messageId: number) {
+  if (swipingId.value !== messageId) return
+
+  // 如果滑动距离超过阈值，保持展开状态
+  if (swipeOffset.value >= DELETE_THRESHOLD) {
+    swipeOffset.value = DELETE_THRESHOLD
+  } else {
+    resetSwipe()
+  }
+}
+
+function resetSwipe() {
+  swipeOffset.value = 0
+  swipingId.value = null
+  isSwiping.value = false
+}
+
+// 通过左滑删除
+function handleSwipeDelete(message: Message) {
+  resetSwipe()
+  handleDelete(message)
+}
+
+// 点击消息卡片
+function handleCardClick(message: Message) {
+  // 如果正在滑动状态，先关闭滑动
+  if (swipingId.value === message.id && swipeOffset.value > 10) {
+    resetSwipe()
+    return
+  }
+  openMessage(message)
+}
+
+// 点击页面其他区域关闭滑动
+function handleGlobalClick(event: Event) {
+  if (swipingId.value && swipeOffset.value > 0) {
+    const target = event.target as HTMLElement
+    if (!target.closest('.message-item')) {
+      resetSwipe()
+    }
+  }
+}
+
 // 格式化时间
 function formatTime(dateStr: string) {
   const date = new Date(dateStr)
@@ -273,6 +362,8 @@ watch(activeTab, () => {
 
 // 初始化
 onMounted(async () => {
+  document.addEventListener('click', handleGlobalClick)
+
   if (!userStore.isLoggedIn) {
     toast.error('请先登录')
     router.push('/')
@@ -280,6 +371,10 @@ onMounted(async () => {
   }
 
   await Promise.all([loadMessages(), loadUnreadCount()])
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleGlobalClick)
 })
 </script>
 
@@ -296,23 +391,29 @@ onMounted(async () => {
 
         <!-- 消息类型标签 -->
         <div class="tabs-section">
-          <div class="tabs-row">
-            <div class="tabs-scroll">
-              <button
-                v-for="tab in tabs"
-                :key="tab.value"
-                class="tab-btn"
-                :class="{ active: activeTab === tab.value }"
-                @click="activeTab = tab.value"
-              >
-                {{ tab.label }}
-                <span v-if="getTabUnreadCount(tab.value) > 0" class="tab-badge">
-                  {{ getTabUnreadCount(tab.value) > 99 ? '99+' : getTabUnreadCount(tab.value) }}
-                </span>
-              </button>
-            </div>
+          <div class="tabs-scroll">
             <button
-              v-if="unreadCount.total > 0"
+              v-for="tab in tabs"
+              :key="tab.value"
+              class="tab-btn"
+              :class="{ active: activeTab === tab.value }"
+              @click="activeTab = tab.value"
+            >
+              {{ tab.label }}
+              <span v-if="getTabUnreadCount(tab.value) > 0" class="tab-badge">
+                {{ getTabUnreadCount(tab.value) > 99 ? '99+' : getTabUnreadCount(tab.value) }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 未读提示条 -->
+        <Transition name="fade">
+          <div v-if="unreadCount.total > 0" class="unread-bar">
+            <span class="unread-text">
+              {{ unreadCount.total }} 条未读消息
+            </span>
+            <button
               class="mark-all-btn"
               :disabled="isMarkingAll"
               @click="handleMarkAllAsRead"
@@ -320,7 +421,7 @@ onMounted(async () => {
               {{ isMarkingAll ? '处理中...' : '全部已读' }}
             </button>
           </div>
-        </div>
+        </Transition>
 
         <!-- 加载状态 -->
         <div v-if="isLoading" class="loading-container">
@@ -346,58 +447,76 @@ onMounted(async () => {
             <div
               v-for="message in messages"
               :key="message.id"
-              class="message-card"
-              :class="{ unread: !message.isRead, deleting: deletingId === message.id }"
-              @click="openMessage(message)"
+              class="message-item"
+              :class="{ deleting: deletingId === message.id }"
             >
-              <!-- 消息图标 -->
-              <div class="message-icon" :class="getMessageTypeClass(message.type)">
-                <!-- Ticket -->
-                <svg v-if="getMessageIcon(message.type) === 'ticket'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path>
-                  <path d="M13 5v2"></path>
-                  <path d="M13 17v2"></path>
-                  <path d="M13 11v2"></path>
-                </svg>
-                <!-- Star -->
-                <svg v-else-if="getMessageIcon(message.type) === 'star'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                <!-- Edit -->
-                <svg v-else-if="getMessageIcon(message.type) === 'edit'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-                <!-- Bell (default) -->
-                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-              </div>
-
-              <!-- 消息内容 -->
-              <div class="message-content">
-                <div class="message-header">
-                  <h3 class="message-title">{{ message.title }}</h3>
-                  <span class="message-time">{{ formatTime(message.createdAt) }}</span>
-                </div>
-                <p class="message-text">{{ message.content }}</p>
-              </div>
-
-              <!-- 未读标记 -->
-              <div v-if="!message.isRead" class="unread-dot"></div>
-
-              <!-- 删除按钮 -->
-              <button
-                class="delete-btn"
-                :disabled="deletingId === message.id"
-                @click="handleDelete(message, $event)"
+              <!-- 删除操作区域（左滑露出） -->
+              <div
+                class="swipe-action"
+                :style="{ opacity: swipingId === message.id ? Math.min(swipeOffset / DELETE_THRESHOLD, 1) : 0 }"
+                @click="handleSwipeDelete(message)"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
-              </button>
+                <span>删除</span>
+              </div>
+
+              <!-- 消息卡片 -->
+              <div
+                class="message-card"
+                :class="{ unread: !message.isRead }"
+                :style="{ transform: swipingId === message.id ? `translateX(-${swipeOffset}px)` : 'translateX(0)' }"
+                @click="handleCardClick(message)"
+                @touchstart="handleTouchStart($event, message.id)"
+                @touchmove="handleTouchMove($event, message.id)"
+                @touchend="handleTouchEnd(message.id)"
+              >
+                <!-- 未读指示器 -->
+                <div v-if="!message.isRead" class="unread-indicator"></div>
+
+                <!-- 消息图标 -->
+                <div class="message-icon" :class="getMessageTypeClass(message.type)">
+                  <!-- Ticket -->
+                  <svg v-if="getMessageIcon(message.type) === 'ticket'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path>
+                    <path d="M13 5v2"></path>
+                    <path d="M13 17v2"></path>
+                    <path d="M13 11v2"></path>
+                  </svg>
+                  <!-- Star -->
+                  <svg v-else-if="getMessageIcon(message.type) === 'star'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                  <!-- Edit -->
+                  <svg v-else-if="getMessageIcon(message.type) === 'edit'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  <!-- Bell (default) -->
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                </div>
+
+                <!-- 消息内容 -->
+                <div class="message-content">
+                  <div class="message-header">
+                    <h3 class="message-title">{{ message.title }}</h3>
+                    <span class="message-time">{{ formatTime(message.createdAt) }}</span>
+                  </div>
+                  <p class="message-text">{{ message.content }}</p>
+                </div>
+
+                <!-- 箭头 -->
+                <div class="message-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+              </div>
             </div>
           </TransitionGroup>
 
@@ -504,26 +623,15 @@ onMounted(async () => {
   margin-bottom: var(--spacing-lg);
 }
 
-/* ===== Tabs ===== */
+/* ===== Tabs - Modern Pill Style ===== */
 .tabs-section {
-  margin-bottom: var(--spacing-md);
-  overflow: hidden;
-}
-
-.tabs-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .tabs-scroll {
-  flex: 1;
   display: flex;
-  gap: var(--spacing-xs);
-  padding: 3px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  gap: 8px;
+  padding: 4px 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -534,58 +642,78 @@ onMounted(async () => {
 }
 
 .tab-btn {
-  flex: 1;
-  min-width: 60px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 20px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-btn:hover {
   color: var(--color-text);
+  background: var(--color-border);
 }
 
 .tab-btn.active {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.tab-badge {
-  font-size: 10px;
-  font-weight: var(--font-bold);
-  padding: 1px 5px;
-  background: var(--color-error);
   color: white;
-  border-radius: var(--radius-full);
-  line-height: 1.2;
-}
-
-.tab-btn.active .tab-badge {
   background: var(--color-primary);
 }
 
-.mark-all-btn {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-primary);
+.tab-badge {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-error);
+  color: white;
+  border-radius: 9px;
+}
+
+.tab-btn.active .tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ===== Unread Bar ===== */
+.unread-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin-bottom: var(--spacing-sm);
   background: var(--color-primary-bg);
+  border-radius: 12px;
+}
+
+.unread-text {
+  font-size: 13px;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.mark-all-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: white;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 16px;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .mark-all-btn:hover:not(:disabled) {
@@ -596,6 +724,17 @@ onMounted(async () => {
 .mark-all-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Fade animation */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* ===== Loading ===== */
@@ -609,9 +748,9 @@ onMounted(async () => {
 }
 
 .loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border);
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--color-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -631,30 +770,30 @@ onMounted(async () => {
 }
 
 .empty-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto var(--spacing-lg);
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--spacing-md);
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: 16px;
 }
 
 .empty-icon svg {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   color: var(--color-text-placeholder);
 }
 
 .empty-container h2 {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  margin-bottom: var(--spacing-xs);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .empty-container p {
-  font-size: var(--text-sm);
+  font-size: 14px;
   color: var(--color-text-secondary);
 }
 
@@ -662,52 +801,92 @@ onMounted(async () => {
 .messages-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 2px;
 }
 
-.message-card {
+/* Message Item Container */
+.message-item {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  overflow: hidden;
+  border-radius: 12px;
 }
 
-.message-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.message-card.unread {
-  background: var(--color-primary-bg);
-  border-color: var(--color-primary);
-}
-
-.message-card.deleting {
+.message-item.deleting {
   opacity: 0.5;
   pointer-events: none;
 }
 
-/* Message Icon */
+/* Swipe Delete Action */
+.swipe-action {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--color-error);
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.1s ease;
+}
+
+.swipe-action svg {
+  width: 20px;
+  height: 20px;
+}
+
+.swipe-action span {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Message Card - Clean Modern Style */
+.message-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  background: var(--color-card);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.message-card:active {
+  background: var(--color-border);
+}
+
+/* Unread Indicator - Left Border */
+.unread-indicator {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--color-primary);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Message Icon - Smaller and Cleaner */
 .message-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-lg);
-  transition: all var(--transition-fast);
+  border-radius: 10px;
 }
 
 .message-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .message-icon.type-ticket {
@@ -739,115 +918,72 @@ onMounted(async () => {
 .message-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
-  margin-bottom: 4px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
 }
 
 .message-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  line-height: 1.4;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
+}
+
+.message-card.unread .message-title {
+  color: var(--color-text);
 }
 
 .message-time {
-  font-size: var(--text-xs);
+  font-size: 12px;
   color: var(--color-text-placeholder);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .message-text {
-  font-size: var(--text-xs);
+  font-size: 13px;
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
 }
 
-/* Unread Dot */
-.unread-dot {
-  position: absolute;
-  top: var(--spacing-sm);
-  right: var(--spacing-sm);
-  width: 8px;
-  height: 8px;
-  background: var(--color-primary);
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.1);
-  }
-}
-
-/* Delete Button */
-.delete-btn {
-  position: absolute;
-  bottom: var(--spacing-sm);
-  right: var(--spacing-sm);
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
+/* Arrow Indicator */
+.message-arrow {
+  flex-shrink: 0;
   color: var(--color-text-placeholder);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  opacity: 0;
-  transition: all var(--transition-fast);
+  opacity: 0.5;
 }
 
-.message-card:hover .delete-btn {
-  opacity: 1;
-}
-
-.delete-btn:hover {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
-
-.delete-btn svg {
+.message-arrow svg {
   width: 16px;
   height: 16px;
 }
 
 /* Load More */
 .load-more {
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-md);
   text-align: center;
 }
 
 .load-more-btn {
-  padding: var(--spacing-sm) var(--spacing-xl);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-primary);
-  background: var(--color-card);
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 20px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .load-more-btn:hover:not(:disabled) {
+  color: var(--color-primary);
   border-color: var(--color-primary);
 }
 
@@ -859,28 +995,28 @@ onMounted(async () => {
 .no-more {
   padding: var(--spacing-lg);
   text-align: center;
-  font-size: var(--text-sm);
+  font-size: 13px;
   color: var(--color-text-placeholder);
 }
 
 /* ===== List Animation ===== */
 .message-list-enter-active,
 .message-list-leave-active {
-  transition: all var(--transition-normal);
+  transition: all 0.25s ease;
 }
 
 .message-list-enter-from {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-8px);
 }
 
 .message-list-leave-to {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateX(100%);
 }
 
 .message-list-move {
-  transition: transform var(--transition-normal);
+  transition: transform 0.25s ease;
 }
 
 /* ===== Drawer ===== */
@@ -1058,17 +1194,60 @@ onMounted(async () => {
     padding: var(--spacing-xl);
   }
 
+  .tabs-section {
+    margin-bottom: var(--spacing-md);
+  }
+
   .tab-btn {
-    font-size: var(--text-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .unread-bar {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .messages-list {
+    gap: 4px;
+  }
+
+  .message-item {
+    border-radius: 14px;
   }
 
   .message-card {
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--color-border);
   }
 
-  .delete-btn {
-    opacity: 0.3;
+  .message-card:hover {
+    background: var(--color-card);
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .message-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .message-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .message-title {
+    font-size: 15px;
+  }
+
+  .message-text {
+    font-size: 14px;
+  }
+
+  /* Hide swipe on desktop, show hover delete */
+  .swipe-action {
+    display: none;
   }
 
   .drawer-overlay {

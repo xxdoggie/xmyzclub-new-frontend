@@ -25,10 +25,13 @@ import type {
 
 /**
  * 获取公开活动列表
+ * @param page 页码
+ * @param pageSize 每页数量
+ * @param status 状态筛选：不传=默认(published+active), all=全部, ended=已结束, active=进行中, published=已发布
  */
-export function getTicketActivities(page = 1, pageSize = 10) {
+export function getTicketActivities(page = 1, pageSize = 10, status?: string) {
   return api.get<ApiResponse<TicketActivityListResponse>>('/ticket-activities', {
-    params: { page, pageSize },
+    params: { page, pageSize, status },
   })
 }
 

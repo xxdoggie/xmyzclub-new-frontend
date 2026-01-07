@@ -969,6 +969,7 @@ async function submitChangePassword() {
 /* ===== Edit Form ===== */
 .edit-form {
   padding: var(--spacing-md);
+  overflow: hidden;
 }
 
 .form-group {
@@ -990,6 +991,8 @@ async function submitChangePassword() {
 .form-input,
 .form-textarea {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--text-sm);
   border: 1px solid var(--color-border);
@@ -998,6 +1001,13 @@ async function submitChangePassword() {
   color: var(--color-text);
   outline: none;
   transition: all var(--transition-fast);
+}
+
+/* 日期输入框特殊处理 - 防止移动端溢出 */
+.form-input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .form-input:focus,

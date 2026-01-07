@@ -561,31 +561,6 @@ async function submitChangePassword() {
               </div>
             </section>
 
-            <!-- 我的消息 -->
-            <section class="section">
-              <div class="section-header">
-                <h2 class="section-title">消息通知</h2>
-              </div>
-
-              <div class="card">
-                <router-link to="/messages" class="action-item">
-                  <div class="action-icon messages">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    </svg>
-                  </div>
-                  <div class="action-content">
-                    <span class="action-title">我的消息</span>
-                    <span class="action-desc">查看系统通知和站内消息</span>
-                  </div>
-                  <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </router-link>
-              </div>
-            </section>
-
             <!-- 安全设置 -->
             <section class="section">
               <div class="section-header">
@@ -1359,11 +1334,6 @@ async function submitChangePassword() {
   background: var(--color-border);
   border-radius: var(--radius-md);
   flex-shrink: 0;
-}
-
-.action-icon.messages {
-  background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
 }
 
 .action-icon svg {

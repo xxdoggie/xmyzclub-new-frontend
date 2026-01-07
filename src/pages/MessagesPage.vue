@@ -294,14 +294,22 @@ onMounted(async () => {
           <PageBreadcrumb />
         </div>
 
-        <!-- 页面标题 -->
-        <div class="page-header-section">
-          <div class="header-main">
-            <div>
-              <h1 class="page-title">我的消息</h1>
-              <p class="page-subtitle">
-                {{ unreadCount.total > 0 ? `${unreadCount.total} 条未读` : '暂无未读消息' }}
-              </p>
+        <!-- 消息类型标签 -->
+        <div class="tabs-section">
+          <div class="tabs-row">
+            <div class="tabs-scroll">
+              <button
+                v-for="tab in tabs"
+                :key="tab.value"
+                class="tab-btn"
+                :class="{ active: activeTab === tab.value }"
+                @click="activeTab = tab.value"
+              >
+                {{ tab.label }}
+                <span v-if="getTabUnreadCount(tab.value) > 0" class="tab-badge">
+                  {{ getTabUnreadCount(tab.value) > 99 ? '99+' : getTabUnreadCount(tab.value) }}
+                </span>
+              </button>
             </div>
             <button
               v-if="unreadCount.total > 0"
@@ -310,24 +318,6 @@ onMounted(async () => {
               @click="handleMarkAllAsRead"
             >
               {{ isMarkingAll ? '处理中...' : '全部已读' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- 消息类型标签 -->
-        <div class="tabs-section">
-          <div class="tabs-scroll">
-            <button
-              v-for="tab in tabs"
-              :key="tab.value"
-              class="tab-btn"
-              :class="{ active: activeTab === tab.value }"
-              @click="activeTab = tab.value"
-            >
-              {{ tab.label }}
-              <span v-if="getTabUnreadCount(tab.value) > 0" class="tab-badge">
-                {{ getTabUnreadCount(tab.value) > 99 ? '99+' : getTabUnreadCount(tab.value) }}
-              </span>
             </button>
           </div>
         </div>
@@ -514,59 +504,20 @@ onMounted(async () => {
   margin-bottom: var(--spacing-lg);
 }
 
-/* ===== Page Header ===== */
-.page-header-section {
-  margin-bottom: var(--spacing-md);
-}
-
-.header-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-}
-
-.page-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-xs);
-}
-
-.page-subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.mark-all-btn {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.mark-all-btn:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: white;
-}
-
-.mark-all-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 /* ===== Tabs ===== */
 .tabs-section {
   margin-bottom: var(--spacing-md);
   overflow: hidden;
 }
 
+.tabs-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .tabs-scroll {
+  flex: 1;
   display: flex;
   gap: var(--spacing-xs);
   padding: 3px;
@@ -622,6 +573,29 @@ onMounted(async () => {
 
 .tab-btn.active .tab-badge {
   background: var(--color-primary);
+}
+
+.mark-all-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.mark-all-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.mark-all-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ===== Loading ===== */
@@ -1082,10 +1056,6 @@ onMounted(async () => {
 
   .page-content {
     padding: var(--spacing-xl);
-  }
-
-  .page-title {
-    font-size: var(--text-2xl);
   }
 
   .tab-btn {

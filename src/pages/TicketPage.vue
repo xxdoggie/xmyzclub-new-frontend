@@ -70,13 +70,20 @@ function loadMore() {
 }
 
 // 切换筛选
-function changeFilter(value: string | undefined) {
+async function changeFilter(value: string | undefined) {
   if (statusFilter.value === value) return
   statusFilter.value = value
   page.value = 1
-  activities.value = []
-  isLoading.value = true
-  loadActivities()
+  // 不清空列表，不显示 loading，直接在后台加载新数据
+  try {
+    const res = await getTicketActivities(1, pageSize.value, value)
+    if (res.data.code === 200) {
+      activities.value = res.data.data.activities
+      total.value = res.data.data.total
+    }
+  } catch {
+    // 静默失败
+  }
 }
 
 // 计算是否有更多

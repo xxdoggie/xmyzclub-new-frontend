@@ -208,9 +208,15 @@ async function handleDelete(message: Message, event?: Event) {
 
 // 跳转到目标
 function goToTarget(message: Message) {
-  if (!message.targetType || !message.targetId) return
-
   closeDetailDrawer()
+
+  // 评分社区消息优先使用 ratingItemId 跳转到评分项目详情
+  if (message.ratingItemId) {
+    router.push(`/community/item/${message.ratingItemId}`)
+    return
+  }
+
+  if (!message.targetType || !message.targetId) return
 
   switch (message.targetType) {
     case 'ticket':
@@ -220,7 +226,6 @@ function goToTarget(message: Message) {
       router.push(`/ticket/${message.targetId}`)
       break
     case 'comment':
-      // 评论详情暂无独立页面
       router.push('/community')
       break
     case 'contribution':
@@ -508,6 +513,11 @@ onUnmounted(() => {
                     <span class="message-time">{{ formatTime(message.createdAt) }}</span>
                   </div>
                   <p class="message-text">{{ message.content }}</p>
+                  <!-- 原始评论引用 -->
+                  <div v-if="message.originalComment" class="message-quote">
+                    <span class="quote-icon">"</span>
+                    <span class="quote-text">{{ message.originalComment }}</span>
+                  </div>
                 </div>
 
                 <!-- 箭头 -->
@@ -572,10 +582,16 @@ onUnmounted(() => {
               {{ selectedMessage.content }}
             </div>
 
+            <!-- 原始评论引用 -->
+            <div v-if="selectedMessage.originalComment" class="drawer-quote">
+              <div class="drawer-quote-label">原评论</div>
+              <div class="drawer-quote-text">"{{ selectedMessage.originalComment }}"</div>
+            </div>
+
             <!-- 操作按钮 -->
             <div class="drawer-actions">
               <button
-                v-if="selectedMessage.targetType && selectedMessage.targetId"
+                v-if="selectedMessage.ratingItemId || (selectedMessage.targetType && selectedMessage.targetId)"
                 class="drawer-btn primary"
                 @click="goToTarget(selectedMessage)"
               >
@@ -962,6 +978,36 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
+/* Message Quote */
+.message-quote {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--color-bg);
+  border-radius: 6px;
+  border-left: 2px solid var(--color-primary);
+}
+
+.quote-icon {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.quote-text {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+}
+
 /* Arrow Indicator */
 .message-arrow {
   flex-shrink: 0;
@@ -1129,7 +1175,29 @@ onUnmounted(() => {
   color: var(--color-text-secondary);
   line-height: 1.7;
   white-space: pre-wrap;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Drawer Quote */
+.drawer-quote {
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-primary);
+}
+
+.drawer-quote-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  margin-bottom: 4px;
+}
+
+.drawer-quote-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  line-height: 1.5;
 }
 
 .drawer-actions {

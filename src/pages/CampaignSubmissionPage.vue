@@ -577,13 +577,16 @@ onMounted(() => {
                 </template>
               </div>
             </div>
-            <button class="submit-btn" @click="openSearchModal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span class="btn-text">投稿歌曲</span>
-            </button>
+            <div class="submit-area">
+              <button class="submit-btn" @click="openSearchModal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span class="btn-text">投稿歌曲</span>
+              </button>
+              <p class="new-feature-tip">支持QQ音乐搜索及自定义歌曲投稿！</p>
+            </div>
           </div>
 
           <!-- 我的投稿 -->
@@ -692,6 +695,10 @@ onMounted(() => {
 
             <!-- 平台选择（未选择歌曲时显示） -->
             <div v-if="!selectedMusic" class="platform-selector">
+              <div
+                class="platform-indicator"
+                :class="{ 'at-custom': isCustomPlatform }"
+              ></div>
               <button
                 class="platform-btn"
                 :class="{ active: selectedPlatform === 'qq_music' }"
@@ -708,209 +715,214 @@ onMounted(() => {
               </button>
             </div>
 
-            <!-- QQ音乐搜索（未选择歌曲且非自定义） -->
-            <template v-if="!selectedMusic && !isCustomPlatform">
-              <div class="search-box">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input
-                  v-model="searchKeyword"
-                  type="text"
-                  placeholder="搜索歌曲名或歌手"
-                  @input="handleSearchInput"
-                />
-              </div>
-
-              <div class="search-results">
-                <!-- 搜索中状态 -->
-                <div v-if="isSearching" class="search-loading">
-                  <div class="loading-spinner-sm"></div>
-                  <span>搜索中...</span>
-                </div>
-
-                <!-- 未输入关键词 -->
-                <div v-else-if="!searchKeyword" class="search-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                  <p>输入歌曲名或歌手搜索</p>
-                </div>
-
-                <!-- 搜索完成但无结果 -->
-                <div v-else-if="hasSearched && searchResults.length === 0" class="search-empty">
-                  <p>未找到相关歌曲</p>
-                  <span>换个关键词试试</span>
-                </div>
-
-                <!-- 搜索结果列表 -->
-                <div v-else-if="searchResults.length > 0" class="results-list">
-                  <div
-                    v-for="music in searchResults"
-                    :key="music.mid || music.id"
-                    class="music-item"
-                    @click="selectMusic(music)"
-                  >
-                    <div class="music-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M9 18V5l12-2v13"></path>
-                        <circle cx="6" cy="18" r="3"></circle>
-                        <circle cx="18" cy="16" r="3"></circle>
-                      </svg>
-                    </div>
-                    <div class="music-details">
-                      <h4 class="music-title">
-                        {{ music.title }}
-                        <span v-if="music.subtitle" class="music-subtitle">{{ music.subtitle }}</span>
-                      </h4>
-                      <p class="music-artist">{{ music.singer }} · {{ music.album }}</p>
-                    </div>
-                    <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="9 18 15 12 9 6"></polyline>
+            <!-- Tab 内容容器 -->
+            <div v-if="!selectedMusic" class="tab-content-wrapper">
+              <Transition name="tab-fade" mode="out-in">
+                <!-- QQ音乐搜索 -->
+                <div v-if="!isCustomPlatform" key="qq-music" class="tab-content">
+                  <div class="search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
+                    <input
+                      v-model="searchKeyword"
+                      type="text"
+                      placeholder="搜索歌曲名或歌手"
+                      @input="handleSearchInput"
+                    />
                   </div>
-                </div>
-              </div>
-            </template>
 
-            <!-- 自定义音乐表单 -->
-            <template v-if="!selectedMusic && isCustomPlatform">
-              <div class="custom-music-form">
-                <div class="form-row">
-                  <div class="form-field required">
-                    <label for="custom-song">歌曲名</label>
-                    <input
-                      id="custom-song"
-                      v-model="customMusicForm.song"
-                      type="text"
-                      placeholder="请输入歌曲名（必填）"
-                    />
-                  </div>
-                  <div class="form-field required">
-                    <label for="custom-singer">歌手</label>
-                    <input
-                      id="custom-singer"
-                      v-model="customMusicForm.singer"
-                      type="text"
-                      placeholder="请输入歌手（必填）"
-                    />
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-field">
-                    <label for="custom-album">专辑</label>
-                    <input
-                      id="custom-album"
-                      v-model="customMusicForm.album"
-                      type="text"
-                      placeholder="可选"
-                    />
-                  </div>
-                  <div class="form-field">
-                    <label for="custom-interval">时长（秒）</label>
-                    <input
-                      id="custom-interval"
-                      v-model="customMusicForm.interval"
-                      type="text"
-                      placeholder="例如：180"
-                    />
-                  </div>
-                </div>
-                <div class="form-field">
-                  <label for="custom-cover">封面URL</label>
-                  <input
-                    id="custom-cover"
-                    v-model="customMusicForm.cover"
-                    type="text"
-                    placeholder="可选，填写图片链接"
-                  />
-                </div>
-                <div class="form-field">
-                  <label for="custom-source-url">播放链接</label>
-                  <input
-                    id="custom-source-url"
-                    v-model="customMusicForm.sourceUrl"
-                    type="text"
-                    placeholder="可选，填写音乐播放链接"
-                  />
-                </div>
-              </div>
-
-              <!-- 用户信息填写（如果需要） -->
-              <div v-if="requireUserInfo && userInfoFields.length > 0" class="user-info-section">
-                <h4 class="section-label">填写信息</h4>
-                <div class="user-info-form">
-                  <div v-for="field in userInfoFields" :key="field" class="form-field">
-                    <label :for="`custom-field-${field}`">{{ getFieldLabel(field) }}</label>
-                    <input
-                      :id="`custom-field-${field}`"
-                      v-model="userInfoForm[field as keyof typeof userInfoForm]"
-                      type="text"
-                      :placeholder="getFieldPlaceholder(field)"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <!-- 时段选择 -->
-              <div class="period-selection">
-                <div class="selection-header">
-                  <h4 class="selection-title">选择投稿时段</h4>
-                  <button
-                    v-if="selectablePeriods.length > 1"
-                    class="select-all-btn"
-                    @click="toggleAllPeriods"
-                  >
-                    {{ selectedPeriodIds.length === selectablePeriods.length ? '取消全选' : '全选' }}
-                  </button>
-                </div>
-
-                <div class="periods-grid">
-                  <label
-                    v-for="period in campaign?.timePeriods"
-                    :key="period.id"
-                    class="period-item"
-                    :class="{
-                      selected: selectedPeriodIds.includes(period.id),
-                      disabled: !canSubmitToPeriod(period.id),
-                    }"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="selectedPeriodIds.includes(period.id)"
-                      :disabled="!canSubmitToPeriod(period.id)"
-                      @change="togglePeriod(period.id)"
-                    />
-                    <div class="period-content">
-                      <span class="period-label">{{ period.name }}</span>
-                      <span class="period-status">
-                        {{ getSubmissionCount(period.id) }} 首
-                        <template v-if="!canSubmitToPeriod(period.id)">（已满）</template>
-                      </span>
+                  <div class="search-results">
+                    <!-- 搜索中状态 -->
+                    <div v-if="isSearching" class="search-loading">
+                      <div class="loading-spinner-sm"></div>
+                      <span>搜索中...</span>
                     </div>
-                    <div class="period-check">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                        <polyline points="20 6 9 17 4 12"></polyline>
+
+                    <!-- 未输入关键词 -->
+                    <div v-else-if="!searchKeyword" class="search-hint">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                       </svg>
+                      <p>输入歌曲名或歌手搜索</p>
                     </div>
-                  </label>
-                </div>
-              </div>
 
-              <!-- 提交按钮 -->
-              <div class="modal-actions">
-                <button class="action-btn cancel" @click="closeSearchModal">取消</button>
-                <button
-                  class="action-btn confirm"
-                  :disabled="selectedPeriodIds.length === 0 || isSubmitting"
-                  @click="submitSubmission"
-                >
-                  {{ isSubmitting ? '提交中...' : `投稿到 ${selectedPeriodIds.length} 个时段` }}
-                </button>
-              </div>
-            </template>
+                    <!-- 搜索完成但无结果 -->
+                    <div v-else-if="hasSearched && searchResults.length === 0" class="search-empty">
+                      <p>未找到相关歌曲</p>
+                      <span>换个关键词试试</span>
+                    </div>
+
+                    <!-- 搜索结果列表 -->
+                    <div v-else-if="searchResults.length > 0" class="results-list">
+                      <div
+                        v-for="music in searchResults"
+                        :key="music.mid || music.id"
+                        class="music-item"
+                        @click="selectMusic(music)"
+                      >
+                        <div class="music-icon">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                          </svg>
+                        </div>
+                        <div class="music-details">
+                          <h4 class="music-title">
+                            {{ music.title }}
+                            <span v-if="music.subtitle" class="music-subtitle">{{ music.subtitle }}</span>
+                          </h4>
+                          <p class="music-artist">{{ music.singer }} · {{ music.album }}</p>
+                        </div>
+                        <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 自定义音乐表单 -->
+                <div v-else key="custom" class="tab-content">
+                  <div class="custom-music-form">
+                    <div class="form-row">
+                      <div class="form-field required">
+                        <label for="custom-song">歌曲名</label>
+                        <input
+                          id="custom-song"
+                          v-model="customMusicForm.song"
+                          type="text"
+                          placeholder="请输入歌曲名（必填）"
+                        />
+                      </div>
+                      <div class="form-field required">
+                        <label for="custom-singer">歌手</label>
+                        <input
+                          id="custom-singer"
+                          v-model="customMusicForm.singer"
+                          type="text"
+                          placeholder="请输入歌手（必填）"
+                        />
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <div class="form-field">
+                        <label for="custom-album">专辑</label>
+                        <input
+                          id="custom-album"
+                          v-model="customMusicForm.album"
+                          type="text"
+                          placeholder="可选"
+                        />
+                      </div>
+                      <div class="form-field">
+                        <label for="custom-interval">时长（秒）</label>
+                        <input
+                          id="custom-interval"
+                          v-model="customMusicForm.interval"
+                          type="text"
+                          placeholder="例如：180"
+                        />
+                      </div>
+                    </div>
+                    <div class="form-field">
+                      <label for="custom-cover">封面URL</label>
+                      <input
+                        id="custom-cover"
+                        v-model="customMusicForm.cover"
+                        type="text"
+                        placeholder="可选，填写图片链接"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label for="custom-source-url">播放链接</label>
+                      <input
+                        id="custom-source-url"
+                        v-model="customMusicForm.sourceUrl"
+                        type="text"
+                        placeholder="可选，填写音乐播放链接"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- 用户信息填写（如果需要） -->
+                  <div v-if="requireUserInfo && userInfoFields.length > 0" class="user-info-section">
+                    <h4 class="section-label">填写信息</h4>
+                    <div class="user-info-form">
+                      <div v-for="field in userInfoFields" :key="field" class="form-field">
+                        <label :for="`custom-field-${field}`">{{ getFieldLabel(field) }}</label>
+                        <input
+                          :id="`custom-field-${field}`"
+                          v-model="userInfoForm[field as keyof typeof userInfoForm]"
+                          type="text"
+                          :placeholder="getFieldPlaceholder(field)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 时段选择 -->
+                  <div class="period-selection">
+                    <div class="selection-header">
+                      <h4 class="selection-title">选择投稿时段</h4>
+                      <button
+                        v-if="selectablePeriods.length > 1"
+                        class="select-all-btn"
+                        @click="toggleAllPeriods"
+                      >
+                        {{ selectedPeriodIds.length === selectablePeriods.length ? '取消全选' : '全选' }}
+                      </button>
+                    </div>
+
+                    <div class="periods-grid">
+                      <label
+                        v-for="period in campaign?.timePeriods"
+                        :key="period.id"
+                        class="period-item"
+                        :class="{
+                          selected: selectedPeriodIds.includes(period.id),
+                          disabled: !canSubmitToPeriod(period.id),
+                        }"
+                      >
+                        <input
+                          type="checkbox"
+                          :checked="selectedPeriodIds.includes(period.id)"
+                          :disabled="!canSubmitToPeriod(period.id)"
+                          @change="togglePeriod(period.id)"
+                        />
+                        <div class="period-content">
+                          <span class="period-label">{{ period.name }}</span>
+                          <span class="period-status">
+                            {{ getSubmissionCount(period.id) }} 首
+                            <template v-if="!canSubmitToPeriod(period.id)">（已满）</template>
+                          </span>
+                        </div>
+                        <div class="period-check">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- 提交按钮 -->
+                  <div class="modal-actions">
+                    <button class="action-btn cancel" @click="closeSearchModal">取消</button>
+                    <button
+                      class="action-btn confirm"
+                      :disabled="selectedPeriodIds.length === 0 || isSubmitting"
+                      @click="submitSubmission"
+                    >
+                      {{ isSubmitting ? '提交中...' : `投稿到 ${selectedPeriodIds.length} 个时段` }}
+                    </button>
+                  </div>
+                </div>
+              </Transition>
+            </div>
 
             <!-- 已选择歌曲：显示详情和时段选择（QQ音乐模式） -->
             <template v-if="selectedMusic && !isCustomPlatform">
@@ -1157,6 +1169,35 @@ onMounted(() => {
 .submit-btn svg {
   width: 16px;
   height: 16px;
+}
+
+/* ===== Submit Area ===== */
+.submit-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  align-self: flex-start;
+}
+
+.new-feature-tip {
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.new-feature-tip::before {
+  content: 'NEW';
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  color: white;
+  background: var(--color-primary);
+  padding: 1px 4px;
+  border-radius: 2px;
 }
 
 /* ===== Submissions Section ===== */
@@ -1532,12 +1573,29 @@ onMounted(() => {
 
 /* ===== Platform Selector ===== */
 .platform-selector {
+  position: relative;
   display: flex;
-  gap: var(--spacing-xs);
   padding: var(--spacing-xs);
   background: var(--color-bg);
   border-radius: var(--radius-lg);
   margin-bottom: var(--spacing-md);
+}
+
+.platform-indicator {
+  position: absolute;
+  top: var(--spacing-xs);
+  left: var(--spacing-xs);
+  width: calc(50% - var(--spacing-xs));
+  height: calc(100% - var(--spacing-xs) * 2);
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+.platform-indicator.at-custom {
+  transform: translateX(100%);
 }
 
 .platform-btn {
@@ -1550,7 +1608,9 @@ onMounted(() => {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color 0.2s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .platform-btn:hover {
@@ -1558,9 +1618,33 @@ onMounted(() => {
 }
 
 .platform-btn.active {
-  background: var(--color-card);
   color: var(--color-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Tab Content ===== */
+.tab-content-wrapper {
+  min-height: 300px;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tab 切换动画 */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tab-fade-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.tab-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
 }
 
 /* ===== Custom Music Form ===== */
@@ -1578,11 +1662,19 @@ onMounted(() => {
 
 .custom-music-form .form-row .form-field {
   flex: 1;
+  min-width: 0;
 }
 
 .custom-music-form .form-field.required label::after {
   content: ' *';
   color: var(--color-error);
+}
+
+/* 移动端：表单单列布局 */
+@media (max-width: 480px) {
+  .custom-music-form .form-row {
+    flex-direction: column;
+  }
 }
 
 /* ===== Submission Item Enhancements ===== */

@@ -12,6 +12,9 @@ export interface Message {
   content: string
   targetType: MessageTargetType
   targetId: number | null
+  // 评分社区相关字段
+  ratingItemId?: number | null
+  originalComment?: string | null
   isRead: boolean
   createdAt: string
 }

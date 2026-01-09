@@ -16,7 +16,10 @@ import type {
   MusicSearchItem,
   MusicDetail,
   SubmissionStageConfig,
+  MusicPlatform,
+  CustomMusicInfo,
 } from '@/types/campaign'
+import { PLATFORM_NAMES } from '@/types/campaign'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -36,6 +39,9 @@ const campaign = ref<Campaign | null>(null)
 const userSubmissions = ref<TimePeriodUserSubmissions[]>([])
 const lastUserInfo = ref<Record<string, string> | null>(null)
 
+// 平台选择
+const selectedPlatform = ref<MusicPlatform>('qq_music')
+
 // 搜索相关
 const showSearchModal = ref(false)
 const searchKeyword = ref('')
@@ -43,6 +49,16 @@ const isSearching = ref(false)
 const hasSearched = ref(false) // 标记是否已发起过搜索
 const searchResults = ref<MusicSearchItem[]>([])
 const searchDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+
+// 自定义音乐表单
+const customMusicForm = ref<CustomMusicInfo>({
+  song: '',
+  singer: '',
+  album: '',
+  interval: '',
+  cover: '',
+  sourceUrl: '',
+})
 
 // 选择的音乐
 const selectedMusic = ref<MusicSearchItem | null>(null)
@@ -122,6 +138,22 @@ function validateUserInfo(): boolean {
   }
   return true
 }
+
+// 验证自定义音乐表单
+function validateCustomMusic(): boolean {
+  if (!customMusicForm.value.song?.trim()) {
+    toast.error('请填写歌曲名')
+    return false
+  }
+  if (!customMusicForm.value.singer?.trim()) {
+    toast.error('请填写歌手')
+    return false
+  }
+  return true
+}
+
+// 判断是否为自定义平台
+const isCustomPlatform = computed(() => selectedPlatform.value === 'custom')
 
 // 获取规则说明
 const rulesDescription = computed(() => {
@@ -235,12 +267,22 @@ async function initData() {
 // 打开搜索弹窗
 function openSearchModal() {
   showSearchModal.value = true
+  selectedPlatform.value = 'qq_music'
   searchKeyword.value = ''
   searchResults.value = []
   hasSearched.value = false
   selectedMusic.value = null
   selectedMusicDetail.value = null
   selectedPeriodIds.value = []
+  // 重置自定义音乐表单
+  customMusicForm.value = {
+    song: '',
+    singer: '',
+    album: '',
+    interval: '',
+    cover: '',
+    sourceUrl: '',
+  }
   // 如果需要用户信息且有上次填写的信息，自动填充
   if (requireUserInfo.value && lastUserInfo.value) {
     userInfoForm.value = {
@@ -258,11 +300,20 @@ function openSearchModal() {
 // 关闭搜索弹窗
 function closeSearchModal() {
   showSearchModal.value = false
+  selectedPlatform.value = 'qq_music'
   searchKeyword.value = ''
   searchResults.value = []
   selectedMusic.value = null
   selectedMusicDetail.value = null
   selectedPeriodIds.value = []
+  customMusicForm.value = {
+    song: '',
+    singer: '',
+    album: '',
+    interval: '',
+    cover: '',
+    sourceUrl: '',
+  }
 }
 
 // 搜索音乐（带防抖）
@@ -367,9 +418,24 @@ function closePlayer() {
 
 // 提交投稿
 async function submitSubmission() {
-  if (!selectedMusic.value || selectedPeriodIds.value.length === 0) {
-    toast.error('请选择歌曲和时段')
+  // 验证时段选择
+  if (selectedPeriodIds.value.length === 0) {
+    toast.error('请选择投稿时段')
     return
+  }
+
+  // 根据平台验证
+  if (isCustomPlatform.value) {
+    // 自定义音乐验证
+    if (!validateCustomMusic()) {
+      return
+    }
+  } else {
+    // QQ音乐验证
+    if (!selectedMusic.value) {
+      toast.error('请选择歌曲')
+      return
+    }
   }
 
   // 验证用户信息
@@ -379,9 +445,6 @@ async function submitSubmission() {
 
   isSubmitting.value = true
   try {
-    // 使用数字ID，不是MID，不带前缀
-    const musicId = selectedMusic.value.id
-
     // 构建用户信息
     const userInfo: Record<string, string> = {}
     if (requireUserInfo.value) {
@@ -393,12 +456,31 @@ async function submitSubmission() {
       }
     }
 
-    const res = await createSubmission({
+    // 构建请求数据
+    const requestData: Parameters<typeof createSubmission>[0] = {
       campaignId: campaignId.value,
-      musicServiceId: musicId,
       timePeriodIds: selectedPeriodIds.value,
       userInfo: Object.keys(userInfo).length > 0 ? userInfo : undefined,
-    })
+    }
+
+    if (isCustomPlatform.value) {
+      // 自定义音乐
+      requestData.platform = 'custom'
+      requestData.customMusic = {
+        song: customMusicForm.value.song.trim(),
+        singer: customMusicForm.value.singer.trim(),
+        album: customMusicForm.value.album?.trim() || undefined,
+        interval: customMusicForm.value.interval?.trim() || undefined,
+        cover: customMusicForm.value.cover?.trim() || undefined,
+        sourceUrl: customMusicForm.value.sourceUrl?.trim() || undefined,
+      }
+    } else {
+      // QQ音乐
+      requestData.platform = 'qq_music'
+      requestData.musicServiceId = selectedMusic.value!.id
+    }
+
+    const res = await createSubmission(requestData)
 
     if (res.data.code === 200) {
       toast.success('投稿成功')
@@ -540,16 +622,39 @@ onMounted(() => {
                     :key="submission.id"
                     class="submission-item"
                   >
-                    <img
-                      :src="submission.music.cover"
-                      :alt="submission.music.song"
-                      class="music-cover"
-                    />
+                    <div class="music-cover-wrapper">
+                      <img
+                        :src="submission.music.cover || '/default-cover.png'"
+                        :alt="submission.music.song"
+                        class="music-cover"
+                      />
+                      <span
+                        v-if="submission.music.platformName"
+                        class="platform-tag"
+                        :class="submission.music.platform"
+                      >
+                        {{ submission.music.platformName }}
+                      </span>
+                    </div>
                     <div class="music-info">
                       <h4 class="music-name">{{ submission.music.song }}</h4>
                       <p class="music-singer">{{ submission.music.singer }}</p>
                     </div>
-                    <span class="submit-time">{{ formatDate(submission.createdAt) }}</span>
+                    <div class="submission-actions">
+                      <a
+                        v-if="submission.music.sourceUrl"
+                        :href="submission.music.sourceUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="play-link-btn"
+                        @click.stop
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                      </a>
+                      <span class="submit-time">{{ formatDate(submission.createdAt) }}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -585,8 +690,26 @@ onMounted(() => {
               </button>
             </div>
 
-            <!-- 未选择歌曲：显示搜索 -->
-            <template v-if="!selectedMusic">
+            <!-- 平台选择（未选择歌曲时显示） -->
+            <div v-if="!selectedMusic" class="platform-selector">
+              <button
+                class="platform-btn"
+                :class="{ active: selectedPlatform === 'qq_music' }"
+                @click="selectedPlatform = 'qq_music'"
+              >
+                QQ音乐搜索
+              </button>
+              <button
+                class="platform-btn"
+                :class="{ active: selectedPlatform === 'custom' }"
+                @click="selectedPlatform = 'custom'"
+              >
+                自定义填写
+              </button>
+            </div>
+
+            <!-- QQ音乐搜索（未选择歌曲且非自定义） -->
+            <template v-if="!selectedMusic && !isCustomPlatform">
               <div class="search-box">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="11" cy="11" r="8"></circle>
@@ -652,8 +775,145 @@ onMounted(() => {
               </div>
             </template>
 
-            <!-- 已选择歌曲：显示详情和时段选择 -->
-            <template v-else>
+            <!-- 自定义音乐表单 -->
+            <template v-if="!selectedMusic && isCustomPlatform">
+              <div class="custom-music-form">
+                <div class="form-row">
+                  <div class="form-field required">
+                    <label for="custom-song">歌曲名</label>
+                    <input
+                      id="custom-song"
+                      v-model="customMusicForm.song"
+                      type="text"
+                      placeholder="请输入歌曲名（必填）"
+                    />
+                  </div>
+                  <div class="form-field required">
+                    <label for="custom-singer">歌手</label>
+                    <input
+                      id="custom-singer"
+                      v-model="customMusicForm.singer"
+                      type="text"
+                      placeholder="请输入歌手（必填）"
+                    />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="custom-album">专辑</label>
+                    <input
+                      id="custom-album"
+                      v-model="customMusicForm.album"
+                      type="text"
+                      placeholder="可选"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="custom-interval">时长（秒）</label>
+                    <input
+                      id="custom-interval"
+                      v-model="customMusicForm.interval"
+                      type="text"
+                      placeholder="例如：180"
+                    />
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label for="custom-cover">封面URL</label>
+                  <input
+                    id="custom-cover"
+                    v-model="customMusicForm.cover"
+                    type="text"
+                    placeholder="可选，填写图片链接"
+                  />
+                </div>
+                <div class="form-field">
+                  <label for="custom-source-url">播放链接</label>
+                  <input
+                    id="custom-source-url"
+                    v-model="customMusicForm.sourceUrl"
+                    type="text"
+                    placeholder="可选，填写音乐播放链接"
+                  />
+                </div>
+              </div>
+
+              <!-- 用户信息填写（如果需要） -->
+              <div v-if="requireUserInfo && userInfoFields.length > 0" class="user-info-section">
+                <h4 class="section-label">填写信息</h4>
+                <div class="user-info-form">
+                  <div v-for="field in userInfoFields" :key="field" class="form-field">
+                    <label :for="`custom-field-${field}`">{{ getFieldLabel(field) }}</label>
+                    <input
+                      :id="`custom-field-${field}`"
+                      v-model="userInfoForm[field as keyof typeof userInfoForm]"
+                      type="text"
+                      :placeholder="getFieldPlaceholder(field)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 时段选择 -->
+              <div class="period-selection">
+                <div class="selection-header">
+                  <h4 class="selection-title">选择投稿时段</h4>
+                  <button
+                    v-if="selectablePeriods.length > 1"
+                    class="select-all-btn"
+                    @click="toggleAllPeriods"
+                  >
+                    {{ selectedPeriodIds.length === selectablePeriods.length ? '取消全选' : '全选' }}
+                  </button>
+                </div>
+
+                <div class="periods-grid">
+                  <label
+                    v-for="period in campaign?.timePeriods"
+                    :key="period.id"
+                    class="period-item"
+                    :class="{
+                      selected: selectedPeriodIds.includes(period.id),
+                      disabled: !canSubmitToPeriod(period.id),
+                    }"
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="selectedPeriodIds.includes(period.id)"
+                      :disabled="!canSubmitToPeriod(period.id)"
+                      @change="togglePeriod(period.id)"
+                    />
+                    <div class="period-content">
+                      <span class="period-label">{{ period.name }}</span>
+                      <span class="period-status">
+                        {{ getSubmissionCount(period.id) }} 首
+                        <template v-if="!canSubmitToPeriod(period.id)">（已满）</template>
+                      </span>
+                    </div>
+                    <div class="period-check">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 提交按钮 -->
+              <div class="modal-actions">
+                <button class="action-btn cancel" @click="closeSearchModal">取消</button>
+                <button
+                  class="action-btn confirm"
+                  :disabled="selectedPeriodIds.length === 0 || isSubmitting"
+                  @click="submitSubmission"
+                >
+                  {{ isSubmitting ? '提交中...' : `投稿到 ${selectedPeriodIds.length} 个时段` }}
+                </button>
+              </div>
+            </template>
+
+            <!-- 已选择歌曲：显示详情和时段选择（QQ音乐模式） -->
+            <template v-if="selectedMusic && !isCustomPlatform">
               <button class="back-btn" @click="cancelSelection">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="15 18 9 12 15 6"></polyline>
@@ -1268,6 +1528,131 @@ onMounted(() => {
   height: 16px;
   color: var(--color-text-placeholder);
   flex-shrink: 0;
+}
+
+/* ===== Platform Selector ===== */
+.platform-selector {
+  display: flex;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.platform-btn {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.platform-btn:hover {
+  color: var(--color-text);
+}
+
+.platform-btn.active {
+  background: var(--color-card);
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Custom Music Form ===== */
+.custom-music-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.custom-music-form .form-row {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.custom-music-form .form-row .form-field {
+  flex: 1;
+}
+
+.custom-music-form .form-field.required label::after {
+  content: ' *';
+  color: var(--color-error);
+}
+
+/* ===== Submission Item Enhancements ===== */
+.music-cover-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.platform-tag {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.platform-tag.qq_music {
+  background: #12b7f5;
+}
+
+.platform-tag.netease {
+  background: #c20c0c;
+}
+
+.platform-tag.kugou {
+  background: #1e93d8;
+}
+
+.platform-tag.kuwo {
+  background: #ff6600;
+}
+
+.platform-tag.custom {
+  background: var(--color-text-tertiary);
+}
+
+.submission-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.play-link-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+.play-link-btn:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.play-link-btn svg {
+  width: 12px;
+  height: 12px;
+  margin-left: 1px;
 }
 
 /* ===== Desktop Only ===== */

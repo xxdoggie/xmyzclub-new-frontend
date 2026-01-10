@@ -68,6 +68,25 @@ const isLoadingDetail = ref(false)
 // 选择的时段
 const selectedPeriodIds = ref<number[]>([])
 
+// 时段展开状态（我的投稿部分）
+const expandedPeriods = ref<Set<number>>(new Set())
+
+// 切换时段展开状态
+function togglePeriodExpand(periodId: number) {
+  if (expandedPeriods.value.has(periodId)) {
+    expandedPeriods.value.delete(periodId)
+  } else {
+    expandedPeriods.value.add(periodId)
+  }
+  // 触发响应式更新
+  expandedPeriods.value = new Set(expandedPeriods.value)
+}
+
+// 判断时段是否展开
+function isPeriodExpanded(periodId: number): boolean {
+  return expandedPeriods.value.has(periodId)
+}
+
 // 用户信息表单
 const userInfoForm = ref<{
   dormitory: string
@@ -562,20 +581,39 @@ onMounted(() => {
         </div>
 
         <template v-else-if="campaign">
-          <!-- 活动信息卡片 -->
+          <!-- 活动信息卡片 - 移动端优化 -->
           <div class="campaign-card">
-            <div class="campaign-info">
-              <h1 class="campaign-title">{{ campaign.title }}</h1>
-              <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
-              <div class="campaign-meta">
-                <span class="meta-item">{{ campaign.campus?.name }}</span>
-                <span class="meta-divider">·</span>
-                <span class="meta-item">{{ rulesDescription }}</span>
-                <template v-if="campaign.currentStage?.endTime">
-                  <span class="meta-divider">·</span>
-                  <span class="meta-item countdown">{{ formatEndTime(campaign.currentStage.endTime) }}</span>
-                </template>
+            <div class="campaign-header">
+              <div class="campaign-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
               </div>
+              <div class="campaign-title-area">
+                <h1 class="campaign-title">{{ campaign.title }}</h1>
+                <div class="campaign-tags">
+                  <span class="tag campus">{{ campaign.campus?.name }}</span>
+                  <span v-if="campaign.currentStage?.endTime" class="tag countdown">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    {{ formatEndTime(campaign.currentStage.endTime) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
+            <div class="campaign-rules">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <span>{{ rulesDescription }}</span>
             </div>
             <div class="submit-area">
               <button class="submit-btn" @click="openSearchModal">
@@ -589,11 +627,16 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 我的投稿 -->
-          <section class="submissions-section">
-            <div class="section-header desktop-only">
-              <h2 class="section-title">我的投稿</h2>
-              <span class="section-count">{{ totalSubmissions }} 首</span>
+          <!-- 我的投稿 - 卡片布局 -->
+          <section class="submissions-card">
+            <div class="submissions-card-header">
+              <h2 class="submissions-card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                我的投稿
+              </h2>
+              <span class="submissions-card-count">{{ totalSubmissions }} 首</span>
             </div>
 
             <div v-if="totalSubmissions === 0" class="empty-submissions">
@@ -613,57 +656,69 @@ onMounted(() => {
                 v-for="periodData in userSubmissions"
                 :key="periodData.timePeriod.id"
                 class="period-group"
+                :class="{ expanded: isPeriodExpanded(periodData.timePeriod.id) }"
               >
-                <div class="period-header">
-                  <span class="period-name">{{ periodData.timePeriod.name }}</span>
-                  <span class="period-count">{{ periodData.submissions?.length || 0 }} 首</span>
-                </div>
+                <button
+                  class="period-header"
+                  @click="togglePeriodExpand(periodData.timePeriod.id)"
+                >
+                  <div class="period-header-left">
+                    <span class="period-name">{{ periodData.timePeriod.name }}</span>
+                    <span class="period-count">{{ periodData.submissions?.length || 0 }} 首</span>
+                  </div>
+                  <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
 
-                <div v-if="periodData.submissions?.length" class="submissions-list">
-                  <div
-                    v-for="submission in periodData.submissions"
-                    :key="submission.id"
-                    class="submission-item"
-                  >
-                    <div class="music-cover-wrapper">
-                      <img
-                        :src="submission.music.cover || '/default-cover.png'"
-                        :alt="submission.music.song"
-                        class="music-cover"
-                      />
-                      <span
-                        v-if="submission.music.platformName"
-                        class="platform-tag"
-                        :class="submission.music.platform"
+                <Transition name="expand">
+                  <div v-if="isPeriodExpanded(periodData.timePeriod.id)" class="period-content">
+                    <div v-if="periodData.submissions?.length" class="submissions-list">
+                      <div
+                        v-for="submission in periodData.submissions"
+                        :key="submission.id"
+                        class="submission-item"
                       >
-                        {{ submission.music.platformName }}
-                      </span>
+                        <div class="music-cover-wrapper">
+                          <img
+                            :src="submission.music.cover || '/default-cover.png'"
+                            :alt="submission.music.song"
+                            class="music-cover"
+                          />
+                          <span
+                            v-if="submission.music.platformName"
+                            class="platform-tag"
+                            :class="submission.music.platform"
+                          >
+                            {{ submission.music.platformName }}
+                          </span>
+                        </div>
+                        <div class="music-info">
+                          <h4 class="music-name">{{ submission.music.song }}</h4>
+                          <p class="music-singer">{{ submission.music.singer }}</p>
+                        </div>
+                        <div class="submission-actions">
+                          <a
+                            v-if="submission.music.sourceUrl"
+                            :href="submission.music.sourceUrl"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="play-link-btn"
+                            @click.stop
+                          >
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                          </a>
+                          <span class="submit-time">{{ formatDate(submission.createdAt) }}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div class="music-info">
-                      <h4 class="music-name">{{ submission.music.song }}</h4>
-                      <p class="music-singer">{{ submission.music.singer }}</p>
-                    </div>
-                    <div class="submission-actions">
-                      <a
-                        v-if="submission.music.sourceUrl"
-                        :href="submission.music.sourceUrl"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="play-link-btn"
-                        @click.stop
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                        </svg>
-                      </a>
-                      <span class="submit-time">{{ formatDate(submission.createdAt) }}</span>
+                    <div v-else class="period-empty">
+                      <span>暂无投稿</span>
                     </div>
                   </div>
-                </div>
-
-                <div v-else class="period-empty">
-                  <span>暂无投稿</span>
-                </div>
+                </Transition>
               </div>
             </div>
           </section>
@@ -1101,42 +1156,99 @@ onMounted(() => {
   margin-bottom: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
-.campaign-info {
+.campaign-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.campaign-badge {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover, var(--color-primary)));
+  color: white;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.campaign-badge svg {
+  width: 22px;
+  height: 22px;
+}
+
+.campaign-title-area {
   flex: 1;
+  min-width: 0;
 }
 
 .campaign-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-xs);
   line-height: 1.3;
+  margin-bottom: var(--spacing-xs);
+}
+
+.campaign-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.campaign-tags .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-full);
+}
+
+.campaign-tags .tag.campus {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+}
+
+.campaign-tags .tag.countdown {
+  background: rgba(var(--color-warning-rgb, 245, 158, 11), 0.1);
+  color: var(--color-warning);
+}
+
+.campaign-tags .tag.countdown svg {
+  width: 12px;
+  height: 12px;
 }
 
 .campaign-desc {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  line-height: 1.5;
-  margin-bottom: var(--spacing-sm);
+  line-height: 1.6;
+  padding: var(--spacing-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin: 0;
 }
 
-.campaign-meta {
+.campaign-rules {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-xs);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text-tertiary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
 }
 
-.meta-divider {
-  color: var(--color-border);
-}
-
-.meta-item.countdown {
-  color: var(--color-warning);
+.campaign-rules svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 /* ===== Submit Button ===== */
@@ -1200,51 +1312,67 @@ onMounted(() => {
   border-radius: 2px;
 }
 
-/* ===== Submissions Section ===== */
-.submissions-section {
+/* ===== Submissions Card ===== */
+.submissions-card {
+  background: var(--color-card);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
 }
 
-.section-header {
+.submissions-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.section-title {
+.submissions-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
+  margin: 0;
 }
 
-.section-count {
+.submissions-card-title svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-primary);
+}
+
+.submissions-card-count {
   font-size: var(--text-sm);
   color: var(--color-primary);
   font-weight: var(--font-medium);
+  background: var(--color-primary-bg);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
 }
 
 .empty-submissions {
   text-align: center;
-  padding: var(--spacing-xl);
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
 }
 
 .empty-icon {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto var(--spacing-md);
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--spacing-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-border);
+  background: var(--color-bg);
   color: var(--color-text-placeholder);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-full);
 }
 
 .empty-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 .empty-submissions p {
@@ -1262,11 +1390,11 @@ onMounted(() => {
 .submissions-by-period {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
 .period-group {
-  background: var(--color-card);
+  background: var(--color-bg);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -1276,18 +1404,55 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg);
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.period-header:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.period-header:active {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.period-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .period-name {
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
+  color: var(--color-text);
 }
 
 .period-count {
   font-size: var(--text-xs);
   color: var(--color-primary);
   font-weight: var(--font-medium);
+  background: var(--color-primary-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.expand-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-placeholder);
+  transition: transform 0.25s ease;
+}
+
+.period-group.expanded .expand-icon {
+  transform: rotate(180deg);
+}
+
+.period-content {
+  overflow: hidden;
 }
 
 .period-empty {
@@ -1297,17 +1462,39 @@ onMounted(() => {
   color: var(--color-text-placeholder);
 }
 
+/* 展开/收起动画 */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.expand-enter-to,
+.expand-leave-from {
+  opacity: 1;
+  max-height: 500px;
+}
+
 .submissions-list {
   display: flex;
   flex-direction: column;
+  padding: 0 var(--spacing-sm) var(--spacing-sm);
 }
 
 .submission-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-top: 1px solid var(--color-border);
+  padding: var(--spacing-sm);
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-xs);
 }
 
 .music-cover {
@@ -1361,7 +1548,7 @@ onMounted(() => {
   background: var(--color-card);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: var(--spacing-md);
-  padding-bottom: var(--spacing-lg);
+  padding-bottom: calc(var(--spacing-xl) + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -2027,16 +2214,18 @@ onMounted(() => {
 .modal-actions {
   display: flex;
   gap: var(--spacing-sm);
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
 }
 
 .action-btn {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
 }

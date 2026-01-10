@@ -85,28 +85,6 @@ function goToCampaign(campaign: Campaign) {
   }
 }
 
-// 格式化阶段结束时间
-function formatEndTime(endTime: string | undefined): string {
-  if (!endTime) return ''
-  const date = new Date(endTime)
-  const now = new Date()
-  const diffMs = date.getTime() - now.getTime()
-
-  if (diffMs < 0) return '已结束'
-
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-
-  if (diffDays > 0) {
-    return `${diffDays}天${diffHours}小时后结束`
-  } else if (diffHours > 0) {
-    return `${diffHours}小时后结束`
-  } else {
-    const diffMinutes = Math.floor(diffMs / (1000 * 60))
-    return `${diffMinutes}分钟后结束`
-  }
-}
-
 onMounted(() => {
   loadCampaigns()
 })
@@ -117,21 +95,6 @@ onMounted(() => {
     <PageHeader back-to="/" />
 
     <main class="page-content">
-      <!-- 移动端标题卡片 -->
-      <div class="mobile-header mobile-only">
-        <div class="header-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M9 18V5l12-2v13"></path>
-            <circle cx="6" cy="18" r="3"></circle>
-            <circle cx="18" cy="16" r="3"></circle>
-          </svg>
-        </div>
-        <div class="header-text">
-          <h1>宿舍铃声</h1>
-          <p>参与铃声征集活动，让你的音乐响彻校园</p>
-        </div>
-      </div>
-
       <div class="content-container">
         <!-- 桌面端标题 -->
         <h1 class="page-title desktop-only">宿舍铃声</h1>
@@ -173,11 +136,6 @@ onMounted(() => {
 
         <!-- 活动列表 -->
         <div v-else class="campaigns-section">
-          <!-- 桌面端显示标题 -->
-          <div class="section-header desktop-only">
-            <span class="section-title">全部活动</span>
-          </div>
-
           <div class="campaigns-list">
             <div
               v-for="campaign in displayCampaigns"
@@ -220,10 +178,6 @@ onMounted(() => {
                 <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
                 <div class="campaign-meta">
                   <span class="meta-item">{{ campaign.campus?.name || '未知校区' }}</span>
-                  <span v-if="campaign.currentStage?.endTime" class="meta-divider">·</span>
-                  <span v-if="campaign.currentStage?.endTime" class="meta-item countdown">
-                    {{ formatEndTime(campaign.currentStage.endTime) }}
-                  </span>
                 </div>
               </div>
 
@@ -273,70 +227,6 @@ onMounted(() => {
 
 .desktop-only {
   display: none;
-}
-
-.mobile-only {
-  display: flex;
-}
-
-/* ===== Mobile Header ===== */
-.mobile-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark, #4f46e5) 100%);
-  border-radius: var(--radius-xl);
-  color: white;
-  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb, 99, 102, 241), 0.25);
-}
-
-.header-icon {
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-lg);
-  flex-shrink: 0;
-}
-
-.header-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.header-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.header-text h1 {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  margin-bottom: 2px;
-}
-
-.header-text p {
-  font-size: var(--text-xs);
-  opacity: 0.9;
-  line-height: 1.4;
-}
-
-/* ===== Section Header ===== */
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-sm);
-}
-
-.section-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
 }
 
 /* ===== Login Prompt ===== */
@@ -549,15 +439,15 @@ onMounted(() => {
 }
 
 .step-dot {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--color-card);
   border: 2px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
@@ -565,16 +455,16 @@ onMounted(() => {
 .step-dot::before {
   content: '';
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--color-border);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .step-dot svg {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   color: white;
   position: relative;
   z-index: 1;
@@ -631,10 +521,10 @@ onMounted(() => {
 
 .steps-line {
   position: absolute;
-  top: calc(var(--spacing-lg) + 11px);
-  left: calc(10% + 12px);
-  right: calc(10% + 12px);
-  height: 3px;
+  top: calc(var(--spacing-lg) + 8px);
+  left: calc(10% + 9px);
+  right: calc(10% + 9px);
+  height: 2px;
   background: var(--color-border);
   border-radius: 2px;
 }
@@ -699,34 +589,8 @@ onMounted(() => {
   font-weight: var(--font-medium);
 }
 
-.meta-divider {
-  display: none;
-}
-
-.meta-item.countdown {
-  color: var(--color-warning);
-  background: rgba(var(--color-warning-rgb, 245, 158, 11), 0.1);
-}
-
 .campaign-arrow {
   display: none;
-}
-
-/* ===== Action Hint ===== */
-.campaign-card.clickable .campaign-info::after {
-  content: '点击进入';
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--text-xs);
-  color: var(--color-primary);
-  opacity: 0.7;
-  margin-top: var(--spacing-xs);
-  transition: opacity var(--transition-fast);
-}
-
-.campaign-card.clickable:hover .campaign-info::after,
-.campaign-card.clickable:active .campaign-info::after {
-  opacity: 1;
 }
 
 /* ===== Desktop ===== */
@@ -735,24 +599,12 @@ onMounted(() => {
     display: block;
   }
 
-  .mobile-only {
-    display: none !important;
-  }
-
   .page-content {
     padding: var(--spacing-xl);
   }
 
   .content-container {
     max-width: 900px;
-  }
-
-  .section-header {
-    margin-bottom: var(--spacing-md);
-  }
-
-  .section-title {
-    font-size: var(--text-base);
   }
 
   .campaigns-list {
@@ -773,18 +625,18 @@ onMounted(() => {
   }
 
   .step-dot {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
 
   .step-dot::before {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
 
   .step-dot svg {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
   }
 
   .step-label {
@@ -792,17 +644,13 @@ onMounted(() => {
   }
 
   .steps-line {
-    top: calc(var(--spacing-xl) + 13px);
-    height: 4px;
+    top: calc(var(--spacing-xl) + 11px);
+    height: 3px;
   }
 
   .campaign-info {
     padding: var(--spacing-xl);
     justify-content: center;
-  }
-
-  .campaign-info::after {
-    display: none !important;
   }
 
   .campaign-title {

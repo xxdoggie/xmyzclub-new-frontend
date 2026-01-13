@@ -1845,16 +1845,10 @@ onMounted(async () => {
 
 .checkbox-label.disabled-checkbox {
   cursor: default;
-<<<<<<< HEAD
-  opacity: 0.7;
-=======
->>>>>>> 37a7fb575d5755cfe72030e7311bc639afad320b
 }
 
 .checkbox-label.disabled-checkbox .form-checkbox {
   cursor: default;
-<<<<<<< HEAD
-=======
   opacity: 1;
   background: var(--color-primary);
   border-color: var(--color-primary);
@@ -1863,7 +1857,6 @@ onMounted(async () => {
 .checkbox-label.disabled-checkbox .form-checkbox:checked {
   background: var(--color-primary);
   accent-color: var(--color-primary);
->>>>>>> 37a7fb575d5755cfe72030e7311bc639afad320b
 }
 
 .form-checkbox {

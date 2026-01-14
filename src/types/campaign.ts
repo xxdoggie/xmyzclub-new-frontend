@@ -438,6 +438,40 @@ export interface MusicUrlResponse {
 // ==================== 用户端投稿相关类型 ====================
 
 /**
+ * 音乐平台类型
+ */
+export type MusicPlatform = 'qq_music' | 'netease' | 'kugou' | 'kuwo' | 'custom'
+
+/**
+ * 平台代码到显示名称的映射
+ */
+export const PLATFORM_NAMES: Record<MusicPlatform, string> = {
+  qq_music: 'QQ音乐',
+  netease: '网易云音乐',
+  kugou: '酷狗音乐',
+  kuwo: '酷我音乐',
+  custom: '自定义',
+}
+
+/**
+ * 自定义音乐信息
+ */
+export interface CustomMusicInfo {
+  /** 歌曲名（必填） */
+  song: string
+  /** 歌手（必填） */
+  singer: string
+  /** 专辑（可选） */
+  album?: string
+  /** 时长秒数（可选） */
+  interval?: string
+  /** 封面URL（可选） */
+  cover?: string
+  /** 播放链接（可选） */
+  sourceUrl?: string
+}
+
+/**
  * 投稿中的音乐信息
  */
 export interface SubmissionMusic {
@@ -447,6 +481,12 @@ export interface SubmissionMusic {
   album: string
   interval?: string
   cover: string
+  /** 音乐平台 */
+  platform?: MusicPlatform
+  /** 平台中文名 */
+  platformName?: string
+  /** 自定义音乐的播放链接 */
+  sourceUrl?: string
 }
 
 /**
@@ -489,8 +529,12 @@ export interface TimePeriodUserSubmissions {
 export interface CreateSubmissionRequest {
   /** 活动ID */
   campaignId: number
-  /** 音乐服务ID（格式：qq_{id} 或 qq_{mid}） */
-  musicServiceId: string
+  /** 音乐平台（可选，默认 qq_music） */
+  platform?: MusicPlatform
+  /** 音乐服务ID - 平台音乐时必填 */
+  musicServiceId?: string
+  /** 自定义音乐信息 - 自定义音乐时必填 */
+  customMusic?: CustomMusicInfo
   /** 时段ID列表 */
   timePeriodIds: number[]
   /** 用户附加信息（可选） */

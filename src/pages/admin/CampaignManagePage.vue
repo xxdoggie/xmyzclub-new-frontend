@@ -107,7 +107,7 @@ const campaignForm = ref<{
   timePeriodIds: [],
   buildingIds: [],
   globalConfig: {
-    auto_stage_transition: false,
+    auto_stage_transition: true,
   },
   stages: [
     {
@@ -227,10 +227,26 @@ function formatDate(dateStr: string) {
   })
 }
 
-// 将 datetime-local 值转换为 ISO 格式
+// 将 datetime-local 值转换为 ISO 格式（保持本地时间，添加时区偏移）
 function toISOString(localDateTime: string): string {
   if (!localDateTime) return ''
-  return new Date(localDateTime).toISOString()
+  const date = new Date(localDateTime)
+  // 获取本地时区偏移（分钟）
+  const offset = date.getTimezoneOffset()
+  const offsetHours = Math.abs(Math.floor(offset / 60))
+  const offsetMinutes = Math.abs(offset % 60)
+  const offsetSign = offset <= 0 ? '+' : '-'
+  const offsetStr = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`
+
+  // 格式化为 ISO 8601 带时区: YYYY-MM-DDTHH:mm:ss+HH:mm
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetStr}`
 }
 
 // 将 ISO 格式转换为 datetime-local 值
@@ -366,7 +382,7 @@ async function openEditModal(campaign: Campaign) {
       timePeriodIds: fullCampaign.timePeriods?.map(tp => tp.id) || [],
       buildingIds: fullCampaign.buildings?.map(b => b.id) || [],
       globalConfig: {
-        auto_stage_transition: fullCampaign.globalConfig?.auto_stage_transition ?? false,
+        auto_stage_transition: fullCampaign.globalConfig?.auto_stage_transition ?? true,
       },
       stages: fullCampaign.stages?.map(s => ({
         stageType: s.stageType,
@@ -1027,15 +1043,17 @@ onMounted(async () => {
             <div class="form-section">
               <h4 class="form-section-title">阶段配置</h4>
               <div class="form-group">
-                <label class="form-label checkbox-label">
+                <label class="form-label checkbox-label disabled-checkbox">
                   <input
                     v-model="campaignForm.globalConfig.auto_stage_transition"
                     type="checkbox"
                     class="form-checkbox"
+                    disabled
+                    checked
                   />
                   启用阶段自动转换
                 </label>
-                <p class="form-hint">开启后，阶段将在到达设定时间时自动转换到下一阶段</p>
+                <p class="form-hint">阶段将在到达设定时间时自动转换到下一阶段（默认开启）</p>
               </div>
               <div
                 v-for="(stage, index) in campaignForm.stages"
@@ -1823,6 +1841,22 @@ onMounted(async () => {
   gap: var(--spacing-sm);
   cursor: pointer;
   margin-bottom: 0;
+}
+
+.checkbox-label.disabled-checkbox {
+  cursor: default;
+}
+
+.checkbox-label.disabled-checkbox .form-checkbox {
+  cursor: default;
+  opacity: 1;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.checkbox-label.disabled-checkbox .form-checkbox:checked {
+  background: var(--color-primary);
+  accent-color: var(--color-primary);
 }
 
 .form-checkbox {

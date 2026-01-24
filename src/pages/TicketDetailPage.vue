@@ -367,35 +367,25 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- 校园网绑定警告 -->
-          <div v-if="requiresCampusBinding && !isCampusBound" class="campus-warning-notice">
-            <div class="warning-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <div class="warning-content">
-              <span class="warning-title">该活动需要绑定校园网账号</span>
-              <span class="warning-desc">请先绑定校园网账号后再进行抢票</span>
-            </div>
-            <button class="warning-btn" @click="goToProfile">前往绑定</button>
+          <!-- 校园网绑定提示 -->
+          <div v-if="requiresCampusBinding && !isCampusBound" class="campus-notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+            </svg>
+            <span>该活动需要绑定校园网账号</span>
+            <button class="notice-btn" @click="goToProfile">前往绑定</button>
           </div>
 
-          <!-- 校园网账号过期警告 -->
-          <div v-else-if="requiresCampusBinding && isCampusExpired" class="campus-warning-notice expired">
-            <div class="warning-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
-            </div>
-            <div class="warning-content">
-              <span class="warning-title">校园网账号需要更新</span>
-              <span class="warning-desc">请重新绑定以更新高二分班信息</span>
-            </div>
-            <button class="warning-btn" @click="goToProfile">前往更新</button>
+          <!-- 校园网账号过期提示 -->
+          <div v-else-if="requiresCampusBinding && isCampusExpired" class="campus-notice warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>校园网账号需要更新，请重新绑定以更新高二分班信息</span>
+            <button class="notice-btn" @click="goToProfile">前往更新</button>
           </div>
 
           <!-- 我的票据提示 -->
@@ -736,74 +726,42 @@ onUnmounted(() => {
   color: white;
 }
 
-/* ===== Campus Warning Notice ===== */
-.campus-warning-notice {
+/* ===== Campus Notice - 轻量设计 ===== */
+.campus-notice {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--color-info-bg);
-  border: 1px solid var(--color-info);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   margin-bottom: var(--spacing-md);
-}
-
-.campus-warning-notice.expired {
-  background: var(--color-warning-bg);
-  border-color: var(--color-warning);
-}
-
-.campus-warning-notice .warning-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-info);
-  color: white;
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-}
-
-.campus-warning-notice.expired .warning-icon {
-  background: var(--color-warning);
-}
-
-.campus-warning-notice .warning-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.campus-warning-notice .warning-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.campus-warning-notice .warning-title {
   font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--color-info);
-}
-
-.campus-warning-notice.expired .warning-title {
-  color: var(--color-warning);
-}
-
-.campus-warning-notice .warning-desc {
-  font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
-.campus-warning-notice .warning-btn {
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--text-sm);
+.campus-notice svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--color-secondary);
+}
+
+.campus-notice.warning svg {
+  color: var(--color-warning);
+}
+
+.campus-notice span {
+  flex: 1;
+}
+
+.campus-notice .notice-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
-  color: white;
-  background: var(--color-info);
-  border: none;
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-primary);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -811,12 +769,9 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-.campus-warning-notice.expired .warning-btn {
-  background: var(--color-warning);
-}
-
-.campus-warning-notice .warning-btn:hover {
-  opacity: 0.9;
+.campus-notice .notice-btn:hover {
+  background: var(--color-primary);
+  color: white;
 }
 
 .my-tickets-notice svg {

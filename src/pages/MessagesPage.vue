@@ -265,6 +265,7 @@ function handleTouchStart(event: TouchEvent, messageId: number) {
   }
 
   const touch = event.touches[0]
+  if (!touch) return
   startX.value = touch.clientX
   startY.value = touch.clientY
   swipingId.value = messageId
@@ -275,6 +276,7 @@ function handleTouchMove(event: TouchEvent, messageId: number) {
   if (swipingId.value !== messageId) return
 
   const touch = event.touches[0]
+  if (!touch) return
   const deltaX = startX.value - touch.clientX
   const deltaY = Math.abs(touch.clientY - startY.value)
 
@@ -558,8 +560,8 @@ onUnmounted(() => {
           <div v-if="showDetailDrawer && selectedMessage" class="drawer-content" @click.stop>
             <!-- 抽屉头部 -->
             <div class="drawer-header">
-              <div class="drawer-type" :class="getMessageTypeClass(selectedMessage.type)">
-                {{ tabs.find(t => t.value === selectedMessage.type)?.label || '消息' }}
+              <div class="drawer-type" :class="getMessageTypeClass(selectedMessage!.type)">
+                {{ tabs.find(t => t.value === selectedMessage!.type)?.label || '消息' }}
               </div>
               <button class="drawer-close" @click="closeDetailDrawer">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

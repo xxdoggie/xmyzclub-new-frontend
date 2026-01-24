@@ -19,7 +19,6 @@ import type {
   MusicPlatform,
   CustomMusicInfo,
 } from '@/types/campaign'
-import { PLATFORM_NAMES } from '@/types/campaign'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'

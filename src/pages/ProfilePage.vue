@@ -501,7 +501,7 @@ async function submitChangePassword() {
 
               <div class="card">
                 <!-- 校园网绑定 -->
-                <div class="binding-item" :class="{ 'has-warning': userStore.campusBinding?.isBound && userStore.campusBinding?.isClassInfoExpired }">
+                <div class="binding-item">
                   <div class="binding-icon campus">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
@@ -515,42 +515,35 @@ async function submitChangePassword() {
                       <span class="binding-detail" v-if="userStore.campusBinding?.classAlias">{{ userStore.campusBinding?.classAlias }}</span>
                     </p>
                     <p class="binding-desc unbound" v-else>未绑定</p>
-                    <!-- 过期警告 -->
-                    <div v-if="userStore.campusBinding?.isBound && userStore.campusBinding?.isClassInfoExpired" class="binding-warning">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                      </svg>
-                      <div class="warning-content">
-                        <span class="warning-title">校园网账号需要更新</span>
-                        <span class="warning-desc">请重新绑定以更新高二分班信息</span>
-                      </div>
-                    </div>
+                    <!-- 过期警告 - 轻量提示 -->
+                    <p v-if="userStore.campusBinding?.isBound && userStore.campusBinding?.isClassInfoExpired" class="binding-expired-hint">
+                      需要更新 · 请重新绑定以更新高二分班信息
+                    </p>
                   </div>
-                  <button
-                    v-if="!userStore.campusBinding?.isBound"
-                    class="binding-btn"
-                    @click="handleBindCampus(false)"
-                  >
-                    绑定
-                  </button>
-                  <template v-else>
+                  <div class="binding-actions">
                     <button
-                      v-if="userStore.campusBinding?.isClassInfoExpired"
-                      class="binding-btn update"
-                      @click="handleBindCampus(true)"
+                      v-if="!userStore.campusBinding?.isBound"
+                      class="binding-btn"
+                      @click="handleBindCampus(false)"
                     >
-                      更新
+                      绑定
                     </button>
-                    <button
-                      v-else
-                      class="binding-btn unbind"
-                      @click="openUnbindConfirm('campus')"
-                    >
-                      解绑
-                    </button>
-                  </template>
+                    <template v-else>
+                      <button
+                        v-if="userStore.campusBinding?.isClassInfoExpired"
+                        class="binding-btn update"
+                        @click="handleBindCampus(true)"
+                      >
+                        更新
+                      </button>
+                      <button
+                        class="binding-btn unbind"
+                        @click="openUnbindConfirm('campus')"
+                      >
+                        解绑
+                      </button>
+                    </template>
+                  </div>
                 </div>
 
                 <div class="binding-divider"></div>
@@ -1342,48 +1335,18 @@ async function submitChangePassword() {
   background: #d97706;
 }
 
-/* 绑定项警告状态 */
-.binding-item.has-warning {
-  background: var(--color-warning-bg);
-  border-radius: var(--radius-lg);
-  margin: calc(var(--spacing-md) * -1);
-  margin-bottom: 0;
-  padding: var(--spacing-md);
-}
-
-/* 过期警告提示 */
-.binding-warning {
+/* 绑定操作按钮组 */
+.binding-actions {
   display: flex;
-  align-items: flex-start;
   gap: var(--spacing-xs);
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  background: var(--color-warning);
-  border-radius: var(--radius-md);
-  color: white;
-}
-
-.binding-warning svg {
-  width: 16px;
-  height: 16px;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
-.warning-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.warning-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-}
-
-.warning-desc {
+/* 过期提示 - 轻量设计 */
+.binding-expired-hint {
   font-size: var(--text-xs);
-  opacity: 0.9;
+  color: var(--color-warning);
+  margin-top: 4px;
 }
 
 /* ===== Action Items ===== */

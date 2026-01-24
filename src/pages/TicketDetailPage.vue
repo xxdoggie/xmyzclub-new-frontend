@@ -36,6 +36,17 @@ const successTicketCode = ref('')
 const countdowns = ref<Record<number, string>>({})
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
+// 校园网绑定检查
+const requiresCampusBinding = computed(() => activity.value?.config?.require_campus_binding ?? false)
+const isCampusBound = computed(() => userStore.campusBinding?.isBound ?? false)
+const isCampusExpired = computed(() => userStore.campusBinding?.isClassInfoExpired ?? false)
+
+// 校园网绑定状态：是否可以抢票
+const canGrabWithCampus = computed(() => {
+  if (!requiresCampusBinding.value) return true
+  return isCampusBound.value && !isCampusExpired.value
+})
+
 // 加载活动详情
 async function loadActivity() {
   try {
@@ -47,6 +58,11 @@ async function loadActivity() {
     if (activityRes.data.code === 200) {
       activity.value = activityRes.data.data
       initExtraInfo()
+
+      // 如果活动需要校园网绑定，获取校园网绑定信息
+      if (activity.value?.config?.require_campus_binding) {
+        await userStore.fetchCampusBinding()
+      }
     } else {
       toast.error(activityRes.data.message || '获取活动详情失败')
       router.push('/ticket')
@@ -104,10 +120,15 @@ function startGrab(session: ActivitySession) {
   }
 
   // 检查是否需要校园网绑定
-  if (activity.value?.config?.require_campus_binding && !userStore.campusBinding?.isBound) {
-    toast.warning('该活动需要绑定校园网账号')
-    router.push('/profile')
-    return
+  if (activity.value?.config?.require_campus_binding) {
+    if (!userStore.campusBinding?.isBound) {
+      toast.warning('该活动需要绑定校园网账号')
+      return
+    }
+    if (userStore.campusBinding?.isClassInfoExpired) {
+      toast.warning('校园网账号需要更新，请重新绑定')
+      return
+    }
   }
 
   selectedSession.value = session
@@ -189,6 +210,11 @@ function closeSuccessModal() {
 // 跳转到我的票据
 function goToMyTickets() {
   router.push('/ticket/my')
+}
+
+// 跳转到个人中心（校园网绑定）
+function goToProfile() {
+  router.push('/profile')
 }
 
 // 获取状态标签
@@ -341,6 +367,37 @@ onUnmounted(() => {
             </div>
           </div>
 
+          <!-- 校园网绑定警告 -->
+          <div v-if="requiresCampusBinding && !isCampusBound" class="campus-warning-notice">
+            <div class="warning-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+              </svg>
+            </div>
+            <div class="warning-content">
+              <span class="warning-title">该活动需要绑定校园网账号</span>
+              <span class="warning-desc">请先绑定校园网账号后再进行抢票</span>
+            </div>
+            <button class="warning-btn" @click="goToProfile">前往绑定</button>
+          </div>
+
+          <!-- 校园网账号过期警告 -->
+          <div v-else-if="requiresCampusBinding && isCampusExpired" class="campus-warning-notice expired">
+            <div class="warning-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <div class="warning-content">
+              <span class="warning-title">校园网账号需要更新</span>
+              <span class="warning-desc">请重新绑定以更新高二分班信息</span>
+            </div>
+            <button class="warning-btn" @click="goToProfile">前往更新</button>
+          </div>
+
           <!-- 我的票据提示 -->
           <div v-if="myTickets.length > 0" class="my-tickets-notice" @click="goToMyTickets">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -411,7 +468,7 @@ onUnmounted(() => {
                   <button
                     v-if="session.canGrab && !hasTicketForSession(session.id)"
                     class="grab-btn"
-                    :disabled="isGrabbing"
+                    :disabled="isGrabbing || !canGrabWithCampus"
                     @click="startGrab(session)"
                   >
                     立即抢票
@@ -677,6 +734,89 @@ onUnmounted(() => {
 .my-tickets-notice:hover {
   background: var(--color-success);
   color: white;
+}
+
+/* ===== Campus Warning Notice ===== */
+.campus-warning-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.campus-warning-notice.expired {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning);
+}
+
+.campus-warning-notice .warning-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-info);
+  color: white;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.campus-warning-notice.expired .warning-icon {
+  background: var(--color-warning);
+}
+
+.campus-warning-notice .warning-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.campus-warning-notice .warning-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.campus-warning-notice .warning-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-info);
+}
+
+.campus-warning-notice.expired .warning-title {
+  color: var(--color-warning);
+}
+
+.campus-warning-notice .warning-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.campus-warning-notice .warning-btn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-info);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.campus-warning-notice.expired .warning-btn {
+  background: var(--color-warning);
+}
+
+.campus-warning-notice .warning-btn:hover {
+  opacity: 0.9;
 }
 
 .my-tickets-notice svg {

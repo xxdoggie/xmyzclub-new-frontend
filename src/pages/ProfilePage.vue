@@ -28,6 +28,7 @@ const isUnbinding = ref(false)
 
 // 校园网绑定抽屉
 const showCampusBindDrawer = ref(false)
+const isRebindMode = ref(false) // 是否为重新绑定模式
 const campusBindForm = ref({
   studentId: '',
   password: '',
@@ -157,7 +158,8 @@ async function saveEdit() {
 }
 
 // 绑定校园网 - 打开抽屉
-function handleBindCampus() {
+function handleBindCampus(rebind: boolean = false) {
+  isRebindMode.value = rebind
   showCampusBindDrawer.value = true
   bindErrorMessage.value = ''
   campusBindForm.value = {
@@ -210,12 +212,15 @@ async function submitCampusBind() {
   bindErrorMessage.value = ''
 
   try {
-    const result = await userStore.bindCampus(studentId, password, captchaCode, jsessionId)
+    // 根据模式调用不同的接口
+    const result = isRebindMode.value
+      ? await userStore.rebindCampus(studentId, password, captchaCode, jsessionId)
+      : await userStore.bindCampus(studentId, password, captchaCode, jsessionId)
     if (result.code === 200) {
-      toast.success('绑定成功')
+      toast.success(isRebindMode.value ? '更新成功' : '绑定成功')
       closeCampusBindDrawer()
     } else {
-      bindErrorMessage.value = result.message || '绑定失败'
+      bindErrorMessage.value = result.message || (isRebindMode.value ? '更新失败' : '绑定失败')
       loadCampusCaptcha()
     }
   } catch {
@@ -496,7 +501,7 @@ async function submitChangePassword() {
 
               <div class="card">
                 <!-- 校园网绑定 -->
-                <div class="binding-item">
+                <div class="binding-item" :class="{ 'has-warning': userStore.campusBinding?.isBound && userStore.campusBinding?.isClassInfoExpired }">
                   <div class="binding-icon campus">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
@@ -510,21 +515,42 @@ async function submitChangePassword() {
                       <span class="binding-detail" v-if="userStore.campusBinding?.classAlias">{{ userStore.campusBinding?.classAlias }}</span>
                     </p>
                     <p class="binding-desc unbound" v-else>未绑定</p>
+                    <!-- 过期警告 -->
+                    <div v-if="userStore.campusBinding?.isBound && userStore.campusBinding?.isClassInfoExpired" class="binding-warning">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      <div class="warning-content">
+                        <span class="warning-title">校园网账号需要更新</span>
+                        <span class="warning-desc">请重新绑定以更新高二分班信息</span>
+                      </div>
+                    </div>
                   </div>
                   <button
                     v-if="!userStore.campusBinding?.isBound"
                     class="binding-btn"
-                    @click="handleBindCampus"
+                    @click="handleBindCampus(false)"
                   >
                     绑定
                   </button>
-                  <button
-                    v-else
-                    class="binding-btn unbind"
-                    @click="openUnbindConfirm('campus')"
-                  >
-                    解绑
-                  </button>
+                  <template v-else>
+                    <button
+                      v-if="userStore.campusBinding?.isClassInfoExpired"
+                      class="binding-btn update"
+                      @click="handleBindCampus(true)"
+                    >
+                      更新
+                    </button>
+                    <button
+                      v-else
+                      class="binding-btn unbind"
+                      @click="openUnbindConfirm('campus')"
+                    >
+                      解绑
+                    </button>
+                  </template>
                 </div>
 
                 <div class="binding-divider"></div>
@@ -623,13 +649,18 @@ async function submitChangePassword() {
           <div v-if="showCampusBindDrawer" class="drawer-content" @click.stop>
             <!-- 抽屉头部 -->
             <div class="drawer-header">
-              <h3 class="drawer-title">绑定校园网账号</h3>
+              <h3 class="drawer-title">{{ isRebindMode ? '更新校园网账号' : '绑定校园网账号' }}</h3>
               <button class="drawer-close" @click="closeCampusBindDrawer">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
+            </div>
+
+            <!-- 重新绑定提示 -->
+            <div v-if="isRebindMode" class="rebind-hint">
+              请输入校园网账号密码以更新您的高二分班信息
             </div>
 
             <!-- 错误提示 -->
@@ -692,7 +723,7 @@ async function submitChangePassword() {
                 class="bind-submit-btn"
                 :disabled="isBinding"
               >
-                {{ isBinding ? '绑定中...' : '绑定' }}
+                {{ isBinding ? (isRebindMode ? '更新中...' : '绑定中...') : (isRebindMode ? '更新' : '绑定') }}
               </button>
             </form>
           </div>
@@ -1302,6 +1333,59 @@ async function submitChangePassword() {
   background: rgba(239, 68, 68, 0.1);
 }
 
+.binding-btn.update {
+  background: var(--color-warning);
+  color: white;
+}
+
+.binding-btn.update:hover {
+  background: #d97706;
+}
+
+/* 绑定项警告状态 */
+.binding-item.has-warning {
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-lg);
+  margin: calc(var(--spacing-md) * -1);
+  margin-bottom: 0;
+  padding: var(--spacing-md);
+}
+
+/* 过期警告提示 */
+.binding-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-warning);
+  border-radius: var(--radius-md);
+  color: white;
+}
+
+.binding-warning svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.warning-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.warning-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+.warning-desc {
+  font-size: var(--text-xs);
+  opacity: 0.9;
+}
+
 /* ===== Action Items ===== */
 .action-item {
   display: flex;
@@ -1574,6 +1658,17 @@ async function submitChangePassword() {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   margin-bottom: var(--spacing-md);
+}
+
+/* 重新绑定提示 */
+.rebind-hint {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-info-bg, rgba(59, 130, 246, 0.1));
+  color: var(--color-info, #3b82f6);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  line-height: var(--leading-relaxed);
 }
 
 /* 绑定表单 */

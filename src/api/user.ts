@@ -61,6 +61,13 @@ export function bindCampus(data: BindCampusRequest) {
 }
 
 /**
+ * 重新绑定校园网（用于更新分班信息）
+ */
+export function rebindCampus(data: BindCampusRequest) {
+  return api.post<ApiResponse<CampusBindingInfo>>('/user/rebind-campus', data)
+}
+
+/**
  * 解绑校园网
  */
 export function unbindCampus() {

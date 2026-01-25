@@ -291,15 +291,34 @@ async function uploadImage(pendingImage: PendingImage) {
   try {
     const res = await uploadCommentImage(pendingImage.file)
     if (res.data.code === 200 && res.data.data) {
-      pendingImage.id = res.data.data.id
-      pendingImage.status = 'success'
+      // 找到数组中的索引并更新，确保响应式
+      const index = pendingImages.value.findIndex(img => img === pendingImage)
+      if (index !== -1) {
+        pendingImages.value[index] = {
+          ...pendingImage,
+          id: res.data.data.id,
+          status: 'success',
+        }
+      }
     } else {
-      pendingImage.status = 'error'
-      pendingImage.errorMessage = res.data.message || '上传失败'
+      const index = pendingImages.value.findIndex(img => img === pendingImage)
+      if (index !== -1) {
+        pendingImages.value[index] = {
+          ...pendingImage,
+          status: 'error',
+          errorMessage: res.data.message || '上传失败',
+        }
+      }
     }
   } catch {
-    pendingImage.status = 'error'
-    pendingImage.errorMessage = '上传失败'
+    const index = pendingImages.value.findIndex(img => img === pendingImage)
+    if (index !== -1) {
+      pendingImages.value[index] = {
+        ...pendingImage,
+        status: 'error',
+        errorMessage: '上传失败',
+      }
+    }
   }
 }
 
@@ -1159,63 +1178,51 @@ onMounted(() => {
         </div>
 
         <!-- 底部评论输入栏 -->
-        <div class="bottom-input-bar" :class="{ 'has-images': pendingImages.length > 0 }">
-          <!-- 待上传图片预览区 -->
-          <div v-if="pendingImages.length > 0" class="pending-images-bar">
-            <div
-              v-for="(img, index) in pendingImages"
-              :key="index"
-              class="pending-image-item"
-              :class="{ 'is-uploading': img.status === 'uploading', 'is-error': img.status === 'error' }"
-            >
-              <img :src="img.previewUrl" alt="" class="pending-image-thumb" />
-              <!-- 上传中遮罩 -->
-              <div v-if="img.status === 'uploading'" class="pending-image-overlay">
-                <div class="upload-spinner"></div>
+        <div class="bottom-input-bar">
+          <!-- 待上传图片预览区（放在输入行上方） -->
+          <Transition name="images-slide">
+            <div v-if="pendingImages.length > 0" class="pending-images-bar">
+              <div
+                v-for="(img, index) in pendingImages"
+                :key="img.previewUrl"
+                class="pending-image-item"
+                :class="{ 'is-uploading': img.status === 'uploading', 'is-error': img.status === 'error' }"
+              >
+                <img :src="img.previewUrl" alt="" class="pending-image-thumb" />
+                <!-- 上传中遮罩 -->
+                <div v-if="img.status === 'uploading'" class="pending-image-overlay">
+                  <div class="upload-spinner"></div>
+                </div>
+                <!-- 上传失败遮罩 -->
+                <div v-if="img.status === 'error'" class="pending-image-overlay error" @click="retryUpload(index)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                </div>
+                <!-- 删除按钮 -->
+                <button class="pending-image-remove" @click="removePendingImage(index)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
-              <!-- 上传失败遮罩 -->
-              <div v-if="img.status === 'error'" class="pending-image-overlay error" @click="retryUpload(index)">
+              <!-- 添加更多图片按钮 -->
+              <button
+                v-if="pendingImages.length < MAX_IMAGES"
+                class="add-more-image-btn"
+                @click="triggerImageSelect"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M23 4v6h-6M1 20v-6h6"></path>
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-              </div>
-              <!-- 删除按钮 -->
-              <button class="pending-image-remove" @click="removePendingImage(index)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
               </button>
             </div>
-            <!-- 添加更多图片按钮 -->
-            <button
-              v-if="pendingImages.length < MAX_IMAGES"
-              class="add-more-image-btn"
-              @click="triggerImageSelect"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
-          </div>
+          </Transition>
           <!-- 输入行 -->
           <div class="bottom-input-row">
-            <!-- 图片选择按钮 -->
-            <button
-              class="image-select-btn"
-              :class="{ 'has-images': pendingImages.length > 0 }"
-              @click="triggerImageSelect"
-              :disabled="pendingImages.length >= MAX_IMAGES"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
-              </svg>
-              <span v-if="pendingImages.length > 0" class="image-count-badge">{{ pendingImages.length }}</span>
-            </button>
             <input
               ref="imageInputRef"
               type="file"
@@ -1224,13 +1231,29 @@ onMounted(() => {
               class="hidden-file-input"
               @change="handleImageSelect"
             />
-            <input
-              v-model="bottomCommentText"
-              type="text"
-              class="bottom-input"
-              placeholder="写评论..."
-              @keyup.enter="submitBottomComment"
-            />
+            <!-- 输入框容器（包含图片按钮和输入框） -->
+            <div class="input-wrapper">
+              <!-- 图片选择按钮 -->
+              <button
+                class="image-select-btn"
+                :class="{ 'has-images': pendingImages.length > 0 }"
+                @click="triggerImageSelect"
+                :disabled="pendingImages.length >= MAX_IMAGES"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </button>
+              <input
+                v-model="bottomCommentText"
+                type="text"
+                class="bottom-input"
+                placeholder="写评论..."
+                @keyup.enter="submitBottomComment"
+              />
+            </div>
             <button
               class="bottom-send-btn"
               :disabled="isSubmittingComment || !bottomCommentText.trim() || hasUploadingImages"
@@ -2339,62 +2362,6 @@ onMounted(() => {
   transform: translateY(100%);
 }
 
-/* ===== Bottom Input Bar ===== */
-.bottom-input-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-card);
-  border-top: 1px solid var(--color-border);
-  z-index: 100;
-}
-
-.bottom-input {
-  flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.bottom-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-.bottom-input::placeholder {
-  color: var(--color-text-placeholder);
-}
-
-.bottom-send-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: white;
-  background: var(--color-primary);
-  border: none;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-  white-space: nowrap;
-}
-
-.bottom-send-btn:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.bottom-send-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .cancel-reply-btn {
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--text-sm);
@@ -3010,7 +2977,7 @@ onMounted(() => {
   object-fit: cover;
 }
 
-/* ===== Bottom Input Bar with Images ===== */
+/* ===== Bottom Input Bar ===== */
 .bottom-input-bar {
   position: fixed;
   bottom: 0;
@@ -3018,20 +2985,17 @@ onMounted(() => {
   right: 0;
   background: var(--color-card);
   border-top: 1px solid var(--color-border);
-  padding: var(--spacing-sm) var(--spacing-md);
-  padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
+  padding: var(--spacing-xs) var(--spacing-sm);
+  padding-bottom: calc(var(--spacing-xs) + env(safe-area-inset-bottom, 0px));
   z-index: 100;
-  transition: padding var(--transition-fast);
 }
 
-.bottom-input-bar.has-images {
-  padding-top: 0;
-}
-
+/* 图片预览区 */
 .pending-images-bar {
   display: flex;
   gap: 8px;
-  padding: var(--spacing-sm) 0;
+  padding: var(--spacing-xs) 0;
+  margin-bottom: var(--spacing-xs);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -3043,10 +3007,10 @@ onMounted(() => {
 
 .pending-image-item {
   position: relative;
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   flex-shrink: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--color-bg);
 }
@@ -3072,14 +3036,14 @@ onMounted(() => {
 }
 
 .pending-image-overlay svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   color: white;
 }
 
 .upload-spinner {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
@@ -3096,8 +3060,8 @@ onMounted(() => {
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   background: rgba(0, 0, 0, 0.6);
   border: none;
@@ -3115,20 +3079,20 @@ onMounted(() => {
 }
 
 .pending-image-remove svg {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 .add-more-image-btn {
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-bg);
   border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -3140,20 +3104,60 @@ onMounted(() => {
 }
 
 .add-more-image-btn svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
+/* 图片预览动画 */
+.images-slide-enter-active,
+.images-slide-leave-active {
+  transition: all 0.2s ease;
+}
+
+.images-slide-enter-from,
+.images-slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.images-slide-enter-to,
+.images-slide-leave-from {
+  max-height: 80px;
+}
+
+/* 输入行 */
 .bottom-input-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+/* 输入框容器（图片按钮+输入框） */
+.input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--color-primary);
 }
 
 .image-select-btn {
-  position: relative;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -3162,17 +3166,15 @@ onMounted(() => {
   border: none;
   color: var(--color-text-secondary);
   cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
 .image-select-btn:hover:not(:disabled) {
   color: var(--color-primary);
-  background: var(--color-primary-bg);
 }
 
 .image-select-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -3181,50 +3183,27 @@ onMounted(() => {
 }
 
 .image-select-btn svg {
-  width: 22px;
-  height: 22px;
-}
-
-.image-count-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  font-size: 10px;
-  font-weight: var(--font-bold);
-  color: white;
-  background: var(--color-primary);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hidden-file-input {
-  display: none;
+  width: 18px;
+  height: 18px;
 }
 
 .bottom-input {
   flex: 1;
-  height: 36px;
-  padding: 0 var(--spacing-sm);
+  height: 100%;
+  padding: 0 var(--spacing-sm) 0 0;
   font-size: var(--text-sm);
   color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
+  background: transparent;
+  border: none;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
 
-.bottom-input:focus {
-  border-color: var(--color-primary);
+.bottom-input::placeholder {
+  color: var(--color-text-placeholder);
 }
 
 .bottom-send-btn {
-  height: 36px;
+  height: 32px;
   padding: 0 var(--spacing-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -3234,6 +3213,7 @@ onMounted(() => {
   border-radius: var(--radius-full);
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
   transition: all var(--transition-fast);
 }
 

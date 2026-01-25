@@ -102,12 +102,10 @@ export function getMyRating(itemId: number) {
  */
 export interface CommentImageUploadResponse {
   id: number
-  filePath: string
-  fileType: string
-  fileSize: number
-  businessType: string
-  businessId: number | null
   fileUrl: string
+  filePath: string
+  fileSize: number
+  fileType: string
 }
 
 /**

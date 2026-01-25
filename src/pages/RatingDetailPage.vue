@@ -416,8 +416,11 @@ async function submitBottomComment() {
   const commentText = bottomCommentText.value.trim()
   const imageIds = uploadedImageIds.value
 
+  // 保存 blob URL 引用，用于稍后释放（不能立即释放，因为乐观更新需要用）
+  const blobUrlsToRevoke = pendingImages.value.map(img => img.previewUrl)
+
   // 乐观更新：创建临时评论（包含图片预览URL）
-  const tempImageUrls = pendingImages.value.map(img => img.previewUrl)
+  const tempImageUrls = [...blobUrlsToRevoke]
   const tempComment: Comment = {
     id: Date.now(), // 临时 ID
     userId: userStore.user?.id || 0,
@@ -443,8 +446,7 @@ async function submitBottomComment() {
   }
 
   bottomCommentText.value = ''
-  // 清空待上传图片（释放 blob URL）
-  pendingImages.value.forEach(img => URL.revokeObjectURL(img.previewUrl))
+  // 先清空待上传图片数组（但不释放 blob URL，等刷新后再释放）
   pendingImages.value = []
 
   // 滚动到页面顶部
@@ -463,20 +465,24 @@ async function submitBottomComment() {
       if (realComment) {
         tempComment.id = realComment.id
       }
-      // 静默刷新获取最新数据
+      // 静默刷新获取最新数据（刷新后会用服务器返回的真实 URL 替换临时 URL）
       await loadDetail(true)
+      // 刷新完成后释放 blob URL
+      blobUrlsToRevoke.forEach(url => URL.revokeObjectURL(url))
     } else {
-      // 失败：移除临时评论
+      // 失败：移除临时评论并释放 blob URL
       if (detail.value?.comments) {
         detail.value.comments = detail.value.comments.filter(c => c.id !== tempComment.id)
       }
+      blobUrlsToRevoke.forEach(url => URL.revokeObjectURL(url))
       toast.error(res.data.message || '评论失败')
     }
   } catch {
-    // 失败：移除临时评论
+    // 失败：移除临时评论并释放 blob URL
     if (detail.value?.comments) {
       detail.value.comments = detail.value.comments.filter(c => c.id !== tempComment.id)
     }
+    blobUrlsToRevoke.forEach(url => URL.revokeObjectURL(url))
     toast.error('评论失败')
   } finally {
     isSubmittingComment.value = false
@@ -3206,7 +3212,7 @@ onMounted(() => {
   flex: 1;
   height: 100%;
   padding: 0 var(--spacing-sm) 0 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text);
   background: transparent;
   border: none;
@@ -3215,6 +3221,7 @@ onMounted(() => {
 
 .bottom-input::placeholder {
   color: var(--color-text-placeholder);
+  font-size: var(--text-xs);
 }
 
 .bottom-send-btn {

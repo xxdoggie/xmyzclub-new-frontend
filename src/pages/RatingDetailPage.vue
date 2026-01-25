@@ -278,46 +278,56 @@ async function handleImageSelect(event: Event) {
     }
     pendingImages.value.push(pendingImage)
 
-    // 异步上传
-    uploadImage(pendingImage)
+    // 异步上传（传入 previewUrl 作为标识）
+    uploadImage(previewUrl)
   }
 
   // 清空input以便重复选择同一文件
   input.value = ''
 }
 
-// 上传单张图片
-async function uploadImage(pendingImage: PendingImage) {
+// 上传单张图片（使用 previewUrl 作为唯一标识）
+async function uploadImage(previewUrl: string) {
+  // 通过 previewUrl 找到对应的图片
+  const index = pendingImages.value.findIndex(img => img.previewUrl === previewUrl)
+  if (index === -1) return // 图片可能已被删除
+
+  const pendingImage = pendingImages.value[index]
+  if (!pendingImage) return
+
   try {
     const res = await uploadCommentImage(pendingImage.file)
+    // 再次查找索引，因为在异步期间数组可能已变化
+    const currentIndex = pendingImages.value.findIndex(img => img.previewUrl === previewUrl)
+    if (currentIndex === -1) return // 图片已被删除
+
+    const currentImage = pendingImages.value[currentIndex]
+    if (!currentImage) return
+
     if (res.data.code === 200 && res.data.data) {
-      // 找到数组中的索引并更新，确保响应式
-      const index = pendingImages.value.findIndex(img => img === pendingImage)
-      if (index !== -1) {
-        pendingImages.value[index] = {
-          ...pendingImage,
-          id: res.data.data.id,
-          status: 'success',
-        }
+      pendingImages.value[currentIndex] = {
+        ...currentImage,
+        id: res.data.data.id,
+        status: 'success',
       }
     } else {
-      const index = pendingImages.value.findIndex(img => img === pendingImage)
-      if (index !== -1) {
-        pendingImages.value[index] = {
-          ...pendingImage,
-          status: 'error',
-          errorMessage: res.data.message || '上传失败',
-        }
+      pendingImages.value[currentIndex] = {
+        ...currentImage,
+        status: 'error',
+        errorMessage: res.data.message || '上传失败',
       }
     }
   } catch {
-    const index = pendingImages.value.findIndex(img => img === pendingImage)
-    if (index !== -1) {
-      pendingImages.value[index] = {
-        ...pendingImage,
-        status: 'error',
-        errorMessage: '上传失败',
-      }
+    const currentIndex = pendingImages.value.findIndex(img => img.previewUrl === previewUrl)
+    if (currentIndex === -1) return
+
+    const currentImage = pendingImages.value[currentIndex]
+    if (!currentImage) return
+
+    pendingImages.value[currentIndex] = {
+      ...currentImage,
+      status: 'error',
+      errorMessage: '上传失败',
     }
   }
 }
@@ -335,9 +345,14 @@ function removePendingImage(index: number) {
 function retryUpload(index: number) {
   const image = pendingImages.value[index]
   if (image && image.status === 'error') {
-    image.status = 'uploading'
-    image.errorMessage = undefined
-    uploadImage(image)
+    // 更新状态
+    pendingImages.value[index] = {
+      ...image,
+      status: 'uploading',
+      errorMessage: undefined,
+    }
+    // 使用 previewUrl 来标识
+    uploadImage(image.previewUrl)
   }
 }
 

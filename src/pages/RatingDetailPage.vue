@@ -10,6 +10,7 @@ import {
   deleteComment,
   toggleLike,
   getContributionHistory,
+  uploadCommentImage,
 } from '@/api/rating'
 import { getUserAvatar } from '@/api/user'
 import type { RatingItemDetail, Comment, ContributionHistoryItem } from '@/types/rating'
@@ -18,7 +19,7 @@ import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
 
 // 扁平化的回复类型，包含被回复人信息
 interface FlattenedReply extends Comment {
-  replyToNickname?: string // 被回复人昵称
+  replyToNickname: string | null // 被回复人昵称
 }
 
 const route = useRoute()
@@ -45,6 +46,25 @@ const isReplying = ref(false)
 // 底部评论输入状态
 const bottomCommentText = ref('')
 const isSubmittingComment = ref(false)
+
+// 评论图片相关状态
+interface PendingImage {
+  id: number | null // 上传成功后的服务器ID，上传中为null
+  file: File
+  previewUrl: string
+  status: 'uploading' | 'success' | 'error'
+  errorMessage?: string
+}
+const pendingImages = ref<PendingImage[]>([])
+const imageInputRef = ref<HTMLInputElement | null>(null)
+const MAX_IMAGES = 9
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024 // 20MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+
+// 图片预览大图状态
+const previewImageUrl = ref<string | null>(null)
+const previewImageIndex = ref(0)
+const previewImageList = ref<string[]>([])
 
 // 排序状态
 const commentSortBy = ref<'time' | 'hot'>('hot')
@@ -141,16 +161,17 @@ const sortedComments = computed(() => {
 })
 
 // 递归扁平化回复列表，记录被回复人（直接修改原对象以保持引用，使点赞等操作能正确更新）
-function flattenReplies(replies: Comment[] | null, parentNickname?: string): FlattenedReply[] {
+function flattenReplies(replies: Comment[] | null, parentNickname: string | null = null): FlattenedReply[] {
   if (!replies || replies.length === 0) return []
   const result: FlattenedReply[] = []
   for (const reply of replies) {
     // 直接在原对象上添加 replyToNickname，保持引用以支持点赞等操作
     // 如果已经设置了 replyToNickname（乐观更新时设置），则不覆盖
-    if ((reply as FlattenedReply).replyToNickname === undefined) {
-      (reply as FlattenedReply).replyToNickname = parentNickname
+    const flatReply = reply as FlattenedReply
+    if (flatReply.replyToNickname === undefined) {
+      flatReply.replyToNickname = parentNickname
     }
-    result.push(reply as FlattenedReply)
+    result.push(flatReply)
     // 递归处理嵌套的回复
     if (reply.replies && reply.replies.length > 0) {
       result.push(...flattenReplies(reply.replies, reply.nickname))
@@ -207,6 +228,137 @@ function closeReplyDrawer() {
   }, 300)
 }
 
+// 触发图片选择
+function triggerImageSelect() {
+  if (!userStore.isLoggedIn) {
+    userStore.openLoginModal()
+    return
+  }
+  imageInputRef.value?.click()
+}
+
+// 处理图片选择
+async function handleImageSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = input.files
+  if (!files || files.length === 0) return
+
+  // 检查总数量限制
+  const remainingSlots = MAX_IMAGES - pendingImages.value.length
+  if (remainingSlots <= 0) {
+    toast.error(`最多只能上传${MAX_IMAGES}张图片`)
+    input.value = ''
+    return
+  }
+
+  const filesToUpload = Array.from(files).slice(0, remainingSlots)
+
+  for (const file of filesToUpload) {
+    // 验证文件类型
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error(`不支持的图片格式: ${file.name}`)
+      continue
+    }
+
+    // 验证文件大小
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.error(`图片 ${file.name} 超过20MB限制`)
+      continue
+    }
+
+    // 创建预览URL
+    const previewUrl = URL.createObjectURL(file)
+
+    // 添加到待上传列表
+    const pendingImage: PendingImage = {
+      id: null,
+      file,
+      previewUrl,
+      status: 'uploading',
+    }
+    pendingImages.value.push(pendingImage)
+
+    // 异步上传
+    uploadImage(pendingImage)
+  }
+
+  // 清空input以便重复选择同一文件
+  input.value = ''
+}
+
+// 上传单张图片
+async function uploadImage(pendingImage: PendingImage) {
+  try {
+    const res = await uploadCommentImage(pendingImage.file)
+    if (res.data.code === 200 && res.data.data) {
+      pendingImage.id = res.data.data.id
+      pendingImage.status = 'success'
+    } else {
+      pendingImage.status = 'error'
+      pendingImage.errorMessage = res.data.message || '上传失败'
+    }
+  } catch {
+    pendingImage.status = 'error'
+    pendingImage.errorMessage = '上传失败'
+  }
+}
+
+// 移除待上传图片
+function removePendingImage(index: number) {
+  const image = pendingImages.value[index]
+  if (image) {
+    URL.revokeObjectURL(image.previewUrl)
+    pendingImages.value.splice(index, 1)
+  }
+}
+
+// 重试上传
+function retryUpload(index: number) {
+  const image = pendingImages.value[index]
+  if (image && image.status === 'error') {
+    image.status = 'uploading'
+    image.errorMessage = undefined
+    uploadImage(image)
+  }
+}
+
+// 打开图片预览
+function openImagePreview(imageList: string[], index: number) {
+  previewImageList.value = imageList
+  previewImageIndex.value = index
+  previewImageUrl.value = imageList[index] ?? null
+  document.body.style.overflow = 'hidden'
+}
+
+// 关闭图片预览
+function closeImagePreview() {
+  previewImageUrl.value = null
+  previewImageList.value = []
+  document.body.style.overflow = ''
+}
+
+// 切换预览图片
+function switchPreviewImage(direction: 'prev' | 'next') {
+  const len = previewImageList.value.length
+  if (len <= 1) return
+  if (direction === 'prev') {
+    previewImageIndex.value = (previewImageIndex.value - 1 + len) % len
+  } else {
+    previewImageIndex.value = (previewImageIndex.value + 1) % len
+  }
+  previewImageUrl.value = previewImageList.value[previewImageIndex.value] ?? null
+}
+
+// 计算是否有图片正在上传
+const hasUploadingImages = computed(() => pendingImages.value.some(img => img.status === 'uploading'))
+
+// 获取已成功上传的图片ID列表
+const uploadedImageIds = computed(() =>
+  pendingImages.value
+    .filter(img => img.status === 'success' && img.id !== null)
+    .map(img => img.id as number)
+)
+
 // 底部评论框提交（乐观更新）
 async function submitBottomComment() {
   if (!userStore.isLoggedIn) {
@@ -215,9 +367,23 @@ async function submitBottomComment() {
   }
   if (!bottomCommentText.value.trim() || isSubmittingComment.value) return
 
-  const commentText = bottomCommentText.value.trim()
+  // 检查是否有图片正在上传
+  if (hasUploadingImages.value) {
+    toast.error('请等待图片上传完成')
+    return
+  }
 
-  // 乐观更新：创建临时评论
+  // 检查是否有上传失败的图片
+  if (pendingImages.value.some(img => img.status === 'error')) {
+    toast.error('有图片上传失败，请重试或移除')
+    return
+  }
+
+  const commentText = bottomCommentText.value.trim()
+  const imageIds = uploadedImageIds.value
+
+  // 乐观更新：创建临时评论（包含图片预览URL）
+  const tempImageUrls = pendingImages.value.map(img => img.previewUrl)
   const tempComment: Comment = {
     id: Date.now(), // 临时 ID
     userId: userStore.user?.id || 0,
@@ -230,6 +396,7 @@ async function submitBottomComment() {
     isMyComment: true,
     commenterScore: null,
     commenterStars: null,
+    imageUrls: tempImageUrls.length > 0 ? tempImageUrls : null,
     replies: null,
   }
 
@@ -242,6 +409,9 @@ async function submitBottomComment() {
   }
 
   bottomCommentText.value = ''
+  // 清空待上传图片（释放 blob URL）
+  pendingImages.value.forEach(img => URL.revokeObjectURL(img.previewUrl))
+  pendingImages.value = []
 
   // 滚动到页面顶部
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -251,6 +421,7 @@ async function submitBottomComment() {
     const res = await createComment({
       ratingItemId: itemId,
       commentText,
+      imageIds: imageIds.length > 0 ? imageIds : undefined,
     })
     if (res.data.code === 200) {
       // 成功：用服务器返回的真实 ID 更新临时评论，确保点赞等操作使用正确的 ID
@@ -317,8 +488,9 @@ async function submitDrawerReply() {
     isMyComment: true,
     commenterScore: null,
     commenterStars: null,
+    imageUrls: null, // 回复不支持图片
     replies: null,
-    replyToNickname, // 设置被回复人昵称，使乐观更新时能正确显示"回复 @xxx"
+    replyToNickname: replyToNickname ?? null, // 设置被回复人昵称，使乐观更新时能正确显示"回复 @xxx"
   }
 
   // 添加到抽屉的回复列表
@@ -555,6 +727,7 @@ async function handleSubmitReply() {
     isMyComment: true,
     commenterScore: null,
     commenterStars: null,
+    imageUrls: null, // 回复不支持图片
     replies: null,
   }
 
@@ -897,6 +1070,18 @@ onMounted(() => {
                     </span>
                   </div>
                   <p class="comment-text">{{ comment.commentText }}</p>
+                  <!-- 评论图片 -->
+                  <div v-if="comment.imageUrls && comment.imageUrls.length > 0" class="comment-images">
+                    <div
+                      v-for="(imgUrl, imgIndex) in comment.imageUrls"
+                      :key="imgIndex"
+                      class="comment-image-item"
+                      :class="{ 'single': comment.imageUrls.length === 1, 'double': comment.imageUrls.length === 2 }"
+                      @click="openImagePreview(comment.imageUrls!, imgIndex)"
+                    >
+                      <img :src="imgUrl" alt="" class="comment-image-thumb" loading="lazy" />
+                    </div>
+                  </div>
                   <div class="comment-footer">
                     <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
                     <div class="comment-actions">
@@ -974,21 +1159,86 @@ onMounted(() => {
         </div>
 
         <!-- 底部评论输入栏 -->
-        <div class="bottom-input-bar">
-          <input
-            v-model="bottomCommentText"
-            type="text"
-            class="bottom-input"
-            placeholder="写评论..."
-            @keyup.enter="submitBottomComment"
-          />
-          <button
-            class="bottom-send-btn"
-            :disabled="isSubmittingComment || !bottomCommentText.trim()"
-            @click="submitBottomComment"
-          >
-            {{ isSubmittingComment ? '...' : '发送' }}
-          </button>
+        <div class="bottom-input-bar" :class="{ 'has-images': pendingImages.length > 0 }">
+          <!-- 待上传图片预览区 -->
+          <div v-if="pendingImages.length > 0" class="pending-images-bar">
+            <div
+              v-for="(img, index) in pendingImages"
+              :key="index"
+              class="pending-image-item"
+              :class="{ 'is-uploading': img.status === 'uploading', 'is-error': img.status === 'error' }"
+            >
+              <img :src="img.previewUrl" alt="" class="pending-image-thumb" />
+              <!-- 上传中遮罩 -->
+              <div v-if="img.status === 'uploading'" class="pending-image-overlay">
+                <div class="upload-spinner"></div>
+              </div>
+              <!-- 上传失败遮罩 -->
+              <div v-if="img.status === 'error'" class="pending-image-overlay error" @click="retryUpload(index)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 4v6h-6M1 20v-6h6"></path>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+              </div>
+              <!-- 删除按钮 -->
+              <button class="pending-image-remove" @click="removePendingImage(index)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <!-- 添加更多图片按钮 -->
+            <button
+              v-if="pendingImages.length < MAX_IMAGES"
+              class="add-more-image-btn"
+              @click="triggerImageSelect"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+          <!-- 输入行 -->
+          <div class="bottom-input-row">
+            <!-- 图片选择按钮 -->
+            <button
+              class="image-select-btn"
+              :class="{ 'has-images': pendingImages.length > 0 }"
+              @click="triggerImageSelect"
+              :disabled="pendingImages.length >= MAX_IMAGES"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span v-if="pendingImages.length > 0" class="image-count-badge">{{ pendingImages.length }}</span>
+            </button>
+            <input
+              ref="imageInputRef"
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
+              multiple
+              class="hidden-file-input"
+              @change="handleImageSelect"
+            />
+            <input
+              v-model="bottomCommentText"
+              type="text"
+              class="bottom-input"
+              placeholder="写评论..."
+              @keyup.enter="submitBottomComment"
+            />
+            <button
+              class="bottom-send-btn"
+              :disabled="isSubmittingComment || !bottomCommentText.trim() || hasUploadingImages"
+              @click="submitBottomComment"
+            >
+              {{ isSubmittingComment ? '...' : '发送' }}
+            </button>
+          </div>
         </div>
 
         <!-- 回复抽屉 -->
@@ -1028,6 +1278,18 @@ onMounted(() => {
                         </span>
                       </div>
                       <p class="comment-text">{{ replyDrawerComment.commentText }}</p>
+                      <!-- 评论图片 -->
+                      <div v-if="replyDrawerComment.imageUrls && replyDrawerComment.imageUrls.length > 0" class="comment-images">
+                        <div
+                          v-for="(imgUrl, imgIndex) in replyDrawerComment.imageUrls"
+                          :key="imgIndex"
+                          class="comment-image-item"
+                          :class="{ 'single': replyDrawerComment.imageUrls.length === 1, 'double': replyDrawerComment.imageUrls.length === 2 }"
+                          @click="openImagePreview(replyDrawerComment.imageUrls!, imgIndex)"
+                        >
+                          <img :src="imgUrl" alt="" class="comment-image-thumb" loading="lazy" />
+                        </div>
+                      </div>
                       <div class="comment-footer">
                         <span class="comment-time">{{ formatTime(replyDrawerComment.createdAt) }}</span>
                         <div class="comment-actions">
@@ -1178,6 +1440,49 @@ onMounted(() => {
                   <button class="modal-btn confirm" @click="confirmDeleteComment" :disabled="isDeleting">
                     {{ isDeleting ? '删除中...' : '确认删除' }}
                   </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </Teleport>
+
+        <!-- 图片预览大图 -->
+        <Teleport to="body">
+          <Transition name="image-preview">
+            <div v-if="previewImageUrl" class="image-preview-overlay" @click="closeImagePreview">
+              <div class="image-preview-container" @click.stop>
+                <!-- 关闭按钮 -->
+                <button class="image-preview-close" @click="closeImagePreview">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+                <!-- 图片 -->
+                <img :src="previewImageUrl" alt="" class="image-preview-img" />
+                <!-- 上一张按钮 -->
+                <button
+                  v-if="previewImageList.length > 1"
+                  class="image-preview-nav prev"
+                  @click.stop="switchPreviewImage('prev')"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </button>
+                <!-- 下一张按钮 -->
+                <button
+                  v-if="previewImageList.length > 1"
+                  class="image-preview-nav next"
+                  @click.stop="switchPreviewImage('next')"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+                <!-- 图片计数 -->
+                <div v-if="previewImageList.length > 1" class="image-preview-counter">
+                  {{ previewImageIndex + 1 }} / {{ previewImageList.length }}
                 </div>
               </div>
             </div>
@@ -2659,5 +2964,425 @@ onMounted(() => {
 .modal-enter-from .history-modal,
 .modal-leave-to .history-modal {
   transform: scale(0.95);
+}
+
+/* ===== Comment Images ===== */
+.comment-images {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: var(--spacing-sm);
+  max-width: 300px;
+}
+
+.comment-image-item {
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--color-bg);
+  transition: transform var(--transition-fast);
+}
+
+.comment-image-item:hover {
+  transform: scale(1.02);
+}
+
+.comment-image-item.single {
+  grid-column: span 2;
+  max-width: 200px;
+  aspect-ratio: auto;
+}
+
+.comment-image-item.single .comment-image-thumb {
+  max-height: 200px;
+  width: auto;
+  object-fit: contain;
+}
+
+.comment-image-item.double {
+  grid-column: span 1;
+}
+
+.comment-image-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== Bottom Input Bar with Images ===== */
+.bottom-input-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+  transition: padding var(--transition-fast);
+}
+
+.bottom-input-bar.has-images {
+  padding-top: 0;
+}
+
+.pending-images-bar {
+  display: flex;
+  gap: 8px;
+  padding: var(--spacing-sm) 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.pending-images-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.pending-image-item {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.pending-image-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pending-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pending-image-overlay.error {
+  background: rgba(231, 76, 60, 0.7);
+  cursor: pointer;
+}
+
+.pending-image-overlay svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+.upload-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pending-image-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.pending-image-remove:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.pending-image-remove svg {
+  width: 12px;
+  height: 12px;
+}
+
+.add-more-image-btn {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.add-more-image-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.add-more-image-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.bottom-input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.image-select-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.image-select-btn:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.image-select-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.image-select-btn.has-images {
+  color: var(--color-primary);
+}
+
+.image-select-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.image-count-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  color: white;
+  background: var(--color-primary);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.bottom-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 var(--spacing-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.bottom-input:focus {
+  border-color: var(--color-primary);
+}
+
+.bottom-send-btn {
+  height: 36px;
+  padding: 0 var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.bottom-send-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.bottom-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Image Preview Modal ===== */
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-preview-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-preview-img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+.image-preview-close {
+  position: fixed;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  z-index: 1;
+}
+
+.image-preview-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.image-preview-close svg {
+  width: 24px;
+  height: 24px;
+}
+
+.image-preview-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.image-preview-nav:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.image-preview-nav.prev {
+  left: var(--spacing-md);
+}
+
+.image-preview-nav.next {
+  right: var(--spacing-md);
+}
+
+.image-preview-nav svg {
+  width: 24px;
+  height: 24px;
+}
+
+.image-preview-counter {
+  position: fixed;
+  bottom: var(--spacing-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--text-sm);
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-full);
+}
+
+/* Image Preview Transitions */
+.image-preview-enter-active,
+.image-preview-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.image-preview-enter-from,
+.image-preview-leave-to {
+  opacity: 0;
+}
+
+.image-preview-enter-active .image-preview-img,
+.image-preview-leave-active .image-preview-img {
+  transition: transform 0.2s ease;
+}
+
+.image-preview-enter-from .image-preview-img,
+.image-preview-leave-to .image-preview-img {
+  transform: scale(0.9);
+}
+
+/* ===== Mobile Responsive ===== */
+@media screen and (max-width: 768px) {
+  .comment-images {
+    max-width: 100%;
+  }
+
+  .image-preview-nav {
+    width: 36px;
+    height: 36px;
+  }
+
+  .image-preview-nav svg {
+    width: 20px;
+    height: 20px;
+  }
 }
 </style>

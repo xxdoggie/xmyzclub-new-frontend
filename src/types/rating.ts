@@ -40,6 +40,7 @@ export interface TopComment {
   isMyComment: boolean
   commenterScore: number | null // 评论者对该项目的评分（10分制）
   commenterStars: number | null // 评论者对该项目的评分（5星制）
+  imageUrls: string[] | null // 评论图片URL列表
 }
 
 /**
@@ -104,6 +105,7 @@ export interface Comment {
   isMyComment: boolean
   commenterScore: number | null // 评论者对该项目的评分（10分制）
   commenterStars: number | null // 评论者对该项目的评分（5星制）
+  imageUrls: string[] | null // 评论图片URL列表（仅顶级评论支持）
   replies: Comment[] | null
 }
 

@@ -350,6 +350,27 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
+   * 重新绑定校园网（用于更新分班信息）
+   */
+  async function rebindCampus(
+    campusAccount: string,
+    campusPassword: string,
+    captchaCode: string,
+    jsessionId: string
+  ) {
+    const res = await userApi.rebindCampus({
+      campusAccount,
+      campusPassword,
+      captchaCode,
+      jsessionId,
+    })
+    if (res.data.code === 200) {
+      campusBinding.value = res.data.data
+    }
+    return res.data
+  }
+
+  /**
    * 解绑校园网
    */
   async function unbindCampus() {
@@ -478,6 +499,7 @@ export const useUserStore = defineStore('user', () => {
     // Actions - 校园网绑定
     fetchCampusBinding,
     bindCampus,
+    rebindCampus,
     unbindCampus,
 
     // Actions - QQ 绑定

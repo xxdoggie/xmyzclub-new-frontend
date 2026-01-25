@@ -97,6 +97,7 @@ export interface CampusBindingInfo {
   name?: string
   qqBound?: boolean
   qqNumber?: string
+  isClassInfoExpired?: boolean
 }
 
 /**

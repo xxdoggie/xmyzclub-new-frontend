@@ -36,6 +36,17 @@ const successTicketCode = ref('')
 const countdowns = ref<Record<number, string>>({})
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
+// 校园网绑定检查
+const requiresCampusBinding = computed(() => activity.value?.config?.require_campus_binding ?? false)
+const isCampusBound = computed(() => userStore.campusBinding?.isBound ?? false)
+const isCampusExpired = computed(() => userStore.campusBinding?.isClassInfoExpired ?? false)
+
+// 校园网绑定状态：是否可以抢票
+const canGrabWithCampus = computed(() => {
+  if (!requiresCampusBinding.value) return true
+  return isCampusBound.value && !isCampusExpired.value
+})
+
 // 加载活动详情
 async function loadActivity() {
   try {
@@ -47,6 +58,11 @@ async function loadActivity() {
     if (activityRes.data.code === 200) {
       activity.value = activityRes.data.data
       initExtraInfo()
+
+      // 如果活动需要校园网绑定，获取校园网绑定信息
+      if (activity.value?.config?.require_campus_binding) {
+        await userStore.fetchCampusBinding()
+      }
     } else {
       toast.error(activityRes.data.message || '获取活动详情失败')
       router.push('/ticket')
@@ -104,10 +120,15 @@ function startGrab(session: ActivitySession) {
   }
 
   // 检查是否需要校园网绑定
-  if (activity.value?.config?.require_campus_binding && !userStore.campusBinding?.isBound) {
-    toast.warning('该活动需要绑定校园网账号')
-    router.push('/profile')
-    return
+  if (activity.value?.config?.require_campus_binding) {
+    if (!userStore.campusBinding?.isBound) {
+      toast.warning('该活动需要绑定校园网账号')
+      return
+    }
+    if (userStore.campusBinding?.isClassInfoExpired) {
+      toast.warning('校园网账号需要更新，请重新绑定')
+      return
+    }
   }
 
   selectedSession.value = session
@@ -189,6 +210,11 @@ function closeSuccessModal() {
 // 跳转到我的票据
 function goToMyTickets() {
   router.push('/ticket/my')
+}
+
+// 跳转到个人中心（校园网绑定）
+function goToProfile() {
+  router.push('/profile')
 }
 
 // 获取状态标签
@@ -341,6 +367,27 @@ onUnmounted(() => {
             </div>
           </div>
 
+          <!-- 校园网绑定提示 -->
+          <div v-if="requiresCampusBinding && !isCampusBound" class="campus-notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+            </svg>
+            <span>该活动需要绑定校园网账号</span>
+            <button class="notice-btn" @click="goToProfile">前往绑定</button>
+          </div>
+
+          <!-- 校园网账号过期提示 -->
+          <div v-else-if="requiresCampusBinding && isCampusExpired" class="campus-notice warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>校园网账号需要更新，请重新绑定以更新高二分班信息</span>
+            <button class="notice-btn" @click="goToProfile">前往更新</button>
+          </div>
+
           <!-- 我的票据提示 -->
           <div v-if="myTickets.length > 0" class="my-tickets-notice" @click="goToMyTickets">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -411,7 +458,7 @@ onUnmounted(() => {
                   <button
                     v-if="session.canGrab && !hasTicketForSession(session.id)"
                     class="grab-btn"
-                    :disabled="isGrabbing"
+                    :disabled="isGrabbing || !canGrabWithCampus"
                     @click="startGrab(session)"
                   >
                     立即抢票
@@ -676,6 +723,54 @@ onUnmounted(() => {
 
 .my-tickets-notice:hover {
   background: var(--color-success);
+  color: white;
+}
+
+/* ===== Campus Notice - 轻量设计 ===== */
+.campus-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.campus-notice svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--color-secondary);
+}
+
+.campus-notice.warning svg {
+  color: var(--color-warning);
+}
+
+.campus-notice span {
+  flex: 1;
+}
+
+.campus-notice .notice-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.campus-notice .notice-btn:hover {
+  background: var(--color-primary);
   color: white;
 }
 

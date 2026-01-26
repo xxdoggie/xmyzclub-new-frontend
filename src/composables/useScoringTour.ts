@@ -118,12 +118,14 @@ function highlightElement(
     side?: 'top' | 'right' | 'bottom' | 'left'
     align?: 'start' | 'center' | 'end'
     showButtons?: ('next' | 'previous' | 'close')[]
+    nextBtnText?: string
     onNextClick?: () => void
     onCloseClick?: () => void
   }
 ) {
   const driverObj = createDriver({
     showButtons: options?.showButtons ?? ['next', 'close'],
+    nextBtnText: options?.nextBtnText ?? '我知道了',
     onCloseClick: () => {
       completeTour()
       options?.onCloseClick?.()

@@ -213,6 +213,7 @@ function showListIntro() {
     {
       side: 'top',
       showButtons: ['next', 'close'],
+      nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.RATING_LIST_FEEDBACK)
         destroyDriver()
@@ -233,6 +234,7 @@ function showFeedbackTour() {
     {
       side: 'top',
       showButtons: ['next', 'close'],
+      nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.RATING_ITEM_CARD)
         destroyDriver()
@@ -253,6 +255,7 @@ function showCardTour() {
     {
       side: 'bottom',
       showButtons: ['next', 'close'],
+      nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.RATING_ITEM_STARS)
         destroyDriver()
@@ -271,6 +274,7 @@ function showStarsTour() {
     {
       side: 'left',
       showButtons: ['next', 'close'],
+      nextBtnText: '进入详情',
       onNextClick: () => {
         saveStep(TourStep.RATING_DETAIL_FEEDBACK)
         destroyDriver()

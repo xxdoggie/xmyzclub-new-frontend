@@ -92,6 +92,7 @@ function startHomeTour() {
     {
       side: 'top',
       showButtons: ['next', 'close'],
+      nextBtnText: '进入看看',
       onNextClick: () => {
         saveStep(TourStep.COMMUNITY_EXPLORE)
         destroyDriver()

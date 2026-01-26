@@ -213,6 +213,7 @@ function startExploreTour() {
     {
       side: 'bottom',
       showButtons: ['next', 'close'],
+      nextBtnText: '选择分区',
       onNextClick: () => {
         saveStep(TourStep.MINOR_SECTION_INTRO)
         destroyDriver()

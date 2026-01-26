@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
+import { useScoringTour } from '@/composables/useScoringTour'
 import { getMajorSections, getRandomItems, getHotItems, getCollections } from '@/api/rating'
 import type { MajorSection, RandomRatingItem, Collection } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -11,6 +12,16 @@ import PageFooter from '@/components/layout/PageFooter.vue'
 const router = useRouter()
 const toast = useToast()
 const userStore = useUserStore()
+const {
+  shouldStartTour,
+  getCurrentStep,
+  TourStep,
+  saveStep,
+  highlightElement,
+  showCenteredPopover,
+  destroyDriver,
+  completeTour,
+} = useScoringTour()
 
 // 固定学校ID
 const SCHOOL_ID = 1
@@ -148,7 +159,189 @@ onMounted(() => {
   loadHotItems()
   loadRandomItems()
   loadCollections()
+
+  // 检查是否需要启动引导
+  if (shouldStartTour()) {
+    const step = getCurrentStep()
+    if (step === TourStep.COMMUNITY_EXPLORE) {
+      // 等待数据加载完成后启动引导
+      waitForDataAndStartTour()
+    } else if (step >= TourStep.COMMUNITY_HOT && step <= TourStep.COMMUNITY_FINAL) {
+      // 从详情页返回后继续引导
+      waitForDataAndContinueTour(step)
+    }
+  }
 })
+
+onUnmounted(() => {
+  destroyDriver()
+})
+
+// 等待数据加载完成后启动引导（步骤2）
+function waitForDataAndStartTour() {
+  const checkInterval = setInterval(() => {
+    if (!isLoading.value && majorSections.value.length > 0) {
+      clearInterval(checkInterval)
+      setTimeout(() => {
+        startExploreTour()
+      }, 300)
+    }
+  }, 100)
+  // 5秒超时
+  setTimeout(() => clearInterval(checkInterval), 5000)
+}
+
+// 等待数据加载完成后继续引导（步骤11-15）
+function waitForDataAndContinueTour(step: number) {
+  const checkInterval = setInterval(() => {
+    if (!isLoading.value && !isLoadingHot.value && !isLoadingRandom.value) {
+      clearInterval(checkInterval)
+      setTimeout(() => {
+        continueCommunityTour(step)
+      }, 300)
+    }
+  }, 100)
+  setTimeout(() => clearInterval(checkInterval), 5000)
+}
+
+// 启动探索分区引导（步骤2）
+function startExploreTour() {
+  highlightElement(
+    '#tour-explore-section',
+    '探索分区',
+    '你可以在这里根据分类入口找到所有评分项目。',
+    {
+      side: 'bottom',
+      nextBtnText: '选择分区',
+      onNextClick: () => {
+        saveStep(TourStep.MINOR_SECTION_INTRO)
+        destroyDriver()
+        // 点击第一个分区
+        if (majorSections.value.length > 0) {
+          goToMajorSection(majorSections.value[0]!)
+        }
+      },
+    }
+  )
+}
+
+// 继续社区引导（步骤11-15）
+function continueCommunityTour(step: number) {
+  switch (step) {
+    case TourStep.COMMUNITY_HOT:
+      showHotSectionTour()
+      break
+    case TourStep.COMMUNITY_RANDOM:
+      showRandomSectionTour()
+      break
+    case TourStep.COMMUNITY_REFRESH:
+      showRefreshBtnTour()
+      break
+    case TourStep.COMMUNITY_COLLECTION:
+      showCollectionSectionTour()
+      break
+    case TourStep.COMMUNITY_FINAL:
+      showFinalTour()
+      break
+  }
+}
+
+// 步骤11：热门评分
+function showHotSectionTour() {
+  // 先滚动到底部
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+  setTimeout(() => {
+    highlightElement(
+      '#tour-hot-section',
+      '热门评分',
+      '这里可以看到评分人数最多的评分项目。',
+      {
+        side: 'top',
+        onNextClick: () => {
+          saveStep(TourStep.COMMUNITY_RANDOM)
+          destroyDriver()
+          nextTick(() => showRandomSectionTour())
+        },
+      }
+    )
+  }, 500)
+}
+
+// 步骤12：随机发现
+function showRandomSectionTour() {
+  highlightElement(
+    '#tour-random-section',
+    '随机发现',
+    '这里会随机刷新一些评分项目，帮助你发现更多有趣的内容。',
+    {
+      side: 'top',
+      onNextClick: () => {
+        saveStep(TourStep.COMMUNITY_REFRESH)
+        destroyDriver()
+        nextTick(() => showRefreshBtnTour())
+      },
+    }
+  )
+}
+
+// 步骤13：换一批按钮
+function showRefreshBtnTour() {
+  highlightElement(
+    '#tour-refresh-btn',
+    '换一批',
+    '你也可以点击它来刷新随机推荐的内容。',
+    {
+      side: 'left',
+      onNextClick: () => {
+        saveStep(TourStep.COMMUNITY_COLLECTION)
+        destroyDriver()
+        nextTick(() => showCollectionSectionTour())
+      },
+    }
+  )
+}
+
+// 步骤14：精选合集
+function showCollectionSectionTour() {
+  if (collections.value.length === 0) {
+    // 如果没有合集，直接跳到最后
+    saveStep(TourStep.COMMUNITY_FINAL)
+    showFinalTour()
+    return
+  }
+  highlightElement(
+    '#tour-collection-section',
+    '精选合集',
+    '这里有部分热门项目的合集，从这里进入能更快找到你想要的内容。',
+    {
+      side: 'top',
+      onNextClick: () => {
+        saveStep(TourStep.COMMUNITY_FINAL)
+        destroyDriver()
+        nextTick(() => showFinalTour())
+      },
+    }
+  )
+}
+
+// 步骤15：最终欢迎语
+function showFinalTour() {
+  // 滚动回顶部
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  setTimeout(() => {
+    showCenteredPopover(
+      '欢迎来到评分社区',
+      `<p style="margin-bottom: 12px;">我们希望你能够尽可能真实客观地进行评分，共同维护评分社区的良好氛围！</p><p style="font-family: 'Georgia', serif; font-style: italic; color: var(--color-text-secondary); font-size: 0.9em;">—— 2023届玄学狗狗倾情设计</p>`,
+      {
+        doneBtnText: '开始探索',
+        onNextClick: () => {
+          completeTour()
+          destroyDriver()
+        },
+      }
+    )
+  }, 500)
+}
 </script>
 
 <template>
@@ -190,7 +383,7 @@ onMounted(() => {
       </div>
 
       <!-- 分区入口 -->
-      <div class="content-card">
+      <div id="tour-explore-section" class="content-card">
         <div class="card-header">
           <h2 class="card-header-title">探索分区</h2>
         </div>
@@ -217,6 +410,7 @@ onMounted(() => {
           <div
             v-for="(section, index) in majorSections"
             :key="section.id"
+            :id="index === 0 ? 'tour-first-major-section' : undefined"
             class="section-item"
             :class="`section-item-${(index % 4) + 1}`"
             @click="goToMajorSection(section)"
@@ -258,7 +452,7 @@ onMounted(() => {
       </div>
 
       <!-- 热门评分 -->
-      <div class="content-card">
+      <div id="tour-hot-section" class="content-card">
         <div class="card-header">
           <h2 class="card-header-title">
             <svg class="title-icon hot" viewBox="0 0 24 24" fill="currentColor">
@@ -330,7 +524,7 @@ onMounted(() => {
       </div>
 
       <!-- 随机推荐 -->
-      <div class="content-card">
+      <div id="tour-random-section" class="content-card">
         <div class="card-header">
           <h2 class="card-header-title">
             <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -342,7 +536,7 @@ onMounted(() => {
             </svg>
             随机发现
           </h2>
-          <button class="refresh-btn" :disabled="isLoadingRandom" @click="refreshRandom">
+          <button id="tour-refresh-btn" class="refresh-btn" :disabled="isLoadingRandom" @click="refreshRandom">
             <svg :class="{ spinning: isLoadingRandom }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"></polyline>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
@@ -410,7 +604,7 @@ onMounted(() => {
       </div>
 
       <!-- 精选合集 -->
-      <div class="content-card" v-if="isLoadingCollections || collections.length > 0">
+      <div id="tour-collection-section" class="content-card" v-if="isLoadingCollections || collections.length > 0">
         <div class="card-header">
           <h2 class="card-header-title">
             <svg class="title-icon collection" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

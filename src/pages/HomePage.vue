@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
+import { useScoringTour } from '@/composables/useScoringTour'
 
 const router = useRouter()
 const userStore = useUserStore()
 const toast = useToast()
+const {
+  shouldStartTour,
+  getCurrentStep,
+  TourStep,
+  saveStep,
+  highlightElement,
+  destroyDriver,
+} = useScoringTour()
 
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const isMobileMenuOpen = ref(false)
@@ -61,7 +70,36 @@ onMounted(() => {
   setInterval(() => {
     currentBannerIndex.value = (currentBannerIndex.value + 1) % banners.length
   }, 10000)
+
+  // 检查是否需要启动评分社区引导
+  if (shouldStartTour() && getCurrentStep() === TourStep.HOME_COMMUNITY_ENTRY) {
+    setTimeout(() => {
+      startHomeTour()
+    }, 500)
+  }
 })
+
+onUnmounted(() => {
+  destroyDriver()
+})
+
+// 启动主页引导
+function startHomeTour() {
+  highlightElement(
+    '#tour-community-entry',
+    '评分社区',
+    '这是评分社区入口，你可以在这里为校园里的各种事物打分、发表评论，和同学们分享你的看法。',
+    {
+      side: 'top',
+      nextBtnText: '进入看看',
+      onNextClick: () => {
+        saveStep(TourStep.COMMUNITY_EXPLORE)
+        destroyDriver()
+        router.push('/community')
+      },
+    }
+  )
+}
 
 function toggleTheme() {
   isDark.value = !isDark.value
@@ -460,7 +498,7 @@ function goToBanner(index: number) {
                 <span class="quick-label">分数查询</span>
               </router-link>
 
-              <router-link to="/community" class="quick-item quick-item-4">
+              <router-link to="/community" id="tour-community-entry" class="quick-item quick-item-4">
                 <div class="quick-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>

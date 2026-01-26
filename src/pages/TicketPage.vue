@@ -156,21 +156,7 @@ onMounted(() => {
           <p>加载中...</p>
         </div>
 
-        <!-- 空状态 -->
-        <div v-else-if="activities.length === 0" class="empty-container">
-          <div class="empty-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-          </div>
-          <h2>暂无活动</h2>
-          <p>目前没有可参与的活动，请稍后再来</p>
-        </div>
-
-        <!-- 活动列表 -->
+        <!-- 已登录且加载完成：显示筛选器和内容 -->
         <div v-else class="activities-section">
           <!-- 列表头部：筛选标签 + 我的票据入口 -->
           <div class="section-header">
@@ -193,70 +179,87 @@ onMounted(() => {
             </button>
           </div>
 
-          <div class="activities-list" :class="{ 'is-loading': isFilterLoading }">
-            <div
-              v-for="activity in activities"
-              :key="activity.id"
-              class="activity-card"
-              @click="goToDetail(activity.id)"
-            >
-              <!-- 活动封面 -->
-              <div class="activity-cover">
-                <img
-                  v-if="activity.imageUrl"
-                  :src="activity.imageUrl"
-                  :alt="activity.name"
-                  class="cover-image"
-                />
-                <div v-else class="cover-placeholder">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
+          <!-- 空状态 -->
+          <div v-if="activities.length === 0" class="empty-container">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <h2>暂无活动</h2>
+            <p>当前筛选条件下没有活动</p>
+          </div>
+
+          <!-- 活动列表 -->
+          <template v-else>
+            <div class="activities-list" :class="{ 'is-loading': isFilterLoading }">
+              <div
+                v-for="activity in activities"
+                :key="activity.id"
+                class="activity-card"
+                @click="goToDetail(activity.id)"
+              >
+                <!-- 活动封面 -->
+                <div class="activity-cover">
+                  <img
+                    v-if="activity.imageUrl"
+                    :src="activity.imageUrl"
+                    :alt="activity.name"
+                    class="cover-image"
+                  />
+                  <div v-else class="cover-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </div>
+                  <!-- 状态标签 -->
+                  <span class="status-badge" :class="getStatusLabel(activity.status).class">
+                    {{ getStatusLabel(activity.status).label }}
+                  </span>
+                </div>
+
+                <!-- 活动信息 -->
+                <div class="activity-info">
+                  <h3 class="activity-name">{{ activity.name }}</h3>
+                  <p v-if="activity.description" class="activity-desc">{{ activity.description }}</p>
+                  <div class="activity-meta">
+                    <span class="meta-item">{{ activity.sessionCount }} 场次</span>
+                    <span class="meta-divider">·</span>
+                    <span class="meta-item">{{ formatDate(activity.createdAt) }}</span>
+                  </div>
+                </div>
+
+                <!-- 箭头 -->
+                <div class="activity-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </div>
-                <!-- 状态标签 -->
-                <span class="status-badge" :class="getStatusLabel(activity.status).class">
-                  {{ getStatusLabel(activity.status).label }}
-                </span>
-              </div>
-
-              <!-- 活动信息 -->
-              <div class="activity-info">
-                <h3 class="activity-name">{{ activity.name }}</h3>
-                <p v-if="activity.description" class="activity-desc">{{ activity.description }}</p>
-                <div class="activity-meta">
-                  <span class="meta-item">{{ activity.sessionCount }} 场次</span>
-                  <span class="meta-divider">·</span>
-                  <span class="meta-item">{{ formatDate(activity.createdAt) }}</span>
-                </div>
-              </div>
-
-              <!-- 箭头 -->
-              <div class="activity-arrow">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
               </div>
             </div>
-          </div>
 
-          <!-- 加载更多 -->
-          <div v-if="hasMore()" class="load-more">
-            <button
-              class="load-more-btn"
-              :disabled="isLoadingMore"
-              @click="loadMore"
-            >
-              {{ isLoadingMore ? '加载中...' : '加载更多' }}
-            </button>
-          </div>
+            <!-- 加载更多 -->
+            <div v-if="hasMore()" class="load-more">
+              <button
+                class="load-more-btn"
+                :disabled="isLoadingMore"
+                @click="loadMore"
+              >
+                {{ isLoadingMore ? '加载中...' : '加载更多' }}
+              </button>
+            </div>
 
-          <!-- 没有更多 -->
-          <div v-else-if="activities.length > 0" class="no-more">
-            已经到底啦
-          </div>
+            <!-- 没有更多 -->
+            <div v-else class="no-more">
+              已经到底啦
+            </div>
+          </template>
         </div>
       </div>
     </main>

@@ -135,6 +135,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/wall',
+      name: 'wall',
+      component: () => import('../pages/WallPage.vue'),
+      meta: {
+        level: 1,
+        title: '厦一万能墙',
+      },
+    },
+    {
       path: '/community/major/:majorId',
       name: 'community-major',
       component: () => import('../pages/MinorSectionPage.vue'),

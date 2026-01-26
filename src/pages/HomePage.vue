@@ -468,6 +468,17 @@ function goToBanner(index: number) {
                 </div>
                 <span class="quick-label">评分社区</span>
               </router-link>
+
+              <router-link to="/wall" class="quick-item quick-item-5">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                  </svg>
+                </div>
+                <span class="quick-label">厦一万能墙</span>
+              </router-link>
             </div>
           </div>
         </div>
@@ -1264,7 +1275,7 @@ function goToBanner(index: number) {
 /* 快捷入口网格 */
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--spacing-xs);
   padding: var(--spacing-sm);
 }
@@ -1293,6 +1304,7 @@ function goToBanner(index: number) {
 .quick-item-2 { --item-color: #4ECDC4; --item-bg: rgba(78, 205, 196, 0.1); }
 .quick-item-3 { --item-color: #A29BFE; --item-bg: rgba(162, 155, 254, 0.1); }
 .quick-item-4 { --item-color: #FDCB6E; --item-bg: rgba(253, 203, 110, 0.1); }
+.quick-item-5 { --item-color: #74B9FF; --item-bg: rgba(116, 185, 255, 0.1); }
 
 .quick-icon {
   width: 40px;

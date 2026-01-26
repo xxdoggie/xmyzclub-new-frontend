@@ -539,6 +539,25 @@ onMounted(() => {
                 </div>
               </div>
             </div>
+
+            <!-- 分页 -->
+            <div v-if="total > pageSize" class="pagination">
+              <button
+                class="page-btn"
+                :disabled="page === 1"
+                @click="page--; loadRatingItems()"
+              >
+                上一页
+              </button>
+              <span class="page-info">{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
+              <button
+                class="page-btn"
+                :disabled="page >= Math.ceil(total / pageSize)"
+                @click="page++; loadRatingItems()"
+              >
+                下一页
+              </button>
+            </div>
           </div>
         </template>
       </div>
@@ -1140,6 +1159,41 @@ onMounted(() => {
 .arrow-icon svg {
   width: 16px;
   height: 16px;
+}
+
+/* ===== Pagination ===== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.page-btn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 /* ===== Modal ===== */

@@ -98,9 +98,32 @@ export function getMyRating(itemId: number) {
 }
 
 /**
+ * 评论图片上传响应
+ */
+export interface CommentImageUploadResponse {
+  id: number
+  fileUrl: string
+  filePath: string
+  fileSize: number
+  fileType: string
+}
+
+/**
+ * 上传评论图片
+ */
+export function uploadCommentImage(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('businessType', 'comment_image')
+  return api.post<ApiResponse<CommentImageUploadResponse>>('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
  * 发表评论
  */
-export function createComment(data: { ratingItemId: number; commentText: string; parentId?: number }) {
+export function createComment(data: { ratingItemId: number; commentText: string; parentId?: number; imageIds?: number[] }) {
   return api.post<ApiResponse<Comment>>('/rating-community/comments', data)
 }
 

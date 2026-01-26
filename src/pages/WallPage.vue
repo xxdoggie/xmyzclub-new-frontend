@@ -10,10 +10,6 @@ import wallImage from '@/assets/wall.jpg'
 
     <main class="page-content">
       <div class="content-container">
-        <div class="page-header-section">
-          <h1 class="page-title">厦一万能墙</h1>
-        </div>
-
         <div class="wall-image-container">
           <img :src="wallImage" alt="厦一万能墙" class="wall-image" />
         </div>
@@ -44,16 +40,6 @@ import wallImage from '@/assets/wall.jpg'
   margin: 0 auto;
 }
 
-.page-header-section {
-  margin-bottom: var(--spacing-md);
-}
-
-.page-title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  text-align: center;
-}
-
 .wall-image-container {
   background: var(--color-card);
   border: 1px solid var(--color-border);
@@ -70,10 +56,6 @@ import wallImage from '@/assets/wall.jpg'
 @media (min-width: 1024px) {
   .page-content {
     padding: var(--spacing-xl);
-  }
-
-  .page-title {
-    font-size: var(--text-2xl);
   }
 }
 </style>

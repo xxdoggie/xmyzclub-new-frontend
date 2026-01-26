@@ -91,7 +91,6 @@ function startHomeTour() {
     '这是评分社区入口，你可以在这里为校园里的各种事物打分、发表评论，和同学们分享你的看法。',
     {
       side: 'top',
-      showButtons: ['next', 'close'],
       nextBtnText: '进入看看',
       onNextClick: () => {
         saveStep(TourStep.COMMUNITY_EXPLORE)

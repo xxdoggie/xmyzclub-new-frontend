@@ -212,7 +212,6 @@ function startExploreTour() {
     '你可以在这里根据分类入口找到所有评分项目。',
     {
       side: 'bottom',
-      showButtons: ['next', 'close'],
       nextBtnText: '选择分区',
       onNextClick: () => {
         saveStep(TourStep.MINOR_SECTION_INTRO)
@@ -258,7 +257,6 @@ function showHotSectionTour() {
       '这里可以看到评分人数最多的评分项目。',
       {
         side: 'top',
-        showButtons: ['next', 'close'],
         onNextClick: () => {
           saveStep(TourStep.COMMUNITY_RANDOM)
           destroyDriver()
@@ -277,7 +275,6 @@ function showRandomSectionTour() {
     '这里会随机刷新一些评分项目，帮助你发现更多有趣的内容。',
     {
       side: 'top',
-      showButtons: ['next', 'close'],
       onNextClick: () => {
         saveStep(TourStep.COMMUNITY_REFRESH)
         destroyDriver()
@@ -295,7 +292,6 @@ function showRefreshBtnTour() {
     '你也可以点击它来刷新随机推荐的内容。',
     {
       side: 'left',
-      showButtons: ['next', 'close'],
       onNextClick: () => {
         saveStep(TourStep.COMMUNITY_COLLECTION)
         destroyDriver()
@@ -319,7 +315,6 @@ function showCollectionSectionTour() {
     '这里有部分热门项目的合集，从这里进入能更快找到你想要的内容。',
     {
       side: 'top',
-      showButtons: ['next', 'close'],
       onNextClick: () => {
         saveStep(TourStep.COMMUNITY_FINAL)
         destroyDriver()
@@ -338,7 +333,6 @@ function showFinalTour() {
       '欢迎来到评分社区',
       `<p style="margin-bottom: 12px;">我们希望你能够尽可能真实客观地进行评分，共同维护评分社区的良好氛围！</p><p style="font-family: 'Georgia', serif; font-style: italic; color: var(--color-text-secondary); font-size: 0.9em;">—— 2023届玄学狗狗倾情设计</p>`,
       {
-        showButtons: ['next'],
         doneBtnText: '开始探索',
         onNextClick: () => {
           completeTour()

@@ -95,14 +95,16 @@ function createDriver(options?: Partial<Parameters<typeof driver>[0]>): Driver {
   driverInstance.value = driver({
     showProgress: false,
     animate: true,
-    allowClose: true,
+    allowClose: false, // 禁止关闭
+    allowKeyboardControl: false, // 禁止键盘控制
+    disableActiveInteraction: true, // 默认禁止与高亮元素交互
     overlayColor: 'rgba(0, 0, 0, 0.6)',
     stagePadding: 8,
     stageRadius: 8,
     popoverClass: 'scoring-tour-popover',
-    nextBtnText: '下一步',
-    prevBtnText: '上一步',
+    nextBtnText: '我知道了',
     doneBtnText: '完成',
+    showButtons: ['next'], // 只显示下一步按钮
     ...options,
   })
 
@@ -117,19 +119,14 @@ function highlightElement(
   options?: {
     side?: 'top' | 'right' | 'bottom' | 'left'
     align?: 'start' | 'center' | 'end'
-    showButtons?: ('next' | 'previous' | 'close')[]
     nextBtnText?: string
+    allowInteraction?: boolean // 是否允许与高亮元素交互
     onNextClick?: () => void
-    onCloseClick?: () => void
   }
 ) {
   const driverObj = createDriver({
-    showButtons: options?.showButtons ?? ['next', 'close'],
     nextBtnText: options?.nextBtnText ?? '我知道了',
-    onCloseClick: () => {
-      completeTour()
-      options?.onCloseClick?.()
-    },
+    disableActiveInteraction: !(options?.allowInteraction ?? false),
   })
 
   driverObj.highlight({
@@ -151,19 +148,12 @@ function showCenteredPopover(
   title: string,
   description: string,
   options?: {
-    showButtons?: ('next' | 'previous' | 'close')[]
     onNextClick?: () => void
-    onCloseClick?: () => void
     doneBtnText?: string
   }
 ) {
   const driverObj = createDriver({
-    showButtons: options?.showButtons ?? ['next'],
-    doneBtnText: options?.doneBtnText ?? '开始体验',
-    onCloseClick: () => {
-      completeTour()
-      options?.onCloseClick?.()
-    },
+    nextBtnText: options?.doneBtnText ?? '开始体验',
   })
 
   driverObj.highlight({

@@ -136,7 +136,6 @@ function showSectionIntro() {
     '这里将显示该分类下的所有小分区，点击可以查看该分区内的评分项目。',
     {
       side: 'bottom',
-      showButtons: ['next', 'close'],
       nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.MINOR_SECTION_FEEDBACK)
@@ -155,7 +154,6 @@ function showFeedbackTour() {
     '如果没找到想要的分区，可以点击这里发起添加请求。',
     {
       side: 'top',
-      showButtons: ['next', 'close'],
       nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.MINOR_SECTION_CLICK)
@@ -174,7 +172,6 @@ function showClickTour() {
     '点击选择小分区查看评分项目列表。',
     {
       side: 'bottom',
-      showButtons: ['next', 'close'],
       nextBtnText: '查看项目',
       onNextClick: () => {
         saveStep(TourStep.RATING_LIST_INTRO)

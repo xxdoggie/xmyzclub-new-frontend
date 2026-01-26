@@ -969,7 +969,6 @@ function showDetailFeedbackTour() {
     '如果评分项目有更新（如描述已经过时，或已不存在），可以通过这里进行反馈。',
     {
       side: 'bottom',
-      showButtons: ['next', 'close'],
       nextBtnText: '继续引导',
       onNextClick: () => {
         saveStep(TourStep.COMMUNITY_HOT)

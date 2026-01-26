@@ -212,7 +212,6 @@ function showListIntro() {
     '这里将显示该分区内的所有评分项目，你可以查看评分、热门评论，并对它们进行评分。',
     {
       side: 'top',
-      showButtons: ['next', 'close'],
       nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.RATING_LIST_FEEDBACK)
@@ -233,7 +232,6 @@ function showFeedbackTour() {
     '如果没找到想要的评分项目，可以点击这里发起添加请求。',
     {
       side: 'top',
-      showButtons: ['next', 'close'],
       nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.RATING_ITEM_CARD)
@@ -254,7 +252,6 @@ function showCardTour() {
     '这是一个单独的评分项目，你可以直接在这里查看总分、热门评论以及对它进行评分。',
     {
       side: 'bottom',
-      showButtons: ['next', 'close'],
       nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.RATING_ITEM_STARS)
@@ -273,8 +270,8 @@ function showStarsTour() {
     '点击星星可以直接对该项目进行评分。现在试试给它打个分吧！',
     {
       side: 'left',
-      showButtons: ['next', 'close'],
       nextBtnText: '进入详情',
+      allowInteraction: true, // 允许用户点击星星评分
       onNextClick: () => {
         saveStep(TourStep.RATING_DETAIL_FEEDBACK)
         destroyDriver()

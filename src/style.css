@@ -217,8 +217,9 @@ body {
   background: var(--color-primary-dark) !important;
 }
 
-/* 隐藏关闭按钮 */
-.driver-popover-close-btn {
+/* 隐藏关闭按钮和上一步按钮 */
+.driver-popover-close-btn,
+.driver-popover-prev-btn {
   display: none !important;
 }
 

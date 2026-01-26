@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
+import { useScoringTour } from '@/composables/useScoringTour'
 import { getRatingItems, submitRating } from '@/api/rating'
 import type { RatingItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -13,6 +14,14 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const userStore = useUserStore()
+const {
+  shouldStartTour,
+  getCurrentStep,
+  TourStep,
+  saveStep,
+  highlightElement,
+  destroyDriver,
+} = useScoringTour()
 
 // 获取路由参数
 const minorId = Number(route.params.minorId)
@@ -150,7 +159,129 @@ async function handleStarClick(item: RatingItem, star: number, event: Event) {
 
 onMounted(() => {
   loadRatingItems()
+
+  // 检查是否需要启动引导
+  if (shouldStartTour()) {
+    const step = getCurrentStep()
+    if (step >= TourStep.RATING_LIST_INTRO && step <= TourStep.RATING_ITEM_STARS) {
+      waitForDataAndStartTour(step)
+    }
+  }
 })
+
+onUnmounted(() => {
+  destroyDriver()
+})
+
+// 等待数据加载完成后启动引导
+function waitForDataAndStartTour(step: number) {
+  const checkInterval = setInterval(() => {
+    if (!isLoading.value && ratingItems.value.length > 0) {
+      clearInterval(checkInterval)
+      setTimeout(() => {
+        startRatingItemsTour(step)
+      }, 300)
+    }
+  }, 100)
+  setTimeout(() => clearInterval(checkInterval), 5000)
+}
+
+// 启动评分列表引导
+function startRatingItemsTour(step: number) {
+  switch (step) {
+    case TourStep.RATING_LIST_INTRO:
+      showListIntro()
+      break
+    case TourStep.RATING_LIST_FEEDBACK:
+      showFeedbackTour()
+      break
+    case TourStep.RATING_ITEM_CARD:
+      showCardTour()
+      break
+    case TourStep.RATING_ITEM_STARS:
+      showStarsTour()
+      break
+  }
+}
+
+// 步骤6：评分列表介绍
+function showListIntro() {
+  highlightElement(
+    '#tour-rating-list',
+    '评分项目列表',
+    '这里将显示该分区内的所有评分项目，你可以查看评分、热门评论，并对它们进行评分。',
+    {
+      side: 'top',
+      showButtons: ['next', 'close'],
+      onNextClick: () => {
+        saveStep(TourStep.RATING_LIST_FEEDBACK)
+        destroyDriver()
+        // 滚动到底部
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+        setTimeout(() => showFeedbackTour(), 500)
+      },
+    }
+  )
+}
+
+// 步骤7：反馈提示
+function showFeedbackTour() {
+  highlightElement(
+    '#tour-rating-feedback',
+    '新建评分项目',
+    '如果没找到想要的评分项目，可以点击这里发起添加请求。',
+    {
+      side: 'top',
+      showButtons: ['next', 'close'],
+      onNextClick: () => {
+        saveStep(TourStep.RATING_ITEM_CARD)
+        destroyDriver()
+        // 滚动回顶部
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        setTimeout(() => showCardTour(), 500)
+      },
+    }
+  )
+}
+
+// 步骤8：评分项目卡片
+function showCardTour() {
+  highlightElement(
+    '#tour-first-rating-item',
+    '评分项目',
+    '这是一个单独的评分项目，你可以直接在这里查看总分、热门评论以及对它进行评分。',
+    {
+      side: 'bottom',
+      showButtons: ['next', 'close'],
+      onNextClick: () => {
+        saveStep(TourStep.RATING_ITEM_STARS)
+        destroyDriver()
+        nextTick(() => showStarsTour())
+      },
+    }
+  )
+}
+
+// 步骤9：星星评分
+function showStarsTour() {
+  highlightElement(
+    '#tour-star-rating',
+    '快速评分',
+    '点击星星可以直接对该项目进行评分。现在试试给它打个分吧！',
+    {
+      side: 'left',
+      showButtons: ['next', 'close'],
+      onNextClick: () => {
+        saveStep(TourStep.RATING_DETAIL_FEEDBACK)
+        destroyDriver()
+        // 点击第一个评分项目进入详情
+        if (filteredItems.value.length > 0) {
+          goToDetail(filteredItems.value[0]!.id)
+        }
+      },
+    }
+  )
+}
 </script>
 
 <template>
@@ -206,10 +337,11 @@ onMounted(() => {
         </div>
 
         <!-- 评分项目列表 -->
-        <div class="rating-list">
+        <div id="tour-rating-list" class="rating-list">
           <div
-            v-for="item in filteredItems"
+            v-for="(item, index) in filteredItems"
             :key="item.id"
+            :id="index === 0 ? 'tour-first-rating-item' : undefined"
             class="rating-item"
             @click="goToDetail(item.id)"
           >
@@ -239,6 +371,7 @@ onMounted(() => {
                   <span class="item-score">{{ item.averageScore.toFixed(1) }}分</span>
                   <!-- 星星评分 -->
                   <div
+                    :id="index === 0 ? 'tour-star-rating' : undefined"
                     class="star-rating"
                     @mouseleave="handleStarLeave(item.id)"
                   >
@@ -274,7 +407,7 @@ onMounted(() => {
 
         <!-- 反馈提示 -->
         <div class="feedback-prompt">
-          <button class="feedback-link" @click="openFeedbackDrawer">
+          <button id="tour-rating-feedback" class="feedback-link" @click="openFeedbackDrawer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="16"></line>

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
+import { useScoringTour } from '@/composables/useScoringTour'
 import { getMinorSections } from '@/api/rating'
 import type { MinorSection } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -13,6 +14,14 @@ const router = useRouter()
 const route = useRoute()
 const toast = useToast()
 const userStore = useUserStore()
+const {
+  shouldStartTour,
+  getCurrentStep,
+  TourStep,
+  saveStep,
+  highlightElement,
+  destroyDriver,
+} = useScoringTour()
 
 // 获取路由参数
 const majorId = Number(route.params.majorId)
@@ -77,7 +86,104 @@ function getPlaceholderGradient(index: number): string {
 
 onMounted(() => {
   loadMinorSections()
+
+  // 检查是否需要启动引导
+  if (shouldStartTour()) {
+    const step = getCurrentStep()
+    if (step >= TourStep.MINOR_SECTION_INTRO && step <= TourStep.MINOR_SECTION_CLICK) {
+      waitForDataAndStartTour(step)
+    }
+  }
 })
+
+onUnmounted(() => {
+  destroyDriver()
+})
+
+// 等待数据加载完成后启动引导
+function waitForDataAndStartTour(step: number) {
+  const checkInterval = setInterval(() => {
+    if (!isLoading.value && minorSections.value.length > 0) {
+      clearInterval(checkInterval)
+      setTimeout(() => {
+        startMinorSectionTour(step)
+      }, 300)
+    }
+  }, 100)
+  setTimeout(() => clearInterval(checkInterval), 5000)
+}
+
+// 启动小分区页面引导
+function startMinorSectionTour(step: number) {
+  switch (step) {
+    case TourStep.MINOR_SECTION_INTRO:
+      showSectionIntro()
+      break
+    case TourStep.MINOR_SECTION_FEEDBACK:
+      showFeedbackTour()
+      break
+    case TourStep.MINOR_SECTION_CLICK:
+      showClickTour()
+      break
+  }
+}
+
+// 步骤3：介绍小分区页面
+function showSectionIntro() {
+  highlightElement(
+    '#tour-minor-section-grid',
+    '选择小分区',
+    '这里将显示该分类下的所有小分区，点击可以查看该分区内的评分项目。',
+    {
+      side: 'bottom',
+      showButtons: ['next', 'close'],
+      onNextClick: () => {
+        saveStep(TourStep.MINOR_SECTION_FEEDBACK)
+        destroyDriver()
+        nextTick(() => showFeedbackTour())
+      },
+    }
+  )
+}
+
+// 步骤4：反馈提示
+function showFeedbackTour() {
+  highlightElement(
+    '#tour-minor-feedback',
+    '新建分区',
+    '如果没找到想要的分区，可以点击这里发起添加请求。',
+    {
+      side: 'top',
+      showButtons: ['next', 'close'],
+      onNextClick: () => {
+        saveStep(TourStep.MINOR_SECTION_CLICK)
+        destroyDriver()
+        nextTick(() => showClickTour())
+      },
+    }
+  )
+}
+
+// 步骤5：点击小分区
+function showClickTour() {
+  highlightElement(
+    '#tour-first-minor-section',
+    '查看评分项目',
+    '点击选择小分区查看评分项目列表。',
+    {
+      side: 'bottom',
+      showButtons: ['next', 'close'],
+      onNextClick: () => {
+        saveStep(TourStep.RATING_LIST_INTRO)
+        destroyDriver()
+        // 点击第一个小分区
+        if (minorSections.value.length > 0) {
+          goToRatingItems(minorSections.value[0]!)
+        }
+      },
+    }
+  )
+}
 </script>
 
 <template>
@@ -109,10 +215,11 @@ onMounted(() => {
         </div>
 
         <!-- 小分区网格 -->
-        <div v-else class="section-grid">
+        <div v-else id="tour-minor-section-grid" class="section-grid">
           <div
             v-for="(section, index) in minorSections"
             :key="section.id"
+            :id="index === 0 ? 'tour-first-minor-section' : undefined"
             class="section-card"
             @click="goToRatingItems(section)"
           >
@@ -146,7 +253,7 @@ onMounted(() => {
 
         <!-- 反馈提示 -->
         <div class="feedback-prompt" v-if="!isLoading">
-          <button class="feedback-link" @click="openFeedbackDrawer">
+          <button id="tour-minor-feedback" class="feedback-link" @click="openFeedbackDrawer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="16"></line>

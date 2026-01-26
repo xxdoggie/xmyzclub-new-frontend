@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
+import { useScoringTour } from '@/composables/useScoringTour'
 import {
   getRatingItemDetail,
   submitRating,
@@ -23,8 +24,17 @@ interface FlattenedReply extends Comment {
 }
 
 const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 const userStore = useUserStore()
+const {
+  shouldStartTour,
+  getCurrentStep,
+  TourStep,
+  saveStep,
+  highlightElement,
+  destroyDriver,
+} = useScoringTour()
 
 // 路由参数
 const itemId = Number(route.params.itemId)
@@ -924,7 +934,51 @@ function getScoreBarWidth(percentage: number): string {
 
 onMounted(() => {
   loadDetail()
+
+  // 检查是否需要启动引导
+  if (shouldStartTour()) {
+    const step = getCurrentStep()
+    if (step === TourStep.RATING_DETAIL_FEEDBACK) {
+      waitForDataAndStartTour()
+    }
+  }
 })
+
+onUnmounted(() => {
+  destroyDriver()
+})
+
+// 等待数据加载完成后启动引导
+function waitForDataAndStartTour() {
+  const checkInterval = setInterval(() => {
+    if (!isLoading.value && detail.value) {
+      clearInterval(checkInterval)
+      setTimeout(() => {
+        showDetailFeedbackTour()
+      }, 300)
+    }
+  }, 100)
+  setTimeout(() => clearInterval(checkInterval), 5000)
+}
+
+// 步骤10：反馈按钮
+function showDetailFeedbackTour() {
+  highlightElement(
+    '#tour-detail-feedback',
+    '提交反馈',
+    '如果评分项目有更新（如描述已经过时，或已不存在），可以通过这里进行反馈。',
+    {
+      side: 'bottom',
+      showButtons: ['next', 'close'],
+      onNextClick: () => {
+        saveStep(TourStep.COMMUNITY_HOT)
+        destroyDriver()
+        // 返回评分社区主页
+        router.push('/community')
+      },
+    }
+  )
+}
 </script>
 
 <template>
@@ -976,7 +1030,7 @@ onMounted(() => {
           <!-- 操作按钮区 -->
           <div class="item-actions">
             <!-- 反馈按钮 -->
-            <button class="feedback-btn" @click="openFeedbackDrawer">
+            <button id="tour-detail-feedback" class="feedback-btn" @click="openFeedbackDrawer">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>

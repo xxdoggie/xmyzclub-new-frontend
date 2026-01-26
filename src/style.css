@@ -141,3 +141,105 @@ body {
     font-size: 16px !important;
   }
 }
+
+/* === Driver.js 引导弹窗自定义样式 === */
+.driver-popover {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-xl) !important;
+  max-width: 320px !important;
+}
+
+.driver-popover-title {
+  font-size: var(--text-lg) !important;
+  font-weight: var(--font-bold) !important;
+  color: var(--color-text) !important;
+  margin-bottom: var(--spacing-sm) !important;
+}
+
+.driver-popover-description {
+  font-size: var(--text-sm) !important;
+  color: var(--color-text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+.driver-popover-footer {
+  margin-top: var(--spacing-md) !important;
+  gap: var(--spacing-sm) !important;
+}
+
+.driver-popover-navigation-btns {
+  gap: var(--spacing-sm) !important;
+}
+
+.driver-popover-prev-btn,
+.driver-popover-next-btn {
+  padding: var(--spacing-xs) var(--spacing-md) !important;
+  border-radius: var(--radius-md) !important;
+  font-size: var(--text-sm) !important;
+  font-weight: var(--font-medium) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.driver-popover-prev-btn {
+  background: var(--color-border) !important;
+  color: var(--color-text) !important;
+  border: none !important;
+}
+
+.driver-popover-prev-btn:hover {
+  background: var(--color-text-placeholder) !important;
+}
+
+.driver-popover-next-btn {
+  background: var(--color-primary) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.driver-popover-next-btn:hover {
+  background: var(--color-primary-dark) !important;
+}
+
+.driver-popover-close-btn {
+  color: var(--color-text-secondary) !important;
+}
+
+.driver-popover-close-btn:hover {
+  color: var(--color-text) !important;
+}
+
+.driver-popover-arrow {
+  border-color: var(--color-card) !important;
+}
+
+.driver-popover-arrow-side-left,
+.driver-popover-arrow-side-right {
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+.driver-popover-arrow-side-top,
+.driver-popover-arrow-side-bottom {
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+}
+
+/* 暗色模式适配 */
+:root.dark .driver-popover {
+  background: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+:root.dark .driver-popover-title {
+  color: var(--color-text) !important;
+}
+
+:root.dark .driver-popover-description {
+  color: var(--color-text-secondary) !important;
+}
+
+:root.dark .driver-popover-arrow {
+  border-color: var(--color-card) !important;
+}

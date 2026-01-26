@@ -137,6 +137,7 @@ function showSectionIntro() {
     {
       side: 'bottom',
       showButtons: ['next', 'close'],
+      nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.MINOR_SECTION_FEEDBACK)
         destroyDriver()
@@ -155,6 +156,7 @@ function showFeedbackTour() {
     {
       side: 'top',
       showButtons: ['next', 'close'],
+      nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.MINOR_SECTION_CLICK)
         destroyDriver()
@@ -173,6 +175,7 @@ function showClickTour() {
     {
       side: 'bottom',
       showButtons: ['next', 'close'],
+      nextBtnText: '查看项目',
       onNextClick: () => {
         saveStep(TourStep.RATING_LIST_INTRO)
         destroyDriver()

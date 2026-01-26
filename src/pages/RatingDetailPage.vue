@@ -970,6 +970,7 @@ function showDetailFeedbackTour() {
     {
       side: 'bottom',
       showButtons: ['next', 'close'],
+      nextBtnText: '继续引导',
       onNextClick: () => {
         saveStep(TourStep.COMMUNITY_HOT)
         destroyDriver()

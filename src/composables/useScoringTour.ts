@@ -122,6 +122,7 @@ function highlightElement(
     nextBtnText?: string
     allowInteraction?: boolean // 是否允许与高亮元素交互
     onNextClick?: () => void
+    showSkipButton?: boolean // 是否显示跳过向导按钮
   }
 ) {
   const driverObj = createDriver({
@@ -137,6 +138,19 @@ function highlightElement(
       side: options?.side ?? 'bottom',
       align: options?.align ?? 'center',
       onNextClick: options?.onNextClick,
+      onPopoverRender: options?.showSkipButton
+        ? (popover) => {
+            // 在 popover 底部添加跳过按钮
+            const skipBtn = document.createElement('button')
+            skipBtn.className = 'tour-skip-btn'
+            skipBtn.textContent = '我想自己探索，退出向导'
+            skipBtn.onclick = () => {
+              completeTour()
+              destroyDriver()
+            }
+            popover.wrapper.appendChild(skipBtn)
+          }
+        : undefined,
     },
   })
 

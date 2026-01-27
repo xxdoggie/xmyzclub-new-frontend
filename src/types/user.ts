@@ -162,3 +162,21 @@ export interface AvatarInfo {
   hasAvatar: boolean
   avatarUrl?: string
 }
+
+/**
+ * 隐私设置
+ */
+export interface PrivacySettings {
+  showCampusBinding: boolean
+  showStatistics: boolean
+  showContributions: boolean
+}
+
+/**
+ * 更新隐私设置请求体
+ */
+export interface UpdatePrivacySettingsRequest {
+  showCampusBinding?: boolean
+  showStatistics?: boolean
+  showContributions?: boolean
+}

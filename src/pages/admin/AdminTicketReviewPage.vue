@@ -636,23 +636,56 @@ onMounted(() => {
 .session-filter {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .filter-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 .filter-select {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--text-xs);
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-right: calc(var(--spacing-md) + 20px);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   color: var(--color-text);
-  background: var(--color-card);
+  background-color: var(--color-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--spacing-sm) center;
+  background-size: 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.filter-select:hover {
+  border-color: var(--color-primary);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.filter-select option {
+  padding: var(--spacing-sm);
+  background: var(--color-card);
+  color: var(--color-text);
 }
 
 /* ===== Batch Actions ===== */

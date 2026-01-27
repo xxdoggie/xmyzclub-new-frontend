@@ -1,5 +1,5 @@
 import api from './index'
-import type { ApiResponse } from '@/types/api'
+import type { ApiResponse } from './index'
 
 // ==================== 类型定义 ====================
 

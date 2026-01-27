@@ -735,7 +735,7 @@ function canShowSubmissionsButton(campaign: Campaign): boolean {
 
 // 获取投稿/审核按钮的文案
 function getSubmissionsButtonLabel(campaign: Campaign): string {
-  return campaign.currentStage?.stageType === 'submission' ? '投稿' : '审核'
+  return campaign.currentStage?.stageType === 'submission' ? '查看投稿结果' : '审核'
 }
 
 // 判断是否显示结果按钮（投票阶段和结果阶段）
@@ -2010,6 +2010,7 @@ onMounted(async () => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   margin-bottom: var(--spacing-sm);
+  overflow: hidden;
 }
 
 .stage-config:last-child {
@@ -2050,16 +2051,27 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .stage-times .form-group {
   flex: 1;
   margin-bottom: 0;
+  min-width: 0;
 }
 
 .stage-times .form-input {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 修复移动端日期时间选择器溢出问题 */
+.stage-times input[type="datetime-local"] {
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Stage Extra Config */

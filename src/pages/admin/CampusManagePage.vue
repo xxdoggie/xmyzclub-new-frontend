@@ -158,12 +158,6 @@ function formatTime(dateStr: string | null) {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-// 格式化日期
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('zh-CN')
-}
-
 // 获取性别标签
 function getGenderLabel(gender: number) {
   switch (gender) {

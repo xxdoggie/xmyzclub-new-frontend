@@ -46,6 +46,8 @@ import type {
   TargetType,
   AdminContributionsParams,
   ReviewContributionRequest,
+  DailyRatingStatistics,
+  DailyRatingStatisticsParams,
 } from '@/types/rating'
 
 /**
@@ -177,6 +179,14 @@ const ADMIN_BASE = '/admin/rating-community'
  */
 export function getStatistics() {
   return api.get<ApiResponse<RatingStatistics>>(`${ADMIN_BASE}/statistics/overview`)
+}
+
+/**
+ * 获取每日评分统计
+ * @param params 查询参数（preset 或 startDate+endDate 二选一）
+ */
+export function getDailyRatingStatistics(params?: DailyRatingStatisticsParams) {
+  return api.get<ApiResponse<DailyRatingStatistics>>(`${ADMIN_BASE}/statistics/daily-ratings`, { params })
 }
 
 // ----- 学校管理 -----

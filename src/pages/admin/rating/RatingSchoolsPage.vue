@@ -288,6 +288,15 @@ onMounted(() => {
               <p class="page-subtitle">管理学校、分区和评分项目</p>
             </div>
             <div class="header-actions">
+              <button class="action-button secondary" @click="router.push('/admin/rating/statistics')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 3v18h18"></path>
+                  <path d="M18 17V9"></path>
+                  <path d="M13 17V5"></path>
+                  <path d="M8 17v-3"></path>
+                </svg>
+                数据统计
+              </button>
               <button class="action-button secondary" @click="router.push('/admin/rating/contributions')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>

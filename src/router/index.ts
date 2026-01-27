@@ -452,6 +452,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/admin/rating/statistics',
+      name: 'admin-rating-statistics',
+      component: () => import('../pages/admin/rating/RatingStatisticsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '数据统计',
+        parent: 'admin-rating',
+      },
+    },
+    {
       path: '/admin/messages',
       name: 'admin-messages',
       component: () => import('../pages/admin/MessageManagePage.vue'),

@@ -17,6 +17,7 @@ import { getUserAvatar } from '@/api/user'
 import type { RatingItemDetail, Comment, ContributionHistoryItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
+import UserProfilePopover from '@/components/ui/UserProfilePopover.vue'
 
 // 扁平化的回复类型，包含被回复人信息
 interface FlattenedReply extends Comment {
@@ -97,6 +98,11 @@ const isFeedbackOpen = ref(false)
 
 // 用户头像缓存（userId -> avatarUrl）
 const userAvatars = ref<Map<number, string | null>>(new Map())
+
+// 用户信息气泡状态
+const showUserPopover = ref(false)
+const popoverUserId = ref<number | null>(null)
+const popoverTriggerRect = ref<DOMRect | null>(null)
 
 function openFeedbackDrawer() {
   if (!userStore.isLoggedIn) {
@@ -888,6 +894,22 @@ function getAvatarUrl(userId: number): string | null | undefined {
   return userAvatars.value.get(userId)
 }
 
+// 显示用户信息气泡
+function showUserProfile(userId: number, event: MouseEvent) {
+  event.stopPropagation()
+  const target = event.currentTarget as HTMLElement
+  popoverUserId.value = userId
+  popoverTriggerRect.value = target.getBoundingClientRect()
+  showUserPopover.value = true
+}
+
+// 关闭用户信息气泡
+function closeUserPopover() {
+  showUserPopover.value = false
+  popoverUserId.value = null
+  popoverTriggerRect.value = null
+}
+
 // 异步加载评论区用户头像（不阻塞主流程）
 async function loadCommentsAvatars() {
   if (!detail.value?.comments) return
@@ -1144,7 +1166,11 @@ function showDetailFeedbackTour() {
             <div v-for="comment in sortedComments" :key="comment.id" class="comment-card">
               <!-- 主评论 -->
               <div class="comment-main">
-                <div class="comment-avatar" :class="{ 'has-avatar': getAvatarUrl(comment.userId) }">
+                <div
+                  class="comment-avatar clickable"
+                  :class="{ 'has-avatar': getAvatarUrl(comment.userId) }"
+                  @click="showUserProfile(comment.userId, $event)"
+                >
                   <img v-if="getAvatarUrl(comment.userId)" :src="getAvatarUrl(comment.userId)!" alt="" class="avatar-img" />
                   <template v-else>{{ comment.nickname.charAt(0) }}</template>
                 </div>
@@ -1356,7 +1382,11 @@ function showDetailFeedbackTour() {
                 <div class="drawer-content">
                   <!-- 原评论 -->
                   <div v-if="replyDrawerComment" class="drawer-original-comment">
-                    <div class="comment-avatar" :class="{ 'has-avatar': getAvatarUrl(replyDrawerComment.userId) }">
+                    <div
+                      class="comment-avatar clickable"
+                      :class="{ 'has-avatar': getAvatarUrl(replyDrawerComment.userId) }"
+                      @click="showUserProfile(replyDrawerComment.userId, $event)"
+                    >
                       <img v-if="getAvatarUrl(replyDrawerComment.userId)" :src="getAvatarUrl(replyDrawerComment.userId)!" alt="" class="avatar-img" />
                       <template v-else>{{ replyDrawerComment.nickname.charAt(0) }}</template>
                     </div>
@@ -1440,7 +1470,11 @@ function showDetailFeedbackTour() {
                       :key="reply.id"
                       class="drawer-reply-item"
                     >
-                      <div class="comment-avatar small" :class="{ 'has-avatar': getAvatarUrl(reply.userId) }">
+                      <div
+                        class="comment-avatar small clickable"
+                        :class="{ 'has-avatar': getAvatarUrl(reply.userId) }"
+                        @click="showUserProfile(reply.userId, $event)"
+                      >
                         <img v-if="getAvatarUrl(reply.userId)" :src="getAvatarUrl(reply.userId)!" alt="" class="avatar-img" />
                         <template v-else>{{ reply.nickname.charAt(0) }}</template>
                       </div>
@@ -1597,6 +1631,14 @@ function showDetailFeedbackTour() {
           :current-description="detail.description"
           @close="closeFeedbackDrawer"
           @success="handleFeedbackSuccess"
+        />
+
+        <!-- 用户信息气泡 -->
+        <UserProfilePopover
+          v-if="showUserPopover && popoverUserId"
+          :user-id="popoverUserId"
+          :trigger-rect="popoverTriggerRect"
+          @close="closeUserPopover"
         />
 
         <!-- 更改历史弹窗 -->
@@ -2123,6 +2165,20 @@ function showDetailFeedbackTour() {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.comment-avatar.clickable {
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.comment-avatar.clickable:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.comment-avatar.clickable:active {
+  transform: scale(1.05);
 }
 
 .comment-body {

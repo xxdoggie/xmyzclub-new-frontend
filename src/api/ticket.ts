@@ -109,6 +109,14 @@ export function deleteActivity(id: number) {
 }
 
 /**
+ * 管理员 - 更新活动状态
+ * POST /activities/{id}/status
+ */
+export function updateActivityStatus(id: number, status: 'draft' | 'published' | 'active' | 'ended' | 'cancelled') {
+  return api.post<ApiResponse<TicketActivityDetail>>(`/admin/ticket/activities/${id}/status`, { status })
+}
+
+/**
  * 管理员 - 获取活动统计
  * GET /activities/{id}/stats
  */

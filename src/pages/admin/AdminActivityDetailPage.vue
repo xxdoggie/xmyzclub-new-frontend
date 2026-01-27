@@ -7,6 +7,7 @@ import {
   getAdminActivityDetail,
   createActivity,
   updateActivity,
+  updateActivityStatus,
   deleteActivity,
   getActivityStats,
   createSession,
@@ -20,6 +21,7 @@ import type {
   ActivityConfig,
   ActivitySession,
   ActivityStats,
+  ActivityStatus,
   ExtraInfoField,
 } from '@/types/ticket'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -173,12 +175,54 @@ async function saveActivity() {
   }
 }
 
-// 更新活动状态
-async function changeStatus(status: string) {
+// 状态切换弹窗
+const showStatusModal = ref(false)
+const isChangingStatus = ref(false)
+const targetStatus = ref<ActivityStatus | null>(null)
+
+// 状态选项
+const statusOptions: Array<{ value: ActivityStatus; label: string; desc: string }> = [
+  { value: 'draft', label: '草稿', desc: '活动未发布，仅管理员可见' },
+  { value: 'published', label: '已发布', desc: '活动已发布，用户可见但不可抢票' },
+  { value: 'active', label: '进行中', desc: '活动进行中，用户可抢票' },
+  { value: 'ended', label: '已结束', desc: '活动已结束，不可抢票' },
+  { value: 'cancelled', label: '已取消', desc: '活动已取消' },
+]
+
+// 打开状态切换弹窗
+function openStatusModal() {
+  if (!activity.value) return
+  targetStatus.value = activity.value.status
+  showStatusModal.value = true
+}
+
+// 确认切换状态
+async function confirmChangeStatus() {
+  if (!activityId.value || !targetStatus.value) return
+
+  isChangingStatus.value = true
+  try {
+    const res = await updateActivityStatus(activityId.value, targetStatus.value)
+    if (res.data.code === 200) {
+      toast.success('状态更新成功')
+      activity.value = res.data.data
+      showStatusModal.value = false
+    } else {
+      toast.error(res.data.message || '更新失败')
+    }
+  } catch (error) {
+    toast.error('更新失败')
+  } finally {
+    isChangingStatus.value = false
+  }
+}
+
+// 更新活动状态（快捷方式）
+async function changeStatus(status: ActivityStatus) {
   if (!activityId.value) return
 
   try {
-    const res = await updateActivity(activityId.value, { status: status as any })
+    const res = await updateActivityStatus(activityId.value, status)
     if (res.data.code === 200) {
       toast.success('状态更新成功')
       activity.value = res.data.data
@@ -490,9 +534,12 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
                 <p class="page-subtitle">{{ isCreateMode ? '填写活动信息' : activity?.name }}</p>
               </div>
               <div v-if="!isCreateMode && activity" class="header-status">
-                <span class="status-badge" :class="getStatusInfo(activity.status).class">
+                <button class="status-badge-btn" :class="getStatusInfo(activity.status).class" @click="openStatusModal">
                   {{ getStatusInfo(activity.status).label }}
-                </span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -847,6 +894,45 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
           </button>
           <button class="modal-btn confirm danger" @click="confirmDelete" :disabled="isDeleting">
             {{ isDeleting ? '删除中...' : '确认删除' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 状态切换弹窗 -->
+    <div v-if="showStatusModal" class="modal-overlay" @click.self="showStatusModal = false">
+      <div class="modal-content">
+        <h3 class="modal-title">切换活动状态</h3>
+        <div class="status-options">
+          <label
+            v-for="option in statusOptions"
+            :key="option.value"
+            class="status-option"
+            :class="{ active: targetStatus === option.value, current: activity?.status === option.value }"
+          >
+            <input
+              type="radio"
+              :value="option.value"
+              v-model="targetStatus"
+              class="status-radio"
+            />
+            <div class="status-option-content">
+              <span class="status-option-label">{{ option.label }}</span>
+              <span class="status-option-desc">{{ option.desc }}</span>
+            </div>
+            <span v-if="activity?.status === option.value" class="current-tag">当前</span>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" @click="showStatusModal = false" :disabled="isChangingStatus">
+            取消
+          </button>
+          <button
+            class="modal-btn confirm"
+            @click="confirmChangeStatus"
+            :disabled="isChangingStatus || targetStatus === activity?.status"
+          >
+            {{ isChangingStatus ? '切换中...' : '确认切换' }}
           </button>
         </div>
       </div>
@@ -1461,6 +1547,121 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
 .status-badge.status-waiting {
   background: var(--color-warning-bg);
   color: var(--color-warning);
+}
+
+/* ===== Status Badge Button ===== */
+.status-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.status-badge-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.status-badge-btn:hover {
+  opacity: 0.85;
+}
+
+.status-badge-btn.status-draft {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.status-badge-btn.status-published {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.status-badge-btn.status-active {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-badge-btn.status-ended {
+  background: var(--color-border);
+  color: var(--color-text-tertiary);
+}
+
+.status-badge-btn.status-cancelled {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+/* ===== Status Options ===== */
+.status-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.status-option:hover {
+  border-color: var(--color-primary);
+}
+
+.status-option.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.status-option.current {
+  background: var(--color-bg);
+}
+
+.status-radio {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.status-option-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-option-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.status-option-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.current-tag {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  padding: 2px 8px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 /* ===== Action Section ===== */

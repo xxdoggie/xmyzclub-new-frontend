@@ -604,25 +604,24 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <p v-if="campaign.description" class="campaign-desc">{{ campaign.description }}</p>
-            <div class="campaign-rules">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-              </svg>
-              <span>{{ rulesDescription }}</span>
-            </div>
-            <div class="submit-area">
-              <button class="submit-btn" @click="openSearchModal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="campaign-info-and-submit">
+              <div class="campaign-left-info">
+                <div class="campaign-rules">
+                  <span class="rules-label">投稿限制</span>
+                  <span class="rules-divider">·</span>
+                  <span class="rules-value">{{ rulesDescription }}</span>
+                </div>
+                <p class="new-feature-tip">
+                  <span class="new-badge">NEW</span>
+                  <span>支持QQ音乐搜索及自定义投稿</span>
+                </p>
+              </div>
+              <button class="submit-btn-compact" @click="openSearchModal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                <span class="btn-text">投稿歌曲</span>
               </button>
-              <p class="new-feature-tip">支持QQ音乐搜索及自定义歌曲投稿！</p>
             </div>
           </div>
 
@@ -1223,92 +1222,95 @@ onMounted(() => {
   height: 12px;
 }
 
-.campaign-desc {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  padding: var(--spacing-sm);
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-  margin: 0;
+
+/* ===== Campaign Info and Submit Area ===== */
+.campaign-info-and-submit {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.campaign-left-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
 .campaign-rules {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 6px;
   font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--color-text-secondary);
   background: var(--color-bg);
-  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  align-self: flex-start;
 }
 
-.campaign-rules svg {
-  width: 14px;
-  height: 14px;
+.rules-label {
+  color: var(--color-text-tertiary);
   flex-shrink: 0;
 }
 
-/* ===== Submit Button ===== */
-.submit-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border: none;
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  align-self: flex-start;
+.rules-divider {
+  color: var(--color-border);
 }
 
-.submit-btn:hover {
-  background: var(--color-primary);
-  color: white;
-}
-
-.submit-btn:active {
-  transform: scale(0.98);
-}
-
-.submit-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* ===== Submit Area ===== */
-.submit-area {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  align-self: flex-start;
+.rules-value {
+  color: var(--color-text-secondary);
 }
 
 .new-feature-tip {
-  font-size: var(--text-xs);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin: 0;
 }
 
-.new-feature-tip::before {
-  content: 'NEW';
-  font-size: 10px;
+.new-badge {
+  font-size: 9px;
   font-weight: var(--font-bold);
   color: white;
+  background: linear-gradient(135deg, var(--color-primary), #7c3aed);
+  padding: 2px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+/* ===== Compact Submit Button ===== */
+.submit-btn-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: white;
   background: var(--color-primary);
-  padding: 1px 4px;
-  border-radius: 2px;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.submit-btn-compact:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb, 99, 102, 241), 0.3);
+}
+
+.submit-btn-compact:active {
+  transform: scale(0.95);
+}
+
+.submit-btn-compact svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* ===== Submissions Card ===== */
@@ -1529,6 +1531,14 @@ onMounted(() => {
   font-size: var(--text-xs);
   color: var(--color-text-placeholder);
   flex-shrink: 0;
+  display: none;
+}
+
+/* Mobile: Show submit-time on larger screens only */
+@media (min-width: 640px) {
+  .submit-time {
+    display: block;
+  }
 }
 
 /* ===== Modal ===== */
@@ -2316,8 +2326,6 @@ onMounted(() => {
   }
 
   .campaign-card {
-    flex-direction: row;
-    align-items: center;
     padding: var(--spacing-lg);
   }
 
@@ -2325,14 +2333,19 @@ onMounted(() => {
     font-size: var(--text-xl);
   }
 
-  .campaign-desc {
-    font-size: var(--text-base);
-    margin-bottom: var(--spacing-xs);
+  .campaign-info-and-submit {
+    flex-direction: row;
+    align-items: center;
   }
 
-  .submit-btn {
-    flex-shrink: 0;
-    padding: var(--spacing-sm) var(--spacing-xl);
+  .submit-btn-compact {
+    width: 40px;
+    height: 40px;
+  }
+
+  .submit-btn-compact svg {
+    width: 20px;
+    height: 20px;
   }
 
   .user-info-form {

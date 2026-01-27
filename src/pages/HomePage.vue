@@ -217,6 +217,128 @@ function goToBanner(index: number) {
       </div>
     </header>
 
+    <!-- Content Wrapper (用于桌面端侧边栏布局) -->
+    <div class="content-wrapper">
+      <!-- Desktop Sidebar -->
+      <aside class="desktop-sidebar">
+        <!-- 用户区域 -->
+        <div class="sidebar-user-section" @click="goToProfile">
+          <template v-if="userStore.isLoggedIn">
+            <div class="sidebar-user-info">
+              <span class="sidebar-user-name">{{ userStore.user?.nickname }}</span>
+              <span class="sidebar-user-signature" v-if="userStore.user?.signature">{{ userStore.user.signature }}</span>
+              <span class="sidebar-user-status" v-else>点击查看个人中心</span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="sidebar-user-info">
+              <span class="sidebar-user-name">游客</span>
+              <button class="sidebar-login-btn" @click.stop="handleLogin">点击登录</button>
+            </div>
+          </template>
+        </div>
+
+        <!-- 可滚动内容区域 -->
+        <div class="sidebar-scroll-content">
+          <!-- 管理区域 -->
+          <div class="sidebar-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages">
+            <div class="sidebar-section-header">
+              <span class="sidebar-section-title">管理后台</span>
+            </div>
+            <nav class="sidebar-nav">
+              <router-link v-if="userStore.canManageTickets" to="/admin/tickets" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                  </svg>
+                </div>
+                <span>票务管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageCampaigns" to="/admin/dorm" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M12 3l9 4H3l9-4z"></path>
+                  </svg>
+                </div>
+                <span>宿舍管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageCampaigns" to="/admin/campaigns" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
+                </div>
+                <span>活动管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageRating" to="/admin/rating" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <span>评分社区</span>
+              </router-link>
+              <router-link v-if="userStore.canManageMessages" to="/admin/messages" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <span>消息管理</span>
+              </router-link>
+            </nav>
+          </div>
+
+          <!-- 账户区域 -->
+          <div class="sidebar-nav-section" v-if="userStore.isLoggedIn">
+            <div class="sidebar-section-header">
+              <span class="sidebar-section-title">我的账户</span>
+            </div>
+            <nav class="sidebar-nav">
+              <router-link to="/profile" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <span>个人中心</span>
+              </router-link>
+              <router-link to="/messages" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon messages">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                </div>
+                <span>我的消息</span>
+              </router-link>
+              <button class="sidebar-nav-item logout-item" @click="openLogoutConfirm">
+                <div class="sidebar-nav-icon logout">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                </div>
+                <span>退出登录</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        <!-- 底部信息 -->
+        <div class="sidebar-footer">
+          <p class="sidebar-brand">厦门一中学生社区</p>
+          <p class="sidebar-credit">designed by 23届玄学狗狗</p>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <div class="main-content-area">
+
     <!-- Mobile Menu Overlay -->
     <Transition name="menu-fade">
       <div v-if="isMobileMenuOpen" class="mobile-menu-overlay" @click="toggleMobileMenu"></div>
@@ -579,6 +701,8 @@ function goToBanner(index: number) {
         <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="icp-link">闽ICP备2024074144号-4</a>
       </div>
     </footer>
+      </div><!-- /.main-content-area -->
+    </div><!-- /.content-wrapper -->
 
     <!-- 退出确认弹窗 -->
     <Transition name="modal-fade">
@@ -734,6 +858,11 @@ function goToBanner(index: number) {
 .mobile-menu-btn svg {
   width: 24px;
   height: 24px;
+}
+
+/* ===== Desktop Sidebar ===== */
+.desktop-sidebar {
+  display: none; /* 默认隐藏，桌面端显示 */
 }
 
 /* Mobile Menu - Overlay Drawer */
@@ -1595,6 +1724,7 @@ function goToBanner(index: number) {
     transform: none;
   }
 
+  /* 桌面端显示顶部导航链接 */
   .nav-links {
     display: flex;
     flex: 1;
@@ -1610,6 +1740,233 @@ function goToBanner(index: number) {
 
   .user-name-btn {
     display: inline-flex;
+  }
+
+  /* 桌面端内容包裹器 - 侧边栏和主内容并排 */
+  .content-wrapper {
+    display: flex;
+    flex: 1;
+  }
+
+  /* 桌面端侧边栏显示 */
+  .desktop-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--color-card);
+    border-right: 1px solid var(--color-border);
+    height: calc(100vh - 57px);
+    position: sticky;
+    top: 57px;
+    overflow: hidden;
+  }
+
+  /* 主内容区域 */
+  .main-content-area {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 侧边栏用户区域 */
+  .sidebar-user-section {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: white;
+    cursor: pointer;
+    transition: opacity var(--transition-fast);
+  }
+
+  .sidebar-user-section:hover {
+    opacity: 0.95;
+  }
+
+  .sidebar-user-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sidebar-user-name {
+    display: block;
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sidebar-user-status {
+    display: block;
+    font-size: var(--text-xs);
+    opacity: 0.8;
+    margin-top: 2px;
+  }
+
+  .sidebar-user-signature {
+    display: block;
+    font-size: var(--text-xs);
+    opacity: 0.85;
+    margin-top: 2px;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar-login-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: var(--text-xs);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    margin-top: 4px;
+    transition: all var(--transition-fast);
+  }
+
+  .sidebar-login-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  /* 侧边栏可滚动内容区域 */
+  .sidebar-scroll-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 侧边栏导航区域 */
+  .sidebar-nav-section {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .sidebar-section-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .sidebar-section-title {
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--color-text);
+    text-decoration: none;
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+  }
+
+  .sidebar-nav-item:hover {
+    background: var(--color-border);
+  }
+
+  .sidebar-nav-item.active,
+  .sidebar-nav-item.router-link-exact-active {
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+  }
+
+  .sidebar-nav-item.active .sidebar-nav-icon,
+  .sidebar-nav-item.router-link-exact-active .sidebar-nav-icon {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .sidebar-nav-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-border);
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+  }
+
+  .sidebar-nav-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .sidebar-nav-icon.logout {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+  }
+
+  .sidebar-nav-icon.admin {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8B5CF6;
+  }
+
+  .sidebar-nav-icon.messages {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8B5CF6;
+  }
+
+  .sidebar-nav-item.logout-item {
+    color: #EF4444;
+  }
+
+  .sidebar-nav-item.logout-item:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  /* 侧边栏底部信息 */
+  .sidebar-footer {
+    flex-shrink: 0;
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    background: var(--color-card);
+  }
+
+  .sidebar-brand {
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .sidebar-credit {
+    font-size: 10px;
+    color: var(--color-text-placeholder);
+  }
+
+  /* 主内容区域占据剩余空间 */
+  .main {
+    flex: 1;
+    min-width: 0;
   }
 
   /* 轮播图 Desktop 适配 */

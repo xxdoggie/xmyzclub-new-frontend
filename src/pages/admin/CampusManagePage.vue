@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -26,6 +26,10 @@ const userIdInput = ref('')
 const usernameInput = ref('')
 const nicknameInput = ref('')
 
+// Tab切换动画方向
+const tabDirection = ref<'left' | 'right'>('right')
+const isTabAnimating = ref(false)
+
 // 搜索结果
 const searchResults = ref<AdminUserCampusBindingItem[]>([])
 const isSearching = ref(false)
@@ -42,6 +46,9 @@ const searchTypes: { value: SearchType; label: string; placeholder: string }[] =
   { value: 'user-info', label: '用户信息', placeholder: '' },
 ]
 
+// 获取当前搜索类型的索引
+const currentTabIndex = computed(() => searchTypes.findIndex((t) => t.value === searchType.value))
+
 // 获取当前搜索类型的占位符
 function getPlaceholder(): string {
   const found = searchTypes.find((t) => t.value === searchType.value)
@@ -49,13 +56,29 @@ function getPlaceholder(): string {
 }
 
 // 切换搜索类型时清空输入
-function onSearchTypeChange() {
+function onSearchTypeChange(newType: SearchType) {
+  const newIndex = searchTypes.findIndex((t) => t.value === newType)
+  const oldIndex = currentTabIndex.value
+
+  // 设置动画方向
+  tabDirection.value = newIndex > oldIndex ? 'right' : 'left'
+  isTabAnimating.value = true
+
+  // 切换类型
+  searchType.value = newType
   searchKeyword.value = ''
   userIdInput.value = ''
   usernameInput.value = ''
   nicknameInput.value = ''
   searchResults.value = []
   hasSearched.value = false
+
+  // 动画结束后重置状态
+  nextTick(() => {
+    setTimeout(() => {
+      isTabAnimating.value = false
+    }, 250)
+  })
 }
 
 // 执行搜索
@@ -183,85 +206,90 @@ onMounted(() => {
           <div class="search-card">
             <!-- 搜索类型切换 -->
             <div class="search-type-tabs">
+              <div class="tabs-indicator" :style="{ transform: `translateX(${currentTabIndex * 100}%)` }"></div>
               <button
                 v-for="type in searchTypes"
                 :key="type.value"
                 class="search-type-tab"
                 :class="{ active: searchType === type.value }"
-                @click="searchType = type.value; onSearchTypeChange()"
+                @click="onSearchTypeChange(type.value)"
               >
                 {{ type.label }}
               </button>
             </div>
 
             <!-- 搜索输入 -->
-            <div class="search-inputs">
-              <!-- 校园网姓名/账号搜索 -->
-              <template v-if="searchType === 'campus-name' || searchType === 'campus-account'">
-                <div class="search-input-row">
-                  <input
-                    v-model="searchKeyword"
-                    type="text"
-                    class="search-input"
-                    :placeholder="getPlaceholder()"
-                    @keyup.enter="handleSearch"
-                  />
-                  <button
-                    class="search-btn"
-                    :disabled="isSearching"
-                    @click="handleSearch"
-                  >
-                    <svg v-if="!isSearching" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <span v-else class="btn-spinner"></span>
-                  </button>
-                </div>
-              </template>
+            <div class="search-inputs-wrapper">
+              <Transition :name="tabDirection === 'right' ? 'slide-right' : 'slide-left'" mode="out-in">
+                <div class="search-inputs" :key="searchType">
+                  <!-- 校园网姓名/账号搜索 -->
+                  <template v-if="searchType === 'campus-name' || searchType === 'campus-account'">
+                    <div class="search-input-row">
+                      <input
+                        v-model="searchKeyword"
+                        type="text"
+                        class="search-input"
+                        :placeholder="getPlaceholder()"
+                        @keyup.enter="handleSearch"
+                      />
+                      <button
+                        class="search-btn"
+                        :disabled="isSearching"
+                        @click="handleSearch"
+                      >
+                        <svg v-if="!isSearching" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <span v-else class="btn-spinner"></span>
+                      </button>
+                    </div>
+                  </template>
 
-              <!-- 用户信息搜索 -->
-              <template v-else>
-                <div class="search-fields">
-                  <div class="search-field">
-                    <label class="field-label">用户ID</label>
-                    <input
-                      v-model="userIdInput"
-                      type="text"
-                      class="field-input"
-                      placeholder="精确匹配"
-                      @keyup.enter="handleSearch"
-                    />
-                  </div>
-                  <div class="search-field">
-                    <label class="field-label">用户名</label>
-                    <input
-                      v-model="usernameInput"
-                      type="text"
-                      class="field-input"
-                      placeholder="模糊搜索"
-                      @keyup.enter="handleSearch"
-                    />
-                  </div>
-                  <div class="search-field">
-                    <label class="field-label">昵称</label>
-                    <input
-                      v-model="nicknameInput"
-                      type="text"
-                      class="field-input"
-                      placeholder="模糊搜索"
-                      @keyup.enter="handleSearch"
-                    />
-                  </div>
+                  <!-- 用户信息搜索 -->
+                  <template v-else>
+                    <div class="search-fields">
+                      <div class="search-field">
+                        <label class="field-label">用户ID</label>
+                        <input
+                          v-model="userIdInput"
+                          type="text"
+                          class="field-input"
+                          placeholder="精确匹配"
+                          @keyup.enter="handleSearch"
+                        />
+                      </div>
+                      <div class="search-field">
+                        <label class="field-label">用户名</label>
+                        <input
+                          v-model="usernameInput"
+                          type="text"
+                          class="field-input"
+                          placeholder="模糊搜索"
+                          @keyup.enter="handleSearch"
+                        />
+                      </div>
+                      <div class="search-field">
+                        <label class="field-label">昵称</label>
+                        <input
+                          v-model="nicknameInput"
+                          type="text"
+                          class="field-input"
+                          placeholder="模糊搜索"
+                          @keyup.enter="handleSearch"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      class="search-btn-full"
+                      :disabled="isSearching"
+                      @click="handleSearch"
+                    >
+                      {{ isSearching ? '搜索中...' : '搜索' }}
+                    </button>
+                  </template>
                 </div>
-                <button
-                  class="search-btn-full"
-                  :disabled="isSearching"
-                  @click="handleSearch"
-                >
-                  {{ isSearching ? '搜索中...' : '搜索' }}
-                </button>
-              </template>
+              </Transition>
             </div>
           </div>
         </div>
@@ -306,30 +334,40 @@ onMounted(() => {
               class="user-card"
               @click="viewUserDetail(user)"
             >
-              <div class="user-main">
-                <div class="user-avatar">
-                  {{ user.nickname?.charAt(0) || user.username?.charAt(0) || '?' }}
-                </div>
-                <div class="user-info">
-                  <div class="user-name">{{ user.nickname || user.username }}</div>
-                  <div class="user-meta">
+              <!-- 头像 -->
+              <div class="user-avatar">
+                {{ user.hasCampusBinding ? user.name?.charAt(0) : (user.nickname?.charAt(0) || user.username?.charAt(0) || '?') }}
+              </div>
+
+              <!-- 主要信息区域 -->
+              <div class="user-content">
+                <!-- 校园网信息优先显示 -->
+                <template v-if="user.hasCampusBinding">
+                  <div class="user-primary">
+                    <span class="campus-name">{{ user.name }}</span>
+                    <span class="campus-badge bound">已绑定</span>
+                  </div>
+                  <div class="campus-class">{{ user.classAlias }}</div>
+                  <div class="user-secondary">
+                    <span class="user-nickname">{{ user.nickname }}</span>
+                    <span class="user-divider">·</span>
                     <span class="user-id">ID: {{ user.userId }}</span>
+                  </div>
+                </template>
+                <!-- 未绑定校园网 -->
+                <template v-else>
+                  <div class="user-primary">
+                    <span class="user-nickname-main">{{ user.nickname || user.username }}</span>
+                    <span class="campus-badge unbound">未绑定</span>
+                  </div>
+                  <div class="user-secondary">
+                    <span class="user-id">ID: {{ user.userId }}</span>
+                    <span class="user-divider">·</span>
                     <span class="user-status" :class="{ disabled: user.status !== 1 }">
                       {{ getStatusLabel(user.status) }}
                     </span>
                   </div>
-                </div>
-              </div>
-
-              <div class="user-campus" v-if="user.hasCampusBinding">
-                <div class="campus-badge bound">已绑定</div>
-                <div class="campus-info">
-                  <span class="campus-name">{{ user.name }}</span>
-                  <span class="campus-class">{{ user.classAlias }}</span>
-                </div>
-              </div>
-              <div class="user-campus" v-else>
-                <div class="campus-badge unbound">未绑定</div>
+                </template>
               </div>
 
               <svg class="user-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -503,7 +541,18 @@ onMounted(() => {
 
 .search-type-tabs {
   display: flex;
+  position: relative;
   border-bottom: 1px solid var(--color-border);
+}
+
+.tabs-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: calc(100% / 3);
+  height: 2px;
+  background: var(--color-primary);
+  transition: transform var(--transition-normal);
 }
 
 .search-type-tab {
@@ -515,21 +564,53 @@ onMounted(() => {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
+  position: relative;
+  z-index: 1;
 }
 
 .search-type-tab:hover {
   color: var(--color-text);
-  background: var(--color-bg);
 }
 
 .search-type-tab.active {
   color: var(--color-primary);
-  background: var(--color-primary-bg);
+}
+
+.search-inputs-wrapper {
+  overflow: hidden;
 }
 
 .search-inputs {
   padding: var(--spacing-md);
+}
+
+/* Tab切换动画 */
+.slide-right-enter-active,
+.slide-right-leave-active,
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: all 0.25s ease;
+}
+
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
 }
 
 .search-input-row {
@@ -591,27 +672,31 @@ onMounted(() => {
   animation: spin 0.8s linear infinite;
 }
 
-/* 用户信息搜索字段 */
+/* 用户信息搜索字段 - 移动端垂直布局 */
 .search-fields {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
 
 .search-field {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .field-label {
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
+  min-width: 48px;
+  flex-shrink: 0;
 }
 
 .field-input {
+  flex: 1;
   padding: var(--spacing-sm);
   font-size: var(--text-sm);
   border: 1px solid var(--color-border);
@@ -619,6 +704,7 @@ onMounted(() => {
   background: var(--color-bg);
   color: var(--color-text);
   transition: border-color var(--transition-fast);
+  min-width: 0;
 }
 
 .field-input:focus {
@@ -707,11 +793,11 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* User Card */
+/* User Card - 校园网信息优先显示 */
 .user-card {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   padding: var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
@@ -726,78 +812,58 @@ onMounted(() => {
   background: var(--color-bg);
 }
 
-.user-main {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex: 1;
-  min-width: 0;
-}
-
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-bold);
   flex-shrink: 0;
 }
 
-.user-info {
-  min-width: 0;
+.user-content {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.user-name {
+.user-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.campus-name {
   font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.user-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-top: 2px;
-}
-
-.user-id {
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
-}
-
-.user-status {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.user-status.disabled {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
-
-.user-campus {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-shrink: 0;
+.user-nickname-main {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .campus-badge {
   font-size: 10px;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: var(--radius-full);
   font-weight: var(--font-medium);
+  flex-shrink: 0;
 }
 
 .campus-badge.bound {
@@ -806,25 +872,53 @@ onMounted(() => {
 }
 
 .campus-badge.unbound {
-  background: var(--color-text-placeholder);
-  color: white;
-  opacity: 0.6;
-}
-
-.campus-info {
-  display: none;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.campus-name {
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--color-text-placeholder);
 }
 
 .campus-class {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-secondary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+}
+
+.user-nickname {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.user-divider {
+  flex-shrink: 0;
+}
+
+.user-id {
+  flex-shrink: 0;
+}
+
+.user-status {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  flex-shrink: 0;
+}
+
+.user-status.disabled {
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .user-arrow {
@@ -1013,8 +1107,24 @@ onMounted(() => {
     padding: var(--spacing-sm) var(--spacing-md);
   }
 
-  .campus-info {
-    display: flex;
+  /* 平板端用户信息搜索恢复三列布局 */
+  .search-fields {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
+  }
+
+  .search-field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .field-label {
+    min-width: unset;
+  }
+
+  .user-nickname {
+    max-width: 150px;
   }
 }
 

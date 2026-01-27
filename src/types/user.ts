@@ -162,3 +162,51 @@ export interface AvatarInfo {
   hasAvatar: boolean
   avatarUrl?: string
 }
+
+/**
+ * 隐私设置
+ */
+export interface PrivacySettings {
+  showCampusBinding: boolean
+  showStatistics: boolean
+  showContributions: boolean
+}
+
+/**
+ * 更新隐私设置请求体
+ */
+export interface UpdatePrivacySettingsRequest {
+  showCampusBinding?: boolean
+  showStatistics?: boolean
+  showContributions?: boolean
+}
+
+/**
+ * 用户公开资料（GET /api/v2/user/users/{userId}/profile 响应）
+ */
+export interface UserPublicProfile {
+  // 基本信息（始终显示）
+  id: number
+  nickname: string
+  gender: number // 0=未知, 1=男, 2=女
+  signature: string
+  hasAvatar: boolean
+  avatarUrl?: string
+  joinDate: string // yyyy-MM-dd
+
+  // 校园网绑定（可隐藏）
+  showCampusBinding: boolean
+  hasCampusBinding: boolean
+  classAlias: string | null
+  campusName: string | null
+
+  // 统计数据（可隐藏）
+  showStatistics: boolean
+  ratingCount: number | null
+  commentCount: number | null
+  likeCount: number | null
+
+  // 贡献数据（可隐藏）
+  showContributions: boolean
+  contributionCount: number | null
+}

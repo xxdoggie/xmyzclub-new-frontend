@@ -10,6 +10,9 @@ import type {
   CampusCaptchaResponse,
   AvatarUploadResponse,
   AvatarInfo,
+  PrivacySettings,
+  UpdatePrivacySettingsRequest,
+  UserPublicProfile,
 } from '@/types/user'
 
 // ==================== 权限 ====================
@@ -147,4 +150,29 @@ export function deleteAvatar() {
  */
 export function getUserAvatar(userId: number) {
   return api.get<ApiResponse<AvatarInfo>>(`/user/users/${userId}/avatar`)
+}
+
+// ==================== 隐私设置 ====================
+
+/**
+ * 获取隐私设置
+ */
+export function getPrivacySettings() {
+  return api.get<ApiResponse<PrivacySettings>>('/user/privacy-settings')
+}
+
+/**
+ * 更新隐私设置
+ */
+export function updatePrivacySettings(data: UpdatePrivacySettingsRequest) {
+  return api.put<ApiResponse<PrivacySettings>>('/user/privacy-settings', data)
+}
+
+// ==================== 用户公开资料 ====================
+
+/**
+ * 获取用户公开资料（公开接口）
+ */
+export function getUserPublicProfile(userId: number) {
+  return api.get<ApiResponse<UserPublicProfile>>(`/user/users/${userId}/profile`)
 }

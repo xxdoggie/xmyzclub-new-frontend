@@ -2,7 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
-import { getCampusCaptcha, checkHasPassword, changePassword } from '@/api/user'
+import { getCampusCaptcha, checkHasPassword, changePassword, getPrivacySettings, updatePrivacySettings } from '@/api/user'
+import type { PrivacySettings } from '@/types/user'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -55,6 +56,15 @@ const showOldPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
 
+// 隐私设置
+const privacySettings = ref<PrivacySettings>({
+  showCampusBinding: false,
+  showStatistics: true,
+  showContributions: true,
+})
+const privacyLoading = ref(true)
+const privacyUpdating = ref<string | null>(null) // 正在更新的字段
+
 // 编辑表单
 const editForm = ref({
   nickname: '',
@@ -95,6 +105,43 @@ function handleAvatarUploaded(newAvatarUrl: string) {
   }
 }
 
+// 加载隐私设置
+async function loadPrivacySettings() {
+  privacyLoading.value = true
+  try {
+    const res = await getPrivacySettings()
+    if (res.data.code === 200) {
+      privacySettings.value = res.data.data
+    }
+  } catch {
+    // 使用默认值
+  } finally {
+    privacyLoading.value = false
+  }
+}
+
+// 更新单个隐私设置
+async function togglePrivacySetting(key: keyof PrivacySettings) {
+  if (privacyUpdating.value) return
+
+  const newValue = !privacySettings.value[key]
+  privacyUpdating.value = key
+
+  try {
+    const res = await updatePrivacySettings({ [key]: newValue })
+    if (res.data.code === 200) {
+      privacySettings.value = res.data.data
+      toast.success('设置已更新')
+    } else {
+      toast.error(res.data.message || '更新失败')
+    }
+  } catch {
+    toast.error('网络错误，请稍后重试')
+  } finally {
+    privacyUpdating.value = null
+  }
+}
+
 // 加载数据
 onMounted(async () => {
   try {
@@ -102,6 +149,7 @@ onMounted(async () => {
       userStore.fetchProfile(),
       userStore.fetchCampusBinding(),
       userStore.fetchQQBinding(),
+      loadPrivacySettings(),
     ])
   } catch (error) {
     toast.error('加载数据失败')
@@ -602,6 +650,93 @@ async function submitChangePassword() {
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </button>
+              </div>
+            </section>
+
+            <!-- 隐私设置 -->
+            <section class="section">
+              <div class="section-header">
+                <h2 class="section-title">隐私设置</h2>
+              </div>
+
+              <div class="card">
+                <!-- 加载状态 -->
+                <div v-if="privacyLoading" class="privacy-loading">
+                  <div class="loading-spinner small"></div>
+                  <span>加载中...</span>
+                </div>
+
+                <template v-else>
+                  <!-- 公开校园网绑定信息 -->
+                  <div class="privacy-item">
+                    <div class="privacy-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                      </svg>
+                    </div>
+                    <div class="privacy-info">
+                      <h4 class="privacy-title">公开校园网绑定信息</h4>
+                      <p class="privacy-desc">允许他人查看您的班级、姓名等信息</p>
+                    </div>
+                    <button
+                      class="toggle-switch"
+                      :class="{ active: privacySettings.showCampusBinding, loading: privacyUpdating === 'showCampusBinding' }"
+                      :disabled="privacyUpdating !== null"
+                      @click="togglePrivacySetting('showCampusBinding')"
+                    >
+                      <span class="toggle-slider"></span>
+                    </button>
+                  </div>
+
+                  <div class="privacy-divider"></div>
+
+                  <!-- 公开统计数据 -->
+                  <div class="privacy-item">
+                    <div class="privacy-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                      </svg>
+                    </div>
+                    <div class="privacy-info">
+                      <h4 class="privacy-title">公开统计数据</h4>
+                      <p class="privacy-desc">允许他人查看您的评分数、评论数、获赞数</p>
+                    </div>
+                    <button
+                      class="toggle-switch"
+                      :class="{ active: privacySettings.showStatistics, loading: privacyUpdating === 'showStatistics' }"
+                      :disabled="privacyUpdating !== null"
+                      @click="togglePrivacySetting('showStatistics')"
+                    >
+                      <span class="toggle-slider"></span>
+                    </button>
+                  </div>
+
+                  <div class="privacy-divider"></div>
+
+                  <!-- 公开贡献数 -->
+                  <div class="privacy-item">
+                    <div class="privacy-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                    </div>
+                    <div class="privacy-info">
+                      <h4 class="privacy-title">公开贡献数</h4>
+                      <p class="privacy-desc">允许他人查看您的贡献数量</p>
+                    </div>
+                    <button
+                      class="toggle-switch"
+                      :class="{ active: privacySettings.showContributions, loading: privacyUpdating === 'showContributions' }"
+                      :disabled="privacyUpdating !== null"
+                      @click="togglePrivacySetting('showContributions')"
+                    >
+                      <span class="toggle-slider"></span>
+                    </button>
+                  </div>
+                </template>
               </div>
             </section>
           </div>
@@ -1838,6 +1973,122 @@ async function submitChangePassword() {
   .drawer-content {
     border-radius: var(--radius-xl);
     max-height: 80vh;
+  }
+}
+
+/* ===== 隐私设置 ===== */
+.privacy-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.privacy-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.privacy-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 var(--spacing-md);
+}
+
+.privacy-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border);
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.privacy-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.privacy-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.privacy-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  margin-bottom: 2px;
+}
+
+.privacy-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  background: var(--color-border);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toggle-switch:hover:not(:disabled) {
+  background: var(--color-text-placeholder);
+}
+
+.toggle-switch.active {
+  background: var(--color-primary);
+}
+
+.toggle-switch.active:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.toggle-switch:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggle-switch.loading {
+  opacity: 0.6;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-switch.active .toggle-slider {
+  transform: translateX(20px);
+}
+
+/* 桌面端隐私设置样式调整 */
+@media (min-width: 1024px) {
+  .privacy-item {
+    padding: var(--spacing-lg);
   }
 }
 </style>

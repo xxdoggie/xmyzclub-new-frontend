@@ -1,8 +1,10 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <script>
-if(window.location.protocol == 'http:') window.location.protocol = 'https:';
+<script>
+  if (location.protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    location.protocol = 'https:';
+  }
 </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />

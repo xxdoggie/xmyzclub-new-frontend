@@ -473,6 +473,17 @@ const router = createRouter({
         parent: 'home',
       },
     },
+    {
+      path: '/admin/campus',
+      name: 'admin-campus',
+      component: () => import('../pages/admin/CampusManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '校园网管理',
+        parent: 'home',
+      },
+    },
 
     // ==================== 404 ====================
     {

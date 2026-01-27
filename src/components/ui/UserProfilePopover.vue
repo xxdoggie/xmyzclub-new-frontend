@@ -5,7 +5,7 @@ import type { UserPublicProfile } from '@/types/user'
 
 const props = defineProps<{
   userId: number
-  triggerRect: DOMRect | null
+  triggerElement: HTMLElement | null
 }>()
 
 const emit = defineEmits<{
@@ -16,6 +16,8 @@ const isLoading = ref(true)
 const profile = ref<UserPublicProfile | null>(null)
 const error = ref(false)
 const popoverRef = ref<HTMLElement | null>(null)
+const isAbove = ref(false) // 气泡是否显示在头像上方
+const arrowLeft = ref(0) // 小三角的水平位置
 const popoverStyle = ref<{ top: string; left: string; transformOrigin: string }>({
   top: '0px',
   left: '0px',
@@ -55,20 +57,22 @@ async function loadProfile() {
 
 // 计算气泡位置
 function updatePosition() {
-  if (!props.triggerRect || !popoverRef.value) return
+  if (!props.triggerElement || !popoverRef.value) return
 
   const popover = popoverRef.value
-  const rect = props.triggerRect
+  // 实时获取触发元素的位置
+  const rect = props.triggerElement.getBoundingClientRect()
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   // 移动端使用更小的宽度
   const popoverWidth = viewportWidth < 768 ? 240 : 280
   const popoverHeight = popover.offsetHeight || 300
-  const gap = 8
+  const gap = 12 // 增加间距以容纳小三角
 
   let top = rect.bottom + gap
   let left = rect.left + rect.width / 2 - popoverWidth / 2
   let transformOrigin = 'top center'
+  isAbove.value = false
 
   // 检查是否超出右边界
   if (left + popoverWidth > viewportWidth - 16) {
@@ -86,7 +90,12 @@ function updatePosition() {
   if (top + popoverHeight > viewportHeight - 16) {
     top = rect.top - popoverHeight - gap
     transformOrigin = transformOrigin.replace('top', 'bottom')
+    isAbove.value = true
   }
+
+  // 计算小三角相对于气泡左边缘的位置
+  const triggerCenterX = rect.left + rect.width / 2
+  arrowLeft.value = Math.max(16, Math.min(triggerCenterX - left, popoverWidth - 16))
 
   popoverStyle.value = {
     top: `${top}px`,
@@ -111,9 +120,9 @@ watch(
   { immediate: true }
 )
 
-// 监听 triggerRect 变化
+// 监听 triggerElement 变化
 watch(
-  () => props.triggerRect,
+  () => props.triggerElement,
   () => {
     nextTick(updatePosition)
   },
@@ -139,9 +148,13 @@ onUnmounted(() => {
       <div
         ref="popoverRef"
         class="user-popover"
+        :class="{ 'is-above': isAbove }"
         :style="popoverStyle"
         @click.stop
       >
+        <!-- 小三角 -->
+        <div class="popover-arrow" :style="{ left: `${arrowLeft}px` }"></div>
+
         <!-- 加载状态 -->
         <div v-if="isLoading" class="popover-loading">
           <div class="loading-spinner"></div>
@@ -222,12 +235,36 @@ onUnmounted(() => {
 .user-popover {
   position: fixed;
   width: 280px;
-  background: var(--color-card);
+  background: rgba(var(--color-card-rgb, 255, 255, 255), 0.95);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
   z-index: 2000;
-  overflow: hidden;
+  overflow: visible;
+}
+
+/* 小三角 - 默认在下方（气泡在头像下面时） */
+.popover-arrow {
+  position: absolute;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  background: rgba(var(--color-card-rgb, 255, 255, 255), 0.95);
+  border: 1px solid var(--color-border);
+  border-right: none;
+  border-bottom: none;
+  transform: translateX(-50%) rotate(45deg);
+  z-index: 1;
+}
+
+/* 气泡在上方时，小三角在底部 */
+.user-popover.is-above .popover-arrow {
+  top: auto;
+  bottom: -6px;
+  border: 1px solid var(--color-border);
+  border-left: none;
+  border-top: none;
 }
 
 /* 加载状态 */
@@ -273,6 +310,7 @@ onUnmounted(() => {
   padding: var(--spacing-md);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .popover-avatar {
@@ -530,5 +568,14 @@ onUnmounted(() => {
     width: 12px;
     height: 12px;
   }
+}
+
+/* 暗色模式支持 */
+.dark .user-popover {
+  background: rgba(var(--color-card-rgb, 30, 30, 30), 0.95);
+}
+
+.dark .popover-arrow {
+  background: rgba(var(--color-card-rgb, 30, 30, 30), 0.95);
 }
 </style>

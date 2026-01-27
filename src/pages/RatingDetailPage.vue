@@ -102,7 +102,7 @@ const userAvatars = ref<Map<number, string | null>>(new Map())
 // 用户信息气泡状态
 const showUserPopover = ref(false)
 const popoverUserId = ref<number | null>(null)
-const popoverTriggerRect = ref<DOMRect | null>(null)
+const popoverTriggerElement = ref<HTMLElement | null>(null)
 
 function openFeedbackDrawer() {
   if (!userStore.isLoggedIn) {
@@ -899,7 +899,7 @@ function showUserProfile(userId: number, event: MouseEvent) {
   event.stopPropagation()
   const target = event.currentTarget as HTMLElement
   popoverUserId.value = userId
-  popoverTriggerRect.value = target.getBoundingClientRect()
+  popoverTriggerElement.value = target
   showUserPopover.value = true
 }
 
@@ -907,7 +907,7 @@ function showUserProfile(userId: number, event: MouseEvent) {
 function closeUserPopover() {
   showUserPopover.value = false
   popoverUserId.value = null
-  popoverTriggerRect.value = null
+  popoverTriggerElement.value = null
 }
 
 // 异步加载评论区用户头像（不阻塞主流程）
@@ -1637,7 +1637,7 @@ function showDetailFeedbackTour() {
         <UserProfilePopover
           v-if="showUserPopover && popoverUserId"
           :user-id="popoverUserId"
-          :trigger-rect="popoverTriggerRect"
+          :trigger-element="popoverTriggerElement"
           @close="closeUserPopover"
         />
 

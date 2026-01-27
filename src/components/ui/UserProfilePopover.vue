@@ -61,7 +61,8 @@ function updatePosition() {
   const rect = props.triggerRect
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
-  const popoverWidth = 280
+  // 移动端使用更小的宽度
+  const popoverWidth = viewportWidth < 768 ? 240 : 280
   const popoverHeight = popover.offsetHeight || 300
   const gap = 8
 
@@ -446,5 +447,88 @@ onUnmounted(() => {
 .popover-leave-to {
   opacity: 0;
   transform: scale(0.95);
+}
+
+/* 移动端样式调整 */
+@media (max-width: 767px) {
+  .user-popover {
+    width: 240px;
+  }
+
+  .popover-loading {
+    padding: var(--spacing-md);
+  }
+
+  .popover-error {
+    padding: var(--spacing-md);
+  }
+
+  .popover-header {
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+
+  .popover-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: var(--text-sm);
+  }
+
+  .popover-nickname {
+    font-size: var(--text-sm);
+  }
+
+  .popover-meta {
+    font-size: 10px;
+  }
+
+  .popover-signature {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 10px;
+  }
+
+  .popover-section {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .popover-section-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .popover-section-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .popover-section-label {
+    font-size: var(--text-xs);
+  }
+
+  .popover-section-value {
+    font-size: 10px;
+  }
+
+  .popover-stats {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .stat-value {
+    font-size: var(--text-sm);
+  }
+
+  .stat-label {
+    font-size: 10px;
+  }
+
+  .popover-contribution {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 10px;
+  }
+
+  .popover-contribution svg {
+    width: 12px;
+    height: 12px;
+  }
 }
 </style>

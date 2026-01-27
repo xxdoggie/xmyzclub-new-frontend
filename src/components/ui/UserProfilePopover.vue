@@ -235,8 +235,7 @@ onUnmounted(() => {
 .user-popover {
   position: fixed;
   width: 280px;
-  background: rgba(var(--color-card-rgb, 255, 255, 255), 0.95);
-  backdrop-filter: blur(8px);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
@@ -250,7 +249,7 @@ onUnmounted(() => {
   top: -6px;
   width: 12px;
   height: 12px;
-  background: rgba(var(--color-card-rgb, 255, 255, 255), 0.95);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-right: none;
   border-bottom: none;
@@ -570,12 +569,4 @@ onUnmounted(() => {
   }
 }
 
-/* 暗色模式支持 */
-.dark .user-popover {
-  background: rgba(var(--color-card-rgb, 30, 30, 30), 0.95);
-}
-
-.dark .popover-arrow {
-  background: rgba(var(--color-card-rgb, 30, 30, 30), 0.95);
-}
 </style>

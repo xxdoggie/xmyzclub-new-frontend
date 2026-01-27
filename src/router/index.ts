@@ -462,6 +462,17 @@ const router = createRouter({
         parent: 'home',
       },
     },
+    {
+      path: '/admin/qqmusic',
+      name: 'admin-qqmusic',
+      component: () => import('../pages/admin/QQMusicManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: 'QQ音乐管理',
+        parent: 'home',
+      },
+    },
 
     // ==================== 404 ====================
     {

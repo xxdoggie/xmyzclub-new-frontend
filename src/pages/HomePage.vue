@@ -288,6 +288,16 @@ function goToBanner(index: number) {
                 </div>
                 <span>消息管理</span>
               </router-link>
+              <router-link v-if="userStore.canManageCampaigns" to="/admin/qqmusic" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
+                </div>
+                <span>QQ音乐管理</span>
+              </router-link>
             </nav>
           </div>
 
@@ -478,6 +488,16 @@ function goToBanner(index: number) {
                   </svg>
                 </div>
                 <span>消息管理</span>
+              </a>
+              <a v-if="userStore.canManageCampaigns" class="drawer-nav-item" @click="navigateTo('/admin/qqmusic')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
+                </div>
+                <span>QQ音乐管理</span>
               </a>
             </nav>
           </Transition>

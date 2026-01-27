@@ -544,6 +544,17 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
             </div>
           </div>
 
+          <!-- 移动端状态栏 -->
+          <div v-if="!isCreateMode && activity" class="mobile-status-bar">
+            <span class="mobile-status-label">活动状态</span>
+            <button class="status-badge-btn" :class="getStatusInfo(activity.status).class" @click="openStatusModal">
+              {{ getStatusInfo(activity.status).label }}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+
           <!-- 统计卡片 -->
           <div v-if="!isCreateMode && stats" class="stats-section">
             <div class="stats-grid">
@@ -1549,6 +1560,24 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
   color: var(--color-warning);
 }
 
+/* ===== Mobile Status Bar ===== */
+.mobile-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.mobile-status-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
 /* ===== Status Badge Button ===== */
 .status-badge-btn {
   display: inline-flex;
@@ -1830,6 +1859,10 @@ watch(() => form.value.config.auto_confirm_tickets, (newVal) => {
 
   .page-header-section {
     display: block;
+  }
+
+  .mobile-status-bar {
+    display: none;
   }
 
   .page-content {

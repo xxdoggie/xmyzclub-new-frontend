@@ -608,6 +608,7 @@ onMounted(() => {
               <div class="campaign-left-info">
                 <div class="campaign-rules">
                   <span class="rules-label">投稿限制</span>
+                  <span class="rules-divider">·</span>
                   <span class="rules-value">{{ rulesDescription }}</span>
                 </div>
                 <p class="new-feature-tip">
@@ -616,11 +617,10 @@ onMounted(() => {
                 </p>
               </div>
               <button class="submit-btn-compact" @click="openSearchModal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                <span>投稿</span>
               </button>
             </div>
           </div>
@@ -1229,27 +1229,35 @@ onMounted(() => {
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--spacing-md);
-  min-height: 60px;
 }
 
 .campaign-left-info {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
 
 .campaign-rules {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 6px;
   font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  align-self: flex-start;
 }
 
 .rules-label {
   color: var(--color-text-tertiary);
   flex-shrink: 0;
+}
+
+.rules-divider {
+  color: var(--color-border);
 }
 
 .rules-value {
@@ -1277,35 +1285,32 @@ onMounted(() => {
 
 /* ===== Compact Submit Button ===== */
 .submit-btn-compact {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  width: 36px;
+  height: 36px;
   color: white;
   background: var(--color-primary);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-fast);
   flex-shrink: 0;
-  white-space: nowrap;
 }
 
 .submit-btn-compact:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb, 99, 102, 241), 0.3);
 }
 
 .submit-btn-compact:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
 }
 
 .submit-btn-compact svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 /* ===== Submissions Card ===== */
@@ -2334,7 +2339,13 @@ onMounted(() => {
   }
 
   .submit-btn-compact {
-    padding: var(--spacing-sm) var(--spacing-xl);
+    width: 40px;
+    height: 40px;
+  }
+
+  .submit-btn-compact svg {
+    width: 20px;
+    height: 20px;
   }
 
   .user-info-form {

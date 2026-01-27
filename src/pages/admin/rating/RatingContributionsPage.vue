@@ -727,35 +727,39 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   flex-wrap: wrap;
+  overflow: hidden;
 }
 
 .filter-group {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   flex: 1;
-  min-width: 140px;
+  min-width: 0;
 }
 
 .filter-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .filter-select {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
-  padding-right: calc(var(--spacing-md) + 20px);
-  font-size: var(--text-sm);
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  padding-right: calc(var(--spacing-sm) + 18px);
+  font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-text);
   background-color: var(--color-bg);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right var(--spacing-sm) center;
-  background-size: 16px;
+  background-position: right 6px center;
+  background-size: 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -763,6 +767,7 @@ onMounted(() => {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  box-sizing: border-box;
 }
 
 .filter-select:hover {
@@ -1424,6 +1429,19 @@ onMounted(() => {
 
   .filter-group {
     flex: none;
+    gap: var(--spacing-sm);
+  }
+
+  .filter-label {
+    font-size: var(--text-sm);
+  }
+
+  .filter-select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    padding-right: calc(var(--spacing-md) + 20px);
+    font-size: var(--text-sm);
+    background-position: right var(--spacing-sm) center;
+    background-size: 16px;
   }
 }
 

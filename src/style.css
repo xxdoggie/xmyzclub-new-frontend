@@ -281,3 +281,29 @@ body {
 :root.dark .driver-popover-arrow {
   border-color: var(--color-card) !important;
 }
+
+/* 向导跳过按钮样式 */
+.tour-skip-btn {
+  display: block;
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: transparent;
+  border: none;
+  color: var(--color-text-placeholder);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  text-align: center;
+}
+
+.tour-skip-btn:hover {
+  color: var(--color-text-secondary);
+}
+
+@media screen and (max-width: 480px) {
+  .tour-skip-btn {
+    font-size: 11px;
+    margin-top: var(--spacing-sm);
+  }
+}

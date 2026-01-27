@@ -92,6 +92,7 @@ function startHomeTour() {
     {
       side: 'top',
       nextBtnText: '进入看看',
+      showSkipButton: true, // 显示跳过向导按钮
       onNextClick: () => {
         saveStep(TourStep.COMMUNITY_EXPLORE)
         destroyDriver()

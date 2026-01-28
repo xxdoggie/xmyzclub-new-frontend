@@ -578,6 +578,14 @@ onMounted(() => {
 .header-actions {
   display: flex;
   gap: var(--spacing-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.header-actions::-webkit-scrollbar {
+  display: none;
 }
 
 .action-button {
@@ -591,6 +599,8 @@ onMounted(() => {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .action-button svg {

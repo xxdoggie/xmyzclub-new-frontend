@@ -348,14 +348,15 @@ function cancelDelete() {
   deleteTarget.value = null
 }
 
-// 进入子分类或评分项目列表
+// 进入子分类管理页面（任何分类都可以有子分类）
 function goToCategory(item: AdminCategory) {
-  if (item.hasChildren || item.childrenCount > 0) {
-    // 有子分类，进入子分类页面
-    router.push(`/admin/rating/categories/${item.id}`)
-  } else {
-    // 没有子分类，进入评分项目列表
-    router.push(`/admin/rating/categories/${item.id}/items`)
+  router.push(`/admin/rating/categories/${item.id}`)
+}
+
+// 进入评分项目列表
+function goToItems() {
+  if (categoryId.value) {
+    router.push(`/admin/rating/categories/${categoryId.value}/items`)
   }
 }
 
@@ -440,6 +441,12 @@ onMounted(() => {
                   <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
                 返回
+              </button>
+              <button v-if="categoryId" class="action-button secondary" @click="goToItems">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                管理评分项目
               </button>
               <button class="action-button primary" @click="openCreateModal">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -539,8 +546,9 @@ onMounted(() => {
                   </div>
                   <p v-if="item.description" class="item-desc">{{ item.description }}</p>
                   <div class="item-meta">
-                    <span class="meta-item" v-if="item.childrenCount > 0">{{ item.childrenCount }} 个子分类</span>
-                    <span class="meta-item" v-else>{{ item.itemCount }} 个评分项目</span>
+                    <span class="meta-item">{{ item.childrenCount }} 个子分类</span>
+                    <span class="meta-divider">·</span>
+                    <span class="meta-item">{{ item.itemCount }} 个评分项目</span>
                     <span class="meta-divider">·</span>
                     <span class="meta-item">层级 {{ item.depth }}</span>
                     <span class="meta-divider">·</span>

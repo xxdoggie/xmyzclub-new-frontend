@@ -35,6 +35,12 @@ const categoryId = computed(() => {
   return id ? Number(id) : null
 })
 
+// 学校ID（从 URL 查询参数中获取，用于顶级分类）
+const schoolId = computed(() => {
+  const id = route.query.schoolId
+  return id ? Number(id) : null
+})
+
 // 加载状态
 const isLoading = ref(true)
 
@@ -132,6 +138,10 @@ async function loadCategories() {
     } else {
       // 获取顶级分类
       params.parentId = null
+      // 如果有学校ID，则按学校筛选
+      if (schoolId.value) {
+        params.schoolId = schoolId.value
+      }
     }
 
     if (statusFilter.value !== 'all') {
@@ -167,7 +177,7 @@ function openCreateModal() {
   editingItem.value = null
   form.value = {
     parentId: categoryId.value,
-    schoolId: currentCategory.value?.schoolId,
+    schoolId: currentCategory.value?.schoolId ?? schoolId.value ?? undefined,
     name: '',
     description: '',
     sortOrder: 0,
@@ -200,7 +210,7 @@ function closeModal() {
   editingItem.value = null
   form.value = {
     parentId: categoryId.value,
-    schoolId: currentCategory.value?.schoolId,
+    schoolId: currentCategory.value?.schoolId ?? schoolId.value ?? undefined,
     name: '',
     description: '',
     sortOrder: 0,
@@ -385,7 +395,7 @@ const pageSubtitle = computed(() => {
 })
 
 // 监听路由变化，重新加载数据
-watch(categoryId, () => {
+watch([categoryId, schoolId], () => {
   loadAllData()
 })
 

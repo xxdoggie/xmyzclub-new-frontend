@@ -244,9 +244,9 @@ function cancelDelete() {
   deleteTarget.value = null
 }
 
-// 进入大分区列表
-function goToMajorSections(school: AdminSchool) {
-  router.push(`/admin/rating/schools/${school.id}`)
+// 进入分类管理（新版 API 使用分类替代大分区）
+function goToCategories(school: AdminSchool) {
+  router.push(`/admin/rating/categories?schoolId=${school.id}`)
 }
 
 // 格式化日期
@@ -419,7 +419,7 @@ onMounted(() => {
                 v-for="school in schools"
                 :key="school.id"
                 class="item-card"
-                @click="goToMajorSections(school)"
+                @click="goToCategories(school)"
               >
                 <!-- 学校信息 -->
                 <div class="item-info">

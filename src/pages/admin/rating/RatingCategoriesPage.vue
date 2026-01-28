@@ -425,13 +425,31 @@ onMounted(() => {
         <div class="page-header-section">
           <div class="header-main">
             <div class="header-text">
-              <div class="header-breadcrumb" v-if="currentCategory">
-                <span class="breadcrumb-item">{{ currentCategory.schoolName }}</span>
+              <nav class="header-breadcrumb" v-if="currentCategory">
+                <router-link
+                  :to="`/admin/rating/categories?schoolId=${currentCategory.schoolId}`"
+                  class="breadcrumb-item"
+                >
+                  <svg class="breadcrumb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                  {{ currentCategory.schoolName }}
+                </router-link>
                 <template v-for="(item, idx) in currentCategory.breadcrumb" :key="idx">
-                  <span class="breadcrumb-sep">/</span>
-                  <span :class="idx === currentCategory.breadcrumb.length - 1 ? 'breadcrumb-current' : 'breadcrumb-item'">{{ item.name }}</span>
+                  <svg class="breadcrumb-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  <router-link
+                    v-if="idx < currentCategory.breadcrumb.length - 1"
+                    :to="`/admin/rating/categories/${item.id}`"
+                    class="breadcrumb-item"
+                  >
+                    {{ item.name }}
+                  </router-link>
+                  <span v-else class="breadcrumb-current">{{ item.name }}</span>
                 </template>
-              </div>
+              </nav>
               <h1 class="page-title">{{ pageTitle }}</h1>
               <p class="page-subtitle">{{ pageSubtitle }}</p>
             </div>
@@ -742,23 +760,54 @@ onMounted(() => {
 .header-breadcrumb {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-xs);
+  gap: 6px;
+  font-size: var(--text-xs);
+  margin-bottom: var(--spacing-sm);
   flex-wrap: wrap;
+  padding: 6px 10px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  width: fit-content;
 }
 
-.breadcrumb-sep {
-  color: var(--color-border);
+.breadcrumb-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.breadcrumb-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
 }
 
 .breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--color-text-secondary);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.breadcrumb-item:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .breadcrumb-current {
+  display: inline-flex;
+  align-items: center;
   color: var(--color-text);
+  font-weight: var(--font-medium);
+  padding: 2px 6px;
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-sm);
 }
 
 /* ===== Page Header ===== */

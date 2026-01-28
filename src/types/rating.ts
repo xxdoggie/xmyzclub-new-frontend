@@ -615,9 +615,9 @@ export type ContributionType = 1 | 2
 
 /**
  * 目标类型
- * 1=大分区, 2=小分区, 3=评分项目, 4=合集
+ * 1=分类, 2=评分项目, 3=合集
  */
-export type TargetType = 1 | 2 | 3 | 4
+export type TargetType = 1 | 2 | 3
 
 /**
  * 贡献状态
@@ -652,6 +652,7 @@ export interface SubmitContributionRequest {
   targetType: TargetType
   targetId?: number | null
   parentId?: number | null
+  schoolId?: number | null // 新建分类时必填
   reason: string
   details: ContributionDetail[]
 }
@@ -672,6 +673,8 @@ export interface Contribution {
   targetName: string | null
   parentId: number | null
   parentName: string | null
+  schoolId: number | null
+  schoolName: string | null
   status: ContributionStatus
   statusDisplay: string
   reason: string
@@ -706,6 +709,8 @@ export interface MyContribution {
   targetTypeDisplay: string
   targetId: number | null
   targetName: string | null
+  schoolId: number | null
+  schoolName: string | null
   status: ContributionStatus
   statusDisplay: string
   reason: string
@@ -797,12 +802,10 @@ export function getContributionTypeInfo(type: ContributionType): { label: string
 export function getTargetTypeInfo(type: TargetType): { label: string; class: string } {
   switch (type) {
     case 1:
-      return { label: '大分区', class: 'target-major' }
+      return { label: '分类', class: 'target-category' }
     case 2:
-      return { label: '小分区', class: 'target-minor' }
-    case 3:
       return { label: '评分项目', class: 'target-item' }
-    case 4:
+    case 3:
       return { label: '合集', class: 'target-collection' }
     default:
       return { label: '未知', class: 'target-unknown' }

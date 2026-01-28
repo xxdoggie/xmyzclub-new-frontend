@@ -81,6 +81,9 @@ const breadcrumbs = computed(() => {
   return items
 })
 
+// 学校 ID（用于新建分类时）
+const schoolId = computed(() => categoryDetail.value?.breadcrumb?.school?.id ?? null)
+
 function openFeedbackDrawer() {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
@@ -646,8 +649,9 @@ function showStarsTour() {
     <FeedbackDrawer
       :is-open="isFeedbackOpen"
       :contribution-type="2"
-      :target-type="showChildren ? 2 : 3"
+      :target-type="showChildren ? 1 : 2"
       :parent-id="categoryId"
+      :school-id="schoolId"
       @close="closeFeedbackDrawer"
       @success="handleFeedbackSuccess"
     />

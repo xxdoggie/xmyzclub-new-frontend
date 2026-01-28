@@ -1625,7 +1625,7 @@ function showDetailFeedbackTour() {
         <FeedbackDrawer
           :is-open="isFeedbackOpen"
           :contribution-type="1"
-          :target-type="3"
+          :target-type="2"
           :target-id="itemId"
           :current-name="detail.name"
           :current-description="detail.description"

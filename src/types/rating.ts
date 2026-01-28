@@ -184,7 +184,7 @@ export interface RatingItemDetail {
   url: string | null
   averageScore: number
   ratingCount: number
-  breadcrumb: Breadcrumb
+  breadcrumb: Breadcrumb | CategoryBreadcrumb // 兼容新旧格式
   scoreDistribution: ScoreDistribution | null
   comments: Comment[] | null
   myRating: number | null

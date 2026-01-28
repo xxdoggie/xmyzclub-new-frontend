@@ -649,10 +649,17 @@ async function loadDetail(silent = false) {
   }
 }
 
-// 面包屑文本（只显示大分区和小分区）
+// 面包屑文本（兼容新旧两种格式）
 const breadcrumbText = computed(() => {
   if (!detail.value?.breadcrumb) return ''
   const b = detail.value.breadcrumb
+  // 新版格式：ancestors + current
+  if ('ancestors' in b && 'current' in b) {
+    const parts = b.ancestors.map((a) => a.name)
+    parts.push(b.current.name)
+    return parts.join(' / ')
+  }
+  // 旧版格式：majorSection + minorSection
   return `${b.majorSection.name} / ${b.minorSection.name}`
 })
 

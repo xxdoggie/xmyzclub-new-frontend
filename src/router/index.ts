@@ -144,6 +144,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/community/category/:categoryId',
+      name: 'community-category',
+      component: () => import('../pages/CategoryPage.vue'),
+      meta: {
+        level: 2,
+        title: '分类详情',
+        parent: 'community',
+      },
+    },
+    // 旧版路由（保留向后兼容）
+    {
       path: '/community/major/:majorId',
       name: 'community-major',
       component: () => import('../pages/MinorSectionPage.vue'),

@@ -7,7 +7,7 @@ export interface School {
 }
 
 /**
- * 大分区
+ * 大分区（旧版，保留兼容）
  */
 export interface MajorSection {
   id: number
@@ -17,13 +17,60 @@ export interface MajorSection {
 }
 
 /**
- * 小分区
+ * 小分区（旧版，保留兼容）
  */
 export interface MinorSection {
   id: number
   name: string
   description: string
   url: string | null
+}
+
+/**
+ * 通用分类（新版无限层级结构）
+ */
+export interface Category {
+  id: number
+  name: string
+  description: string
+  depth: number
+  hasChildren: boolean
+  childrenCount: number
+  itemCount: number
+  imageUrl: string | null
+}
+
+/**
+ * 分类面包屑中的祖先项
+ */
+export interface CategoryAncestor {
+  id: number
+  name: string
+  depth: number
+}
+
+/**
+ * 分类面包屑导航（新版）
+ */
+export interface CategoryBreadcrumb {
+  school: School
+  ancestors: CategoryAncestor[]
+  current: CategoryAncestor
+}
+
+/**
+ * 分类详情（包含子分类、评分项目和面包屑）
+ */
+export interface CategoryDetail {
+  id: number
+  name: string
+  description: string
+  depth: number
+  hasChildren: boolean
+  imageUrl: string | null
+  breadcrumb: CategoryBreadcrumb
+  children: Category[]
+  ratingItems: RatingItem[]
 }
 
 /**
@@ -62,16 +109,34 @@ export interface RatingItem {
  * 随机推荐评分项目（包含面包屑）
  */
 export interface RandomRatingItem extends RatingItem {
-  breadcrumb: Breadcrumb
+  breadcrumb: Breadcrumb | CategoryBreadcrumb
 }
 
 /**
- * 面包屑导航
+ * 面包屑导航（旧版，保留兼容）
  */
 export interface Breadcrumb {
   school: School
   majorSection: MajorSection
   minorSection: MinorSection
+}
+
+/**
+ * 获取面包屑显示名称的辅助函数
+ * 兼容新旧两种面包屑格式
+ */
+export function getBreadcrumbDisplayName(breadcrumb: Breadcrumb | CategoryBreadcrumb): string {
+  // 新版格式
+  if ('ancestors' in breadcrumb && 'current' in breadcrumb) {
+    // 返回当前分类的上一级（如果有的话），否则返回当前分类名称
+    const ancestors = breadcrumb.ancestors
+    if (ancestors.length > 0) {
+      return ancestors[ancestors.length - 1]!.name
+    }
+    return breadcrumb.current.name
+  }
+  // 旧版格式
+  return breadcrumb.minorSection.name
 }
 
 /**

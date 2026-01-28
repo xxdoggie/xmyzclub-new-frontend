@@ -4,6 +4,8 @@ import type {
   School,
   MajorSection,
   MinorSection,
+  Category,
+  CategoryDetail,
   RatingItem,
   RatingItemDetail,
   Comment,
@@ -58,24 +60,54 @@ export function getSchools() {
 }
 
 /**
- * 获取学校的大分区列表
+ * 获取学校的大分区列表（旧版 API，保留兼容）
  */
 export function getMajorSections(schoolId: number) {
   return api.get<ApiResponse<MajorSection[]>>(`/rating-community/schools/${schoolId}/major-sections`)
 }
 
 /**
- * 获取大分区的小分区列表
+ * 获取大分区的小分区列表（旧版 API，保留兼容）
  */
 export function getMinorSections(majorSectionId: number) {
   return api.get<ApiResponse<MinorSection[]>>(`/rating-community/major-sections/${majorSectionId}/minor-sections`)
 }
 
 /**
- * 获取小分区的评分项目列表
+ * 获取小分区的评分项目列表（旧版 API，保留兼容）
  */
 export function getRatingItems(minorSectionId: number) {
   return api.get<ApiResponse<RatingItem[]>>(`/rating-community/minor-sections/${minorSectionId}/rating-items`)
+}
+
+// ==================== 新版分类 API（V2，无限层级结构） ====================
+
+/**
+ * 获取学校下的顶级分类列表（V2）
+ */
+export function getCategories(schoolId: number) {
+  return api.get<ApiResponse<Category[]>>(`/v2/rating-community/schools/${schoolId}/categories`)
+}
+
+/**
+ * 获取分类的子分类列表（V2）
+ */
+export function getCategoryChildren(categoryId: number) {
+  return api.get<ApiResponse<Category[]>>(`/v2/rating-community/categories/${categoryId}/children`)
+}
+
+/**
+ * 获取分类详情（含面包屑、子分类和评分项目）（V2）
+ */
+export function getCategoryDetail(categoryId: number) {
+  return api.get<ApiResponse<CategoryDetail>>(`/v2/rating-community/categories/${categoryId}`)
+}
+
+/**
+ * 获取分类下的评分项目列表（V2）
+ */
+export function getCategoryRatingItems(categoryId: number) {
+  return api.get<ApiResponse<RatingItem[]>>(`/v2/rating-community/categories/${categoryId}/rating-items`)
 }
 
 /**

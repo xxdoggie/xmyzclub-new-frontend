@@ -429,10 +429,16 @@ function showStarsTour() {
             :to="item.path"
             class="breadcrumb-item"
           >
+            <svg v-if="index === 0" class="breadcrumb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
             {{ item.name }}
           </router-link>
           <span v-else class="breadcrumb-item current">{{ item.name }}</span>
-          <span v-if="index < breadcrumbs.length - 1" class="breadcrumb-separator">/</span>
+          <svg v-if="index < breadcrumbs.length - 1" class="breadcrumb-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
         </template>
       </nav>
 
@@ -684,32 +690,51 @@ function showStarsTour() {
 
 /* ===== Breadcrumb ===== */
 .breadcrumb-nav {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) 0;
+  gap: 6px;
+  padding: 8px 12px;
   margin-bottom: var(--spacing-md);
   font-size: var(--text-xs);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.breadcrumb-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.breadcrumb-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
 }
 
 .breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--color-text-secondary);
   text-decoration: none;
-  transition: color var(--transition-fast);
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
 
 .breadcrumb-item:hover:not(.current) {
   color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .breadcrumb-item.current {
   color: var(--color-text);
   font-weight: var(--font-medium);
-}
-
-.breadcrumb-separator {
-  color: var(--color-text-placeholder);
+  background: var(--color-primary-bg);
 }
 
 /* ===== Desktop Only Title ===== */

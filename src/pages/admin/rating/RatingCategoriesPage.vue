@@ -136,8 +136,8 @@ async function loadCategories() {
     if (categoryId.value) {
       params.parentId = categoryId.value
     } else {
-      // 获取顶级分类
-      params.parentId = null
+      // 获取顶级分类，parentId=0 表示顶级
+      params.parentId = 0
       // 如果有学校ID，则按学校筛选
       if (schoolId.value) {
         params.schoolId = schoolId.value

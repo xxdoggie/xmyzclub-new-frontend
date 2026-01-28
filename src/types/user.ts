@@ -210,3 +210,32 @@ export interface UserPublicProfile {
   showContributions: boolean
   contributionCount: number | null
 }
+
+// ==================== 管理员用户校园网绑定管理 ====================
+
+/**
+ * 管理员搜索用户校园网绑定响应项
+ */
+export interface AdminUserCampusBindingItem {
+  // 用户账号信息
+  userId: number
+  username: string
+  nickname: string
+  gender: number // 0=未设置, 1=男, 2=女
+  signature: string | null
+  status: number // 1=正常, 0=禁用
+  userCreatedAt: string
+
+  // 校园网绑定信息
+  hasCampusBinding: boolean
+  campusBindingId: number | null
+  campusAccount: string | null
+  name: string | null
+  classAlias: string | null
+  classId: string | null
+  studentId: string | null
+  mobilePhone: string | null
+  address: string | null
+  campusBindingCreatedAt: string | null
+  campusBindingUpdatedAt: string | null
+}

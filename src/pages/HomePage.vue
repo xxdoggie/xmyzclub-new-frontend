@@ -241,7 +241,7 @@ function goToBanner(index: number) {
         <!-- 可滚动内容区域 -->
         <div class="sidebar-scroll-content">
           <!-- 管理区域 -->
-          <div class="sidebar-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages">
+          <div class="sidebar-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers">
             <div class="sidebar-section-header">
               <span class="sidebar-section-title">管理后台</span>
             </div>
@@ -297,6 +297,17 @@ function goToBanner(index: number) {
                   </svg>
                 </div>
                 <span>QQ音乐管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageUsers" to="/admin/campus" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <span>校园网管理</span>
               </router-link>
             </nav>
           </div>
@@ -438,7 +449,7 @@ function goToBanner(index: number) {
         </div>
 
         <!-- 管理区域 -->
-        <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages">
+        <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers">
           <button class="drawer-section-header" @click="toggleSection('admin')">
             <span class="drawer-section-title">管理</span>
             <svg class="drawer-section-arrow" :class="{ collapsed: !drawerSections.admin }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -498,6 +509,17 @@ function goToBanner(index: number) {
                   </svg>
                 </div>
                 <span>QQ音乐管理</span>
+              </a>
+              <a v-if="userStore.canManageUsers" class="drawer-nav-item" @click="navigateTo('/admin/campus')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <span>校园网管理</span>
               </a>
             </nav>
           </Transition>

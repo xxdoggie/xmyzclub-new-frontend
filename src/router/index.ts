@@ -452,6 +452,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/admin/rating/statistics',
+      name: 'admin-rating-statistics',
+      component: () => import('../pages/admin/rating/RatingStatisticsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '数据统计',
+        parent: 'admin-rating',
+      },
+    },
+    {
       path: '/admin/messages',
       name: 'admin-messages',
       component: () => import('../pages/admin/MessageManagePage.vue'),
@@ -470,6 +481,17 @@ const router = createRouter({
         requiresAuth: true,
         level: 2,
         title: 'QQ音乐管理',
+        parent: 'home',
+      },
+    },
+    {
+      path: '/admin/campus',
+      name: 'admin-campus',
+      component: () => import('../pages/admin/CampusManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '校园网管理',
         parent: 'home',
       },
     },

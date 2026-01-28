@@ -743,3 +743,38 @@ export function getTargetTypeInfo(type: TargetType): { label: string; class: str
       return { label: '未知', class: 'target-unknown' }
   }
 }
+
+// ==================== 每日评分统计 (DailyRatingStatistics) ====================
+
+/**
+ * 时间范围预设
+ */
+export type DailyRatingPreset = 'today' | 'yesterday' | 'last7days' | 'last30days'
+
+/**
+ * 每日评分统计项
+ */
+export interface DailyRatingStat {
+  date: string // YYYY-MM-DD 格式
+  count: number
+}
+
+/**
+ * 每日评分统计响应
+ */
+export interface DailyRatingStatistics {
+  startDate: string // YYYY-MM-DD 格式
+  endDate: string // YYYY-MM-DD 格式
+  totalDays: number
+  totalRatings: number
+  dailyStats: DailyRatingStat[]
+}
+
+/**
+ * 每日评分统计请求参数
+ */
+export interface DailyRatingStatisticsParams {
+  preset?: DailyRatingPreset
+  startDate?: string // YYYY-MM-DD 格式
+  endDate?: string // YYYY-MM-DD 格式
+}

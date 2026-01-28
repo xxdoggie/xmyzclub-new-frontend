@@ -77,6 +77,11 @@ export const useUserStore = defineStore('user', () => {
    */
   const canManageMessages = computed(() => hasPermission('message.manage'))
 
+  /**
+   * 检查用户是否可以管理用户（校园网绑定管理等）
+   */
+  const canManageUsers = computed(() => hasPermission('user.manage'))
+
   // ==================== Actions ====================
 
   /**
@@ -477,6 +482,7 @@ export const useUserStore = defineStore('user', () => {
     canManageCampaigns,
     canManageRating,
     canManageMessages,
+    canManageUsers,
 
     // Actions - 认证
     restoreSession,

@@ -80,34 +80,34 @@ export function getRatingItems(minorSectionId: number) {
   return api.get<ApiResponse<RatingItem[]>>(`/rating-community/minor-sections/${minorSectionId}/rating-items`)
 }
 
-// ==================== 新版分类 API（V2，无限层级结构） ====================
+// ==================== 新版分类 API（无限层级结构） ====================
 
 /**
- * 获取学校下的顶级分类列表（V2）
+ * 获取学校下的顶级分类列表
  */
 export function getCategories(schoolId: number) {
-  return api.get<ApiResponse<Category[]>>(`/v2/rating-community/schools/${schoolId}/categories`)
+  return api.get<ApiResponse<Category[]>>(`/rating-community/schools/${schoolId}/categories`)
 }
 
 /**
- * 获取分类的子分类列表（V2）
+ * 获取分类的子分类列表
  */
 export function getCategoryChildren(categoryId: number) {
-  return api.get<ApiResponse<Category[]>>(`/v2/rating-community/categories/${categoryId}/children`)
+  return api.get<ApiResponse<Category[]>>(`/rating-community/categories/${categoryId}/children`)
 }
 
 /**
- * 获取分类详情（含面包屑、子分类和评分项目）（V2）
+ * 获取分类详情（含面包屑、子分类和评分项目）
  */
 export function getCategoryDetail(categoryId: number) {
-  return api.get<ApiResponse<CategoryDetail>>(`/v2/rating-community/categories/${categoryId}`)
+  return api.get<ApiResponse<CategoryDetail>>(`/rating-community/categories/${categoryId}`)
 }
 
 /**
- * 获取分类下的评分项目列表（V2）
+ * 获取分类下的评分项目列表
  */
 export function getCategoryRatingItems(categoryId: number) {
-  return api.get<ApiResponse<RatingItem[]>>(`/v2/rating-community/categories/${categoryId}/rating-items`)
+  return api.get<ApiResponse<RatingItem[]>>(`/rating-community/categories/${categoryId}/rating-items`)
 }
 
 /**

@@ -498,6 +498,77 @@ export function getAdminBreadcrumbParts(
 }
 
 /**
+ * 可点击的面包屑项目
+ */
+export interface ClickableBreadcrumbItem {
+  id: number
+  name: string
+  path: string // 跳转路径
+  isCurrent: boolean
+}
+
+/**
+ * 获取可点击的面包屑数据（支持无限层级）
+ * 返回: { school, categories } 其中每个项目都有 id, name, path
+ */
+export function getClickableBreadcrumb(
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
+): {
+  school: { id: number; name: string; path: string }
+  categories: ClickableBreadcrumbItem[]
+} {
+  if (isNewBreadcrumbFormat(breadcrumb)) {
+    const categories: ClickableBreadcrumbItem[] = []
+    // 添加所有祖先分类（可点击）
+    breadcrumb.ancestors.forEach((ancestor) => {
+      categories.push({
+        id: ancestor.id,
+        name: ancestor.name,
+        path: `/admin/rating/categories/${ancestor.id}`,
+        isCurrent: false,
+      })
+    })
+    // 添加当前分类（不可点击，因为是当前位置）
+    categories.push({
+      id: breadcrumb.current.id,
+      name: breadcrumb.current.name,
+      path: `/admin/rating/categories/${breadcrumb.current.id}`,
+      isCurrent: true,
+    })
+    return {
+      school: {
+        id: breadcrumb.school.id,
+        name: breadcrumb.school.name,
+        path: `/admin/rating/categories?schoolId=${breadcrumb.school.id}`,
+      },
+      categories,
+    }
+  }
+  // 旧版格式兼容
+  return {
+    school: {
+      id: breadcrumb.school.id,
+      name: breadcrumb.school.name,
+      path: `/admin/rating/schools/${breadcrumb.school.id}`,
+    },
+    categories: [
+      {
+        id: breadcrumb.majorSection.id,
+        name: breadcrumb.majorSection.name,
+        path: `/admin/rating/major-sections/${breadcrumb.majorSection.id}`,
+        isCurrent: false,
+      },
+      {
+        id: breadcrumb.minorSection.id,
+        name: breadcrumb.minorSection.name,
+        path: `/admin/rating/minor-sections/${breadcrumb.minorSection.id}`,
+        isCurrent: true,
+      },
+    ],
+  }
+}
+
+/**
  * 管理端评分项目信息
  */
 export interface AdminRatingItem {

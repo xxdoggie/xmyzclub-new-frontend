@@ -17,7 +17,7 @@ import type {
   AdminComment,
   AdminUserRating,
 } from '@/types/rating'
-import { getAdminBreadcrumbParts } from '@/types/rating'
+import { getClickableBreadcrumb } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -381,10 +381,22 @@ onMounted(() => {
             </div>
             <div class="item-details">
               <div class="item-breadcrumb">
-                <span>{{ getAdminBreadcrumbParts(ratingItem.breadcrumb).school }}</span>
-                <template v-for="(part, idx) in getAdminBreadcrumbParts(ratingItem.breadcrumb).parts" :key="idx">
+                <router-link
+                  :to="getClickableBreadcrumb(ratingItem.breadcrumb).school.path"
+                  class="breadcrumb-link"
+                >
+                  {{ getClickableBreadcrumb(ratingItem.breadcrumb).school.name }}
+                </router-link>
+                <template v-for="category in getClickableBreadcrumb(ratingItem.breadcrumb).categories" :key="category.id">
                   <span class="sep">/</span>
-                  <span>{{ part }}</span>
+                  <router-link
+                    v-if="!category.isCurrent"
+                    :to="category.path"
+                    class="breadcrumb-link"
+                  >
+                    {{ category.name }}
+                  </router-link>
+                  <span v-else class="breadcrumb-current">{{ category.name }}</span>
                 </template>
               </div>
               <h1 class="item-title">{{ ratingItem.name }}</h1>
@@ -728,6 +740,22 @@ onMounted(() => {
 
 .item-breadcrumb .sep {
   color: var(--color-border);
+}
+
+.item-breadcrumb .breadcrumb-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.item-breadcrumb .breadcrumb-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.item-breadcrumb .breadcrumb-current {
+  color: var(--color-text);
+  font-weight: var(--font-medium);
 }
 
 .item-title {

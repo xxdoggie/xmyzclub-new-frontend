@@ -407,15 +407,50 @@ const router = createRouter({
         parent: 'admin-rating-major-sections',
       },
     },
+    // 旧版小分区评分项目路由（保留向后兼容）
     {
       path: '/admin/rating/minor-sections/:minorSectionId',
-      name: 'admin-rating-items',
+      name: 'admin-rating-items-legacy',
       component: () => import('../pages/admin/rating/RatingItemsListPage.vue'),
       meta: {
         requiresAuth: true,
         level: 5,
         title: '评分项目管理',
         parent: 'admin-rating-minor-sections',
+      },
+    },
+    // 新版分类管理路由
+    {
+      path: '/admin/rating/categories',
+      name: 'admin-rating-categories',
+      component: () => import('../pages/admin/rating/RatingCategoriesPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '分类管理',
+        parent: 'admin-rating',
+      },
+    },
+    {
+      path: '/admin/rating/categories/:categoryId',
+      name: 'admin-rating-category',
+      component: () => import('../pages/admin/rating/RatingCategoriesPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '子分类管理',
+        parent: 'admin-rating-categories',
+      },
+    },
+    {
+      path: '/admin/rating/categories/:categoryId/items',
+      name: 'admin-rating-category-items',
+      component: () => import('../pages/admin/rating/RatingItemsListPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 5,
+        title: '评分项目管理',
+        parent: 'admin-rating-category',
       },
     },
     {

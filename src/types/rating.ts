@@ -270,10 +270,10 @@ export interface UpdateStatusRequest {
   status: RatingStatus
 }
 
-// ==================== 管理端大分区 (AdminMajorSection) ====================
+// ==================== 管理端大分区 (AdminMajorSection) - 旧版，保留兼容 ====================
 
 /**
- * 管理端大分区信息
+ * 管理端大分区信息（旧版）
  */
 export interface AdminMajorSection {
   id: number
@@ -289,7 +289,7 @@ export interface AdminMajorSection {
 }
 
 /**
- * 创建大分区请求
+ * 创建大分区请求（旧版）
  */
 export interface CreateMajorSectionRequest {
   schoolId: number
@@ -298,7 +298,7 @@ export interface CreateMajorSectionRequest {
 }
 
 /**
- * 更新大分区请求
+ * 更新大分区请求（旧版）
  */
 export interface UpdateMajorSectionRequest {
   schoolId?: number
@@ -306,10 +306,10 @@ export interface UpdateMajorSectionRequest {
   description?: string
 }
 
-// ==================== 管理端小分区 (AdminMinorSection) ====================
+// ==================== 管理端小分区 (AdminMinorSection) - 旧版，保留兼容 ====================
 
 /**
- * 管理端小分区信息
+ * 管理端小分区信息（旧版）
  */
 export interface AdminMinorSection {
   id: number
@@ -327,7 +327,7 @@ export interface AdminMinorSection {
 }
 
 /**
- * 创建小分区请求
+ * 创建小分区请求（旧版）
  */
 export interface CreateMinorSectionRequest {
   majorSectionId: number
@@ -336,7 +336,7 @@ export interface CreateMinorSectionRequest {
 }
 
 /**
- * 更新小分区请求
+ * 更新小分区请求（旧版）
  */
 export interface UpdateMinorSectionRequest {
   majorSectionId?: number
@@ -344,10 +344,84 @@ export interface UpdateMinorSectionRequest {
   description?: string
 }
 
+// ==================== 管理端分类 (AdminCategory) - 新版无限层级 ====================
+
+/**
+ * 管理端分类面包屑项
+ */
+export interface AdminCategoryBreadcrumbItem {
+  id: number
+  name: string
+  depth: number
+}
+
+/**
+ * 管理端分类信息
+ */
+export interface AdminCategory {
+  id: number
+  schoolId: number
+  schoolName: string
+  parentId: number | null
+  parentName: string | null
+  name: string
+  description: string
+  depth: number
+  path: string
+  sortOrder: number
+  imageUrl: string | null
+  status: RatingStatus
+  hasChildren: boolean
+  childrenCount: number
+  itemCount: number
+  breadcrumb: AdminCategoryBreadcrumbItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * 管理端分类列表查询参数
+ */
+export interface AdminCategoryParams {
+  page?: number
+  size?: number
+  schoolId?: number
+  parentId?: number | null
+  status?: RatingStatus
+  depth?: number
+}
+
+/**
+ * 创建分类请求
+ */
+export interface CreateCategoryRequest {
+  schoolId?: number // 创建顶级分类时必填
+  parentId?: number | null // 创建子分类时必填，null 表示顶级分类
+  name: string
+  description?: string
+  sortOrder?: number
+}
+
+/**
+ * 更新分类请求
+ */
+export interface UpdateCategoryRequest {
+  name?: string
+  description?: string
+  sortOrder?: number
+}
+
+/**
+ * 移动分类请求
+ */
+export interface MoveCategoryRequest {
+  targetParentId: number // 目标父分类ID，0 表示移动到顶级
+}
+
 // ==================== 管理端评分项目 (AdminRatingItem) ====================
 
 /**
- * 管理端面包屑信息
+ * 管理端面包屑信息（旧版）
  */
 export interface AdminRatingBreadcrumb {
   school: {
@@ -369,12 +443,68 @@ export interface AdminRatingBreadcrumb {
 }
 
 /**
+ * 管理端评分项目面包屑信息（新版）
+ */
+export interface AdminRatingItemBreadcrumb {
+  school: {
+    id: number
+    name: string
+  }
+  ancestors: AdminCategoryBreadcrumbItem[]
+  current: AdminCategoryBreadcrumbItem
+}
+
+/**
+ * 判断是否为新版面包屑格式
+ */
+export function isNewBreadcrumbFormat(
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
+): breadcrumb is AdminRatingItemBreadcrumb {
+  return 'ancestors' in breadcrumb && 'current' in breadcrumb
+}
+
+/**
+ * 获取管理端面包屑的路径显示（兼容新旧格式）
+ * 返回格式: "学校名 / 分类1 / 分类2 / ..."
+ */
+export function getAdminBreadcrumbPath(
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
+): string {
+  if (isNewBreadcrumbFormat(breadcrumb)) {
+    const parts = [breadcrumb.school.name]
+    breadcrumb.ancestors.forEach((a) => parts.push(a.name))
+    parts.push(breadcrumb.current.name)
+    return parts.join(' / ')
+  }
+  return `${breadcrumb.school.name} / ${breadcrumb.majorSection.name} / ${breadcrumb.minorSection.name}`
+}
+
+/**
+ * 获取管理端面包屑的各部分（兼容新旧格式）
+ * 返回: { school, parts } 其中 parts 是分类/分区名称数组
+ */
+export function getAdminBreadcrumbParts(
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
+): { school: string; parts: string[] } {
+  if (isNewBreadcrumbFormat(breadcrumb)) {
+    const parts = breadcrumb.ancestors.map((a) => a.name)
+    parts.push(breadcrumb.current.name)
+    return { school: breadcrumb.school.name, parts }
+  }
+  return {
+    school: breadcrumb.school.name,
+    parts: [breadcrumb.majorSection.name, breadcrumb.minorSection.name],
+  }
+}
+
+/**
  * 管理端评分项目信息
  */
 export interface AdminRatingItem {
   id: number
-  minorSectionId: number
-  breadcrumb: AdminRatingBreadcrumb
+  categoryId: number // 新版使用 categoryId
+  minorSectionId?: number // 旧版兼容
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
   name: string
   description: string
   imageUrl: string | null
@@ -387,10 +517,21 @@ export interface AdminRatingItem {
 }
 
 /**
+ * 管理端评分项目列表查询参数
+ */
+export interface AdminRatingItemParams {
+  page?: number
+  size?: number
+  categoryId?: number
+  status?: RatingStatus
+}
+
+/**
  * 创建评分项目请求
  */
 export interface CreateRatingItemRequest {
-  minorSectionId: number
+  categoryId: number // 新版使用 categoryId
+  minorSectionId?: number // 旧版兼容
   name: string
   description?: string
 }
@@ -399,7 +540,8 @@ export interface CreateRatingItemRequest {
  * 更新评分项目请求
  */
 export interface UpdateRatingItemRequest {
-  minorSectionId?: number
+  categoryId?: number
+  minorSectionId?: number // 旧版兼容
   name?: string
   description?: string
 }
@@ -408,7 +550,8 @@ export interface UpdateRatingItemRequest {
  * 移动评分项目请求
  */
 export interface MoveRatingItemRequest {
-  targetMinorSectionId: number
+  targetCategoryId: number // 新版使用 targetCategoryId
+  targetMinorSectionId?: number // 旧版兼容
 }
 
 // ==================== 管理端评论 (AdminComment) ====================
@@ -576,7 +719,7 @@ export interface AdminCollectionItem {
   ratingItemId: number
   ratingItemName: string
   ratingItemImageUrl: string | null
-  breadcrumb: AdminRatingBreadcrumb
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
   averageScore: number
   ratingCount: number
   sortOrder: number

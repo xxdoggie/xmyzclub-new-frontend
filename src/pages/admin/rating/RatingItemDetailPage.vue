@@ -17,6 +17,7 @@ import type {
   AdminComment,
   AdminUserRating,
 } from '@/types/rating'
+import { getAdminBreadcrumbParts } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -285,7 +286,7 @@ function cancelDelete() {
 // 返回
 function goBack() {
   if (ratingItem.value) {
-    router.push(`/admin/rating/minor-sections/${ratingItem.value.minorSectionId}`)
+    router.push(`/admin/rating/categories/${ratingItem.value.categoryId}`)
   } else {
     router.push('/admin/rating')
   }
@@ -357,7 +358,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <PageHeader :back-to="ratingItem ? `/admin/rating/minor-sections/${ratingItem.minorSectionId}` : '/admin/rating'" />
+    <PageHeader :back-to="ratingItem ? `/admin/rating/categories/${ratingItem.categoryId}` : '/admin/rating'" />
 
     <main class="page-content">
       <div class="content-container">
@@ -380,11 +381,11 @@ onMounted(() => {
             </div>
             <div class="item-details">
               <div class="item-breadcrumb">
-                <span>{{ ratingItem.breadcrumb.school.name }}</span>
-                <span class="sep">/</span>
-                <span>{{ ratingItem.breadcrumb.majorSection.name }}</span>
-                <span class="sep">/</span>
-                <span>{{ ratingItem.breadcrumb.minorSection.name }}</span>
+                <span>{{ getAdminBreadcrumbParts(ratingItem.breadcrumb).school }}</span>
+                <template v-for="(part, idx) in getAdminBreadcrumbParts(ratingItem.breadcrumb).parts" :key="idx">
+                  <span class="sep">/</span>
+                  <span>{{ part }}</span>
+                </template>
               </div>
               <h1 class="item-title">{{ ratingItem.name }}</h1>
               <p v-if="ratingItem.description" class="item-desc">{{ ratingItem.description }}</p>

@@ -5,19 +5,18 @@ import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
   getAdminCategoryDetail,
-  getAdminRatingItems,
-  createRatingItem,
-  updateRatingItem,
-  deleteRatingItem,
-  updateRatingItemStatus,
-  uploadRatingItemImage,
-  deleteRatingItemImage,
+  getAdminCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  updateCategoryStatus,
+  uploadCategoryImage,
+  deleteCategoryImage,
 } from '@/api/rating'
 import type {
   AdminCategory,
-  AdminRatingItem,
-  CreateRatingItemRequest,
-  UpdateRatingItemRequest,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
   RatingStatus,
 } from '@/types/rating'
 import { getRatingStatusInfo } from '@/types/rating'
@@ -30,34 +29,26 @@ const route = useRoute()
 const userStore = useUserStore()
 const toast = useToast()
 
-// 分类ID（支持新旧两种路由参数）
+// 分类ID（可选，如果有则显示该分类的子分类）
 const categoryId = computed(() => {
-  // 新版路由使用 categoryId
-  if (route.params.categoryId) {
-    return Number(route.params.categoryId)
-  }
-  // 旧版路由使用 minorSectionId（向后兼容）
-  if (route.params.minorSectionId) {
-    return Number(route.params.minorSectionId)
-  }
-  return 0
+  const id = route.params.categoryId
+  return id ? Number(id) : null
 })
 
 // 加载状态
 const isLoading = ref(true)
 
-// 分类信息
-const category = ref<AdminCategory | null>(null)
+// 当前分类信息（如果有 categoryId）
+const currentCategory = ref<AdminCategory | null>(null)
 
-// 评分项目列表
-const ratingItems = ref<AdminRatingItem[]>([])
+// 分类列表
+const categories = ref<AdminCategory[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 
 // 筛选状态
 const statusFilter = ref<RatingStatus | 'all'>('all')
-const searchKeyword = ref('')
 const tabOrder = ['all', 1, 0] as const
 const slideDirection = ref<'left' | 'right' | ''>('')
 const isAnimating = ref(false)
@@ -69,7 +60,7 @@ watch(statusFilter, (newVal, oldVal) => {
   const newIndex = tabOrder.indexOf(newVal as typeof tabOrder[number])
   slideDirection.value = newIndex > oldIndex ? 'left' : 'right'
   isAnimating.value = true
-  loadRatingItems()
+  loadCategories()
 
   nextTick(() => {
     setTimeout(() => {
@@ -82,11 +73,13 @@ watch(statusFilter, (newVal, oldVal) => {
 // 创建/编辑模态框
 const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
-const editingItem = ref<AdminRatingItem | null>(null)
-const form = ref<CreateRatingItemRequest & { description: string }>({
-  categoryId: 0,
+const editingItem = ref<AdminCategory | null>(null)
+const form = ref<CreateCategoryRequest & { description: string }>({
+  parentId: null,
+  schoolId: undefined,
   name: '',
   description: '',
+  sortOrder: 0,
 })
 const isSaving = ref(false)
 
@@ -96,15 +89,19 @@ const imagePreview = ref<string | null>(null)
 
 // 删除确认
 const showDeleteConfirm = ref(false)
-const deleteTarget = ref<AdminRatingItem | null>(null)
+const deleteTarget = ref<AdminCategory | null>(null)
 const isDeleting = ref(false)
 
-// 加载分类信息
-async function loadCategory() {
+// 加载当前分类信息
+async function loadCurrentCategory() {
+  if (!categoryId.value) {
+    currentCategory.value = null
+    return
+  }
   try {
     const res = await getAdminCategoryDetail(categoryId.value)
     if (res.data.code === 200) {
-      category.value = res.data.data
+      currentCategory.value = res.data.data
     } else {
       toast.error('获取分类信息失败')
       router.push('/admin/rating')
@@ -115,49 +112,50 @@ async function loadCategory() {
   }
 }
 
-// 加载评分项目列表
-async function loadRatingItems() {
+// 加载分类列表
+async function loadCategories() {
   try {
     const params: {
       page?: number
       size?: number
-      categoryId?: number
+      parentId?: number | null
+      schoolId?: number
       status?: RatingStatus
-      keyword?: string
     } = {
       page: page.value,
       size: pageSize.value,
-      categoryId: categoryId.value,
     }
+
+    // 如果有当前分类，则获取其子分类
+    if (categoryId.value) {
+      params.parentId = categoryId.value
+    } else {
+      // 获取顶级分类
+      params.parentId = null
+    }
+
     if (statusFilter.value !== 'all') {
       params.status = statusFilter.value
     }
-    if (searchKeyword.value.trim()) {
-      params.keyword = searchKeyword.value.trim()
-    }
-    const res = await getAdminRatingItems(params)
+
+    const res = await getAdminCategories(params)
     if (res.data.code === 200) {
-      ratingItems.value = res.data.data.items
+      categories.value = res.data.data.items
       total.value = res.data.data.total
     } else {
-      toast.error(res.data.message || '获取评分项目列表失败')
+      toast.error(res.data.message || '获取分类列表失败')
     }
   } catch (error) {
-    toast.error('获取评分项目列表失败')
+    toast.error('获取分类列表失败')
   }
-}
-
-// 搜索
-function handleSearch() {
-  page.value = 1
-  loadRatingItems()
 }
 
 // 加载所有数据
 async function loadAllData() {
   isLoading.value = true
   try {
-    await Promise.all([loadCategory(), loadRatingItems()])
+    await loadCurrentCategory()
+    await loadCategories()
   } finally {
     isLoading.value = false
   }
@@ -167,21 +165,29 @@ async function loadAllData() {
 function openCreateModal() {
   modalMode.value = 'create'
   editingItem.value = null
-  form.value = { categoryId: categoryId.value, name: '', description: '' }
+  form.value = {
+    parentId: categoryId.value,
+    schoolId: currentCategory.value?.schoolId,
+    name: '',
+    description: '',
+    sortOrder: 0,
+  }
   imageFile.value = null
   imagePreview.value = null
   showModal.value = true
 }
 
 // 打开编辑模态框
-function openEditModal(item: AdminRatingItem, event: Event) {
+function openEditModal(item: AdminCategory, event: Event) {
   event.stopPropagation()
   modalMode.value = 'edit'
   editingItem.value = item
   form.value = {
-    categoryId: item.categoryId,
+    parentId: item.parentId,
+    schoolId: item.schoolId,
     name: item.name,
     description: item.description || '',
+    sortOrder: item.sortOrder,
   }
   imageFile.value = null
   imagePreview.value = item.imageUrl
@@ -192,7 +198,13 @@ function openEditModal(item: AdminRatingItem, event: Event) {
 function closeModal() {
   showModal.value = false
   editingItem.value = null
-  form.value = { categoryId: categoryId.value, name: '', description: '' }
+  form.value = {
+    parentId: categoryId.value,
+    schoolId: currentCategory.value?.schoolId,
+    name: '',
+    description: '',
+    sortOrder: 0,
+  }
   imageFile.value = null
   imagePreview.value = null
 }
@@ -236,32 +248,33 @@ async function save() {
   isSaving.value = true
   try {
     if (modalMode.value === 'create') {
-      const res = await createRatingItem(form.value)
+      const res = await createCategory(form.value)
       if (res.data.code === 200) {
         if (imageFile.value) {
-          await uploadRatingItemImage(res.data.data.id, imageFile.value)
+          await uploadCategoryImage(res.data.data.id, imageFile.value)
         }
         toast.success('创建成功')
         closeModal()
-        await loadRatingItems()
+        await loadCategories()
       } else {
         toast.error(res.data.message || '创建失败')
       }
     } else if (editingItem.value) {
-      const updateData: UpdateRatingItemRequest = {
+      const updateData: UpdateCategoryRequest = {
         name: form.value.name,
         description: form.value.description,
+        sortOrder: form.value.sortOrder,
       }
-      const res = await updateRatingItem(editingItem.value.id, updateData)
+      const res = await updateCategory(editingItem.value.id, updateData)
       if (res.data.code === 200) {
         if (imageFile.value) {
-          await uploadRatingItemImage(editingItem.value.id, imageFile.value)
+          await uploadCategoryImage(editingItem.value.id, imageFile.value)
         } else if (!imagePreview.value && editingItem.value.imageUrl) {
-          await deleteRatingItemImage(editingItem.value.id)
+          await deleteCategoryImage(editingItem.value.id)
         }
         toast.success('更新成功')
         closeModal()
-        await loadRatingItems()
+        await loadCategories()
       } else {
         toast.error(res.data.message || '更新失败')
       }
@@ -274,14 +287,14 @@ async function save() {
 }
 
 // 切换状态
-async function toggleStatus(item: AdminRatingItem, event: Event) {
+async function toggleStatus(item: AdminCategory, event: Event) {
   event.stopPropagation()
   const newStatus = item.status === 1 ? 0 : 1
   try {
-    const res = await updateRatingItemStatus(item.id, { status: newStatus as RatingStatus })
+    const res = await updateCategoryStatus(item.id, { status: newStatus as RatingStatus })
     if (res.data.code === 200) {
       toast.success(newStatus === 1 ? '已启用' : '已禁用')
-      await loadRatingItems()
+      await loadCategories()
     } else {
       toast.error(res.data.message || '操作失败')
     }
@@ -291,7 +304,7 @@ async function toggleStatus(item: AdminRatingItem, event: Event) {
 }
 
 // 打开删除确认
-function openDeleteConfirm(item: AdminRatingItem, event: Event) {
+function openDeleteConfirm(item: AdminCategory, event: Event) {
   event.stopPropagation()
   deleteTarget.value = item
   showDeleteConfirm.value = true
@@ -303,12 +316,12 @@ async function confirmDelete() {
 
   isDeleting.value = true
   try {
-    const res = await deleteRatingItem(deleteTarget.value.id)
+    const res = await deleteCategory(deleteTarget.value.id)
     if (res.data.code === 200) {
       toast.success('已删除')
       showDeleteConfirm.value = false
       deleteTarget.value = null
-      await loadRatingItems()
+      await loadCategories()
     } else {
       toast.error(res.data.message || '删除失败')
     }
@@ -325,15 +338,21 @@ function cancelDelete() {
   deleteTarget.value = null
 }
 
-// 进入评分项目详情
-function goToItemDetail(item: AdminRatingItem) {
-  router.push(`/admin/rating/items/${item.id}`)
+// 进入子分类或评分项目列表
+function goToCategory(item: AdminCategory) {
+  if (item.hasChildren || item.childrenCount > 0) {
+    // 有子分类，进入子分类页面
+    router.push(`/admin/rating/categories/${item.id}`)
+  } else {
+    // 没有子分类，进入评分项目列表
+    router.push(`/admin/rating/categories/${item.id}/items`)
+  }
 }
 
-// 返回
+// 返回上级
 function goBack() {
-  if (category.value && category.value.parentId) {
-    router.push(`/admin/rating/categories/${category.value.parentId}`)
+  if (currentCategory.value && currentCategory.value.parentId) {
+    router.push(`/admin/rating/categories/${currentCategory.value.parentId}`)
   } else {
     router.push('/admin/rating')
   }
@@ -349,10 +368,26 @@ function formatDate(dateStr: string) {
   })
 }
 
-// 格式化评分
-function formatScore(score: number) {
-  return score.toFixed(1)
-}
+// 获取页面标题
+const pageTitle = computed(() => {
+  if (currentCategory.value) {
+    return currentCategory.value.name
+  }
+  return '分类管理'
+})
+
+// 获取页面副标题
+const pageSubtitle = computed(() => {
+  if (currentCategory.value) {
+    return `管理子分类 · 层级 ${currentCategory.value.depth + 1}`
+  }
+  return '管理顶级分类'
+})
+
+// 监听路由变化，重新加载数据
+watch(categoryId, () => {
+  loadAllData()
+})
 
 onMounted(() => {
   if (!userStore.isLoggedIn || !userStore.canManageRating) {
@@ -366,7 +401,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <PageHeader :back-to="category && category.parentId ? `/admin/rating/categories/${category.parentId}` : '/admin/rating'" />
+    <PageHeader :back-to="currentCategory && currentCategory.parentId ? `/admin/rating/categories/${currentCategory.parentId}` : '/admin/rating'" />
 
     <main class="page-content">
       <div class="content-container">
@@ -379,15 +414,15 @@ onMounted(() => {
         <div class="page-header-section">
           <div class="header-main">
             <div class="header-text">
-              <div class="header-breadcrumb" v-if="category">
-                <span class="breadcrumb-item">{{ category.schoolName }}</span>
-                <template v-for="(item, idx) in category.breadcrumb" :key="idx">
+              <div class="header-breadcrumb" v-if="currentCategory">
+                <span class="breadcrumb-item">{{ currentCategory.schoolName }}</span>
+                <template v-for="(item, idx) in currentCategory.breadcrumb" :key="idx">
                   <span class="breadcrumb-sep">/</span>
-                  <span :class="idx === category.breadcrumb.length - 1 ? 'breadcrumb-current' : 'breadcrumb-item'">{{ item.name }}</span>
+                  <span :class="idx === currentCategory.breadcrumb.length - 1 ? 'breadcrumb-current' : 'breadcrumb-item'">{{ item.name }}</span>
                 </template>
               </div>
-              <h1 class="page-title">{{ category?.name || '加载中...' }}</h1>
-              <p class="page-subtitle">管理评分项目</p>
+              <h1 class="page-title">{{ pageTitle }}</h1>
+              <p class="page-subtitle">{{ pageSubtitle }}</p>
             </div>
             <div class="header-actions">
               <button class="action-button secondary" @click="goBack">
@@ -401,7 +436,7 @@ onMounted(() => {
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                添加评分项目
+                添加分类
               </button>
             </div>
           </div>
@@ -414,23 +449,6 @@ onMounted(() => {
         </div>
 
         <template v-else>
-          <!-- 搜索框 -->
-          <div class="search-bar">
-            <input
-              v-model="searchKeyword"
-              type="text"
-              class="search-input"
-              placeholder="搜索评分项目..."
-              @keyup.enter="handleSearch"
-            />
-            <button class="search-btn" @click="handleSearch">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </button>
-          </div>
-
           <!-- 状态筛选 -->
           <div class="status-tabs">
             <button
@@ -465,26 +483,26 @@ onMounted(() => {
             }"
           >
             <!-- 空状态 -->
-            <div v-if="ratingItems.length === 0" class="empty-container">
+            <div v-if="categories.length === 0" class="empty-container">
               <div class="empty-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                 </svg>
               </div>
-              <h2>{{ statusFilter === 'all' ? '暂无评分项目' : '暂无相关评分项目' }}</h2>
-              <p>{{ statusFilter === 'all' ? '还没有添加任何评分项目' : '没有找到该状态的评分项目' }}</p>
+              <h2>{{ statusFilter === 'all' ? '暂无分类' : '暂无相关分类' }}</h2>
+              <p>{{ statusFilter === 'all' ? '还没有添加任何分类' : '没有找到该状态的分类' }}</p>
               <button v-if="statusFilter === 'all'" class="empty-action-btn" @click="openCreateModal">
-                添加第一个评分项目
+                添加第一个分类
               </button>
             </div>
 
             <!-- 列表 -->
             <div v-else class="items-list">
               <div
-                v-for="item in ratingItems"
+                v-for="item in categories"
                 :key="item.id"
                 class="item-card"
-                @click="goToItemDetail(item)"
+                @click="goToCategory(item)"
               >
                 <!-- 封面图 -->
                 <div class="item-cover">
@@ -496,7 +514,7 @@ onMounted(() => {
                   />
                   <div v-else class="cover-placeholder">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                     </svg>
                   </div>
                 </div>
@@ -511,16 +529,10 @@ onMounted(() => {
                   </div>
                   <p v-if="item.description" class="item-desc">{{ item.description }}</p>
                   <div class="item-meta">
-                    <span class="meta-item score">
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                      {{ formatScore(item.averageScore) }}
-                    </span>
+                    <span class="meta-item" v-if="item.childrenCount > 0">{{ item.childrenCount }} 个子分类</span>
+                    <span class="meta-item" v-else>{{ item.itemCount }} 个评分项目</span>
                     <span class="meta-divider">·</span>
-                    <span class="meta-item">{{ item.ratingCount }} 评分</span>
-                    <span class="meta-divider">·</span>
-                    <span class="meta-item">{{ item.commentCount }} 评论</span>
+                    <span class="meta-item">层级 {{ item.depth }}</span>
                     <span class="meta-divider">·</span>
                     <span class="meta-item">{{ formatDate(item.createdAt) }}</span>
                   </div>
@@ -555,7 +567,7 @@ onMounted(() => {
               <button
                 class="page-btn"
                 :disabled="page === 1"
-                @click="page--; loadRatingItems()"
+                @click="page--; loadCategories()"
               >
                 上一页
               </button>
@@ -563,7 +575,7 @@ onMounted(() => {
               <button
                 class="page-btn"
                 :disabled="page >= Math.ceil(total / pageSize)"
-                @click="page++; loadRatingItems()"
+                @click="page++; loadCategories()"
               >
                 下一页
               </button>
@@ -581,7 +593,7 @@ onMounted(() => {
         <Transition name="modal-scale" appear>
           <div v-if="showModal" class="modal-content modal-large" @click.stop>
             <h3 class="modal-title">
-              {{ modalMode === 'create' ? '添加评分项目' : '编辑评分项目' }}
+              {{ modalMode === 'create' ? '添加分类' : '编辑分类' }}
             </h3>
             <div class="form-group">
               <label class="form-label">名称 *</label>
@@ -589,7 +601,7 @@ onMounted(() => {
                 v-model="form.name"
                 type="text"
                 class="form-input"
-                placeholder="例如：黄焖鸡米饭"
+                placeholder="例如：一食堂"
                 maxlength="50"
               />
             </div>
@@ -598,10 +610,21 @@ onMounted(() => {
               <textarea
                 v-model="form.description"
                 class="form-textarea"
-                placeholder="简单描述一下..."
+                placeholder="简单描述一下这个分类..."
                 rows="3"
-                maxlength="500"
+                maxlength="200"
               ></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">排序权重</label>
+              <input
+                v-model.number="form.sortOrder"
+                type="number"
+                class="form-input"
+                placeholder="数字越小排序越靠前"
+                min="0"
+              />
+              <p class="form-hint">数字越小排序越靠前，默认为 0</p>
             </div>
             <div class="form-group">
               <label class="form-label">封面图片</label>
@@ -652,9 +675,9 @@ onMounted(() => {
           <div v-if="showDeleteConfirm" class="modal-content" @click.stop>
             <h3 class="modal-title">确认删除</h3>
             <p class="modal-desc">
-              确定要删除评分项目"{{ deleteTarget?.name }}"吗？此操作不可撤销。
+              确定要删除分类"{{ deleteTarget?.name }}"吗？此操作不可撤销。
             </p>
-            <p class="modal-warning">注意：删除后会同时删除关联的所有评分和评论。</p>
+            <p class="modal-warning">注意：如果该分类下有子分类或评分项目，将无法删除。</p>
             <div class="modal-actions">
               <button class="modal-btn cancel" @click="cancelDelete" :disabled="isDeleting">
                 取消
@@ -710,6 +733,10 @@ onMounted(() => {
 
 .breadcrumb-sep {
   color: var(--color-border);
+}
+
+.breadcrumb-item {
+  color: var(--color-text-secondary);
 }
 
 .breadcrumb-current {
@@ -808,52 +835,6 @@ onMounted(() => {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ===== Search Bar ===== */
-.search-bar {
-  display: flex;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-}
-
-.search-input {
-  flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-card);
-  color: var(--color-text);
-  transition: border-color var(--transition-fast);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-.search-input::placeholder {
-  color: var(--color-text-placeholder);
-}
-
-.search-btn {
-  padding: var(--spacing-sm);
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-
-.search-btn:hover {
-  background: var(--color-primary-dark);
-}
-
-.search-btn svg {
-  width: 18px;
-  height: 18px;
 }
 
 /* ===== Status Tabs ===== */
@@ -1088,18 +1069,6 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.meta-item.score {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--color-warning);
-}
-
-.meta-item.score svg {
-  width: 12px;
-  height: 12px;
-}
-
 .meta-divider {
   color: var(--color-border);
 }
@@ -1288,6 +1257,12 @@ onMounted(() => {
 .form-input::placeholder,
 .form-textarea::placeholder {
   color: var(--color-text-placeholder);
+}
+
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  margin-top: var(--spacing-xs);
 }
 
 /* ===== Image Upload ===== */

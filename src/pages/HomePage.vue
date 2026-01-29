@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -20,6 +20,87 @@ const {
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const isMobileMenuOpen = ref(false)
 
+// ===== Banner Carousel =====
+const currentBannerIndex = ref(0)
+let bannerInterval: ReturnType<typeof setInterval> | null = null
+
+// 预留Banner数据 - 后续由API获取
+// TODO: 替换为真实API数据
+interface BannerItem {
+  id: number
+  tag: string
+  title: string
+  description: string
+  gradient: string
+  link?: string
+  icon: ReturnType<typeof h>
+}
+
+const banners = ref<BannerItem[]>([
+  {
+    id: 1,
+    tag: '公告',
+    title: '欢迎来到厦门一中学生社区',
+    description: '在这里发现校园生活的无限可能',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    link: '/community',
+    icon: h('svg', { viewBox: '0 0 80 80', fill: 'none' }, [
+      h('circle', { cx: '40', cy: '40', r: '35', fill: 'rgba(255,255,255,0.2)' }),
+      h('path', { d: 'M25 50 L40 30 L55 50', stroke: 'white', 'stroke-width': '3', fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      h('circle', { cx: '40', cy: '25', r: '5', fill: 'white' }),
+    ]),
+  },
+  {
+    id: 2,
+    tag: '活动',
+    title: '新活动即将上线',
+    description: '敬请期待精彩校园活动',
+    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    link: '/ticket',
+    icon: h('svg', { viewBox: '0 0 80 80', fill: 'none' }, [
+      h('rect', { x: '15', y: '20', width: '50', height: '40', rx: '4', fill: 'rgba(255,255,255,0.2)' }),
+      h('path', { d: 'M15 32 L65 32', stroke: 'white', 'stroke-width': '2' }),
+      h('circle', { cx: '28', cy: '45', r: '6', fill: 'white', opacity: '0.8' }),
+      h('path', { d: 'M40 42 L55 42 M40 48 L50 48', stroke: 'white', 'stroke-width': '2', 'stroke-linecap': 'round' }),
+    ]),
+  },
+  {
+    id: 3,
+    tag: '功能',
+    title: '评分社区全新上线',
+    description: '为食堂、教学楼、考试打分吧',
+    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    link: '/community',
+    icon: h('svg', { viewBox: '0 0 80 80', fill: 'none' }, [
+      h('polygon', { points: '40,15 47,32 65,32 51,43 56,60 40,50 24,60 29,43 15,32 33,32', fill: 'rgba(255,255,255,0.9)' }),
+    ]),
+  },
+])
+
+function goToBanner(index: number) {
+  currentBannerIndex.value = index
+  resetBannerInterval()
+}
+
+function handleBannerClick(banner: BannerItem) {
+  if (banner.link) {
+    router.push(banner.link)
+  }
+}
+
+function startBannerAutoPlay() {
+  bannerInterval = setInterval(() => {
+    currentBannerIndex.value = (currentBannerIndex.value + 1) % banners.value.length
+  }, 5000)
+}
+
+function resetBannerInterval() {
+  if (bannerInterval) {
+    clearInterval(bannerInterval)
+  }
+  startBannerAutoPlay()
+}
+
 // 退出确认弹窗
 const showLogoutConfirm = ref(false)
 
@@ -36,6 +117,9 @@ function toggleSection(section: 'nav' | 'admin' | 'account') {
 }
 
 onMounted(() => {
+  // 启动Banner轮播
+  startBannerAutoPlay()
+
   // 检查是否需要启动评分社区引导
   if (shouldStartTour() && getCurrentStep() === TourStep.HOME_COMMUNITY_ENTRY) {
     setTimeout(() => {
@@ -45,6 +129,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  // 清理Banner轮播定时器
+  if (bannerInterval) {
+    clearInterval(bannerInterval)
+  }
   destroyDriver()
 })
 
@@ -539,11 +627,40 @@ function toggleMobileMenu() {
 
     <!-- Main Content -->
     <main class="main">
-      <!-- Welcome Section -->
-      <section class="welcome-section">
-        <div class="welcome-container">
-          <h2 class="welcome-title">👋 欢迎来到学生社区</h2>
-          <p class="welcome-subtitle">探索校园生活的每一个角落</p>
+      <!-- Banner Carousel -->
+      <section class="banner-section">
+        <div class="banner-container">
+          <div class="banner-carousel">
+            <!-- 轮播内容 - 将由API填充 -->
+            <div
+              v-for="(banner, index) in banners"
+              :key="banner.id"
+              class="banner-slide"
+              :class="{ active: currentBannerIndex === index }"
+              @click="handleBannerClick(banner)"
+            >
+              <div class="banner-content" :style="{ background: banner.gradient }">
+                <div class="banner-text">
+                  <span class="banner-tag">{{ banner.tag }}</span>
+                  <h3 class="banner-title">{{ banner.title }}</h3>
+                  <p class="banner-desc">{{ banner.description }}</p>
+                </div>
+                <div class="banner-illustration">
+                  <component :is="banner.icon" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 轮播指示器 -->
+          <div class="banner-dots">
+            <button
+              v-for="(_, index) in banners"
+              :key="index"
+              class="banner-dot"
+              :class="{ active: currentBannerIndex === index }"
+              @click="goToBanner(index)"
+            ></button>
+          </div>
         </div>
       </section>
 
@@ -551,7 +668,7 @@ function toggleMobileMenu() {
       <section class="entry-section">
         <div class="entry-container">
           <!-- 活动票务 -->
-          <router-link to="/ticket" class="entry-card entry-card-1">
+          <router-link to="/ticket" class="entry-card entry-card-ticket">
             <div class="entry-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -572,7 +689,7 @@ function toggleMobileMenu() {
           </router-link>
 
           <!-- 评分社区 -->
-          <router-link to="/community" id="tour-community-entry" class="entry-card entry-card-2">
+          <router-link to="/community" id="tour-community-entry" class="entry-card entry-card-community">
             <div class="entry-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -580,7 +697,7 @@ function toggleMobileMenu() {
             </div>
             <div class="entry-content">
               <h3 class="entry-title">评分社区</h3>
-              <p class="entry-desc">分享你的校园体验，查看真实评价</p>
+              <p class="entry-desc">在这里给食堂、考试、甚至教学楼打分……</p>
             </div>
             <div class="entry-arrow">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -589,19 +706,18 @@ function toggleMobileMenu() {
             </div>
           </router-link>
 
-          <!-- 成绩查询 -->
-          <router-link to="/grade" class="entry-card entry-card-3">
+          <!-- 宿舍铃声 -->
+          <router-link to="/ringtone" class="entry-card entry-card-ringtone">
             <div class="entry-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
               </svg>
             </div>
             <div class="entry-content">
-              <h3 class="entry-title">成绩查询</h3>
-              <p class="entry-desc">快速查看你的考试成绩</p>
+              <h3 class="entry-title">宿舍铃声</h3>
+              <p class="entry-desc">给宿舍铃声投稿和投票！</p>
             </div>
             <div class="entry-arrow">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -612,18 +728,19 @@ function toggleMobileMenu() {
 
           <!-- 次要入口 -->
           <div class="secondary-entries">
-            <router-link to="/ringtone" class="secondary-card secondary-card-1">
+            <router-link to="/grade" class="secondary-card secondary-card-grade">
               <div class="secondary-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M9 18V5l12-2v13"></path>
-                  <circle cx="6" cy="18" r="3"></circle>
-                  <circle cx="18" cy="16" r="3"></circle>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
                 </svg>
               </div>
-              <span class="secondary-label">宿舍铃声</span>
+              <span class="secondary-label">成绩查询</span>
             </router-link>
 
-            <router-link to="/wall" class="secondary-card secondary-card-2">
+            <router-link to="/wall" class="secondary-card secondary-card-wall">
               <div class="secondary-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -1251,27 +1368,123 @@ function toggleMobileMenu() {
   flex-direction: column;
 }
 
-/* ===== Welcome Section ===== */
-.welcome-section {
-  padding: var(--spacing-lg) var(--spacing-md);
+/* ===== Banner Section ===== */
+.banner-section {
+  padding: var(--spacing-md) var(--spacing-md);
   padding-bottom: var(--spacing-sm);
 }
 
-.welcome-container {
+.banner-container {
   max-width: 600px;
   margin: 0 auto;
+  position: relative;
 }
 
-.welcome-title {
-  font-size: var(--text-xl);
+.banner-carousel {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.banner-slide {
+  display: none;
+  cursor: pointer;
+}
+
+.banner-slide.active {
+  display: block;
+  animation: bannerFadeIn 0.5s ease;
+}
+
+@keyframes bannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-md);
+  min-height: 140px;
+  color: white;
+}
+
+.banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 11px;
   font-weight: var(--font-semibold);
-  color: var(--color-text);
   margin-bottom: var(--spacing-xs);
+  backdrop-filter: blur(4px);
 }
 
-.welcome-subtitle {
+.banner-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  margin-bottom: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.banner-desc {
   font-size: var(--text-sm);
-  color: var(--color-text-secondary);
+  opacity: 0.9;
+}
+
+.banner-illustration {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-illustration svg {
+  width: 100%;
+  height: 100%;
+}
+
+.banner-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--spacing-sm);
+}
+
+.banner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.banner-dot.active {
+  background: var(--color-primary);
+  width: 24px;
+  border-radius: 4px;
+}
+
+.banner-dot:hover:not(.active) {
+  background: var(--color-text-placeholder);
 }
 
 /* ===== Entry Section ===== */
@@ -1297,24 +1510,55 @@ function toggleMobileMenu() {
   padding: var(--spacing-md);
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   text-decoration: none;
   transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.entry-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--entry-color);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 
 .entry-card:hover {
   border-color: var(--entry-color, var(--color-primary));
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px var(--entry-shadow, rgba(0, 0, 0, 0.08));
+  transform: translateY(-2px);
+}
+
+.entry-card:hover::before {
+  opacity: 1;
 }
 
 .entry-card:active {
-  transform: scale(0.995);
+  transform: translateY(0) scale(0.995);
 }
 
-/* Entry card colors */
-.entry-card-1 { --entry-color: #FF6B6B; --entry-bg: rgba(255, 107, 107, 0.1); }
-.entry-card-2 { --entry-color: #FDCB6E; --entry-bg: rgba(253, 203, 110, 0.1); }
-.entry-card-3 { --entry-color: #A29BFE; --entry-bg: rgba(162, 155, 254, 0.1); }
+/* Entry card colors - vibrant theme */
+.entry-card-ticket {
+  --entry-color: #FF6B6B;
+  --entry-bg: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.05) 100%);
+  --entry-shadow: rgba(255, 107, 107, 0.15);
+}
+.entry-card-community {
+  --entry-color: #FDCB6E;
+  --entry-bg: linear-gradient(135deg, rgba(253, 203, 110, 0.15) 0%, rgba(253, 203, 110, 0.05) 100%);
+  --entry-shadow: rgba(253, 203, 110, 0.15);
+}
+.entry-card-ringtone {
+  --entry-color: #A29BFE;
+  --entry-bg: linear-gradient(135deg, rgba(162, 155, 254, 0.15) 0%, rgba(162, 155, 254, 0.05) 100%);
+  --entry-shadow: rgba(162, 155, 254, 0.15);
+}
 
 .entry-icon {
   width: 48px;
@@ -1400,8 +1644,8 @@ function toggleMobileMenu() {
 }
 
 /* Secondary card colors */
-.secondary-card-1 { --secondary-color: #4ECDC4; --secondary-bg: rgba(78, 205, 196, 0.05); }
-.secondary-card-2 { --secondary-color: #74B9FF; --secondary-bg: rgba(116, 185, 255, 0.05); }
+.secondary-card-grade { --secondary-color: #4ECDC4; --secondary-bg: rgba(78, 205, 196, 0.08); }
+.secondary-card-wall { --secondary-color: #74B9FF; --secondary-bg: rgba(116, 185, 255, 0.08); }
 
 .secondary-icon {
   width: 40px;
@@ -1537,18 +1781,24 @@ function toggleMobileMenu() {
     display: block;
   }
 
-  /* Welcome Section */
-  .welcome-section {
-    padding: var(--spacing-xl) var(--spacing-lg);
+  /* Banner Section */
+  .banner-section {
+    padding: var(--spacing-lg) var(--spacing-lg);
     padding-bottom: var(--spacing-md);
   }
 
-  .welcome-title {
-    font-size: var(--text-2xl);
+  .banner-content {
+    padding: var(--spacing-xl) var(--spacing-lg);
+    min-height: 160px;
   }
 
-  .welcome-subtitle {
-    font-size: var(--text-base);
+  .banner-title {
+    font-size: var(--text-xl);
+  }
+
+  .banner-illustration {
+    width: 100px;
+    height: 100px;
   }
 
   /* Entry Section */
@@ -1846,15 +2096,29 @@ function toggleMobileMenu() {
     min-width: 0;
   }
 
-  /* Welcome & Entry Desktop 适配 */
-  .welcome-section {
-    padding: var(--spacing-2xl) var(--spacing-xl);
+  /* Banner & Entry Desktop 适配 */
+  .banner-section {
+    padding: var(--spacing-xl) var(--spacing-xl);
     padding-bottom: var(--spacing-md);
   }
 
-  .welcome-container,
+  .banner-container,
   .entry-container {
     max-width: 700px;
+  }
+
+  .banner-content {
+    min-height: 180px;
+    padding: var(--spacing-xl);
+  }
+
+  .banner-title {
+    font-size: var(--text-2xl);
+  }
+
+  .banner-illustration {
+    width: 120px;
+    height: 120px;
   }
 
   .entry-section {
@@ -1889,14 +2153,14 @@ function toggleMobileMenu() {
 /* ===== Responsive - Large Desktop ===== */
 @media (min-width: 1280px) {
   .header-container,
-  .welcome-container,
+  .banner-container,
   .entry-container,
   .footer-container {
     padding-left: var(--spacing-2xl);
     padding-right: var(--spacing-2xl);
   }
 
-  .welcome-container,
+  .banner-container,
   .entry-container {
     max-width: 800px;
   }

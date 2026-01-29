@@ -1201,7 +1201,9 @@ function showStarsTour() {
 /* ===== Enhanced Empty State ===== */
 .empty-state-enhanced {
   text-align: center;
-  padding: var(--spacing-xl) var(--spacing-md);
+  padding: var(--spacing-2xl) var(--spacing-md);
+  max-width: 420px;
+  margin: 0 auto;
 }
 
 .empty-hero {
@@ -1209,32 +1211,34 @@ function showStarsTour() {
 }
 
 .empty-icon-large {
-  width: 100px;
-  height: 100px;
-  margin: 0 auto var(--spacing-lg);
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--spacing-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary-bg), var(--color-border));
-  color: var(--color-primary);
-  border-radius: var(--radius-2xl);
+  background: transparent;
+  color: var(--color-text-placeholder);
+  opacity: 0.6;
 }
 
 .empty-icon-large svg {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
+  stroke-width: 1;
 }
 
 .empty-hero h2 {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  margin-bottom: var(--spacing-sm);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-xs);
   color: var(--color-text);
 }
 
 .empty-hero p {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+  line-height: 1.5;
 }
 
 /* ===== Action Cards ===== */
@@ -1242,57 +1246,59 @@ function showStarsTour() {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
-  max-width: 400px;
-  margin: 0 auto;
 }
 
 .action-card {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  padding: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
   text-align: left;
 }
 
 .action-card:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: transparent;
+  background: var(--color-card);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--color-primary-light, rgba(99, 102, 241, 0.2));
 }
 
 .action-card:active {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
 .action-card-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  transition: transform 0.2s ease;
+}
+
+.action-card:hover .action-card-icon {
+  transform: scale(1.05);
 }
 
 .action-card-icon.category {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary);
 }
 
 .action-card-icon.item {
-  background: linear-gradient(135deg, #f093fb, #f5576c);
-  color: white;
+  background: rgba(251, 146, 60, 0.1);
+  color: var(--color-warning);
 }
 
 .action-card-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
 .action-card-content {
@@ -1303,14 +1309,30 @@ function showStarsTour() {
 }
 
 .action-card-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   color: var(--color-text);
 }
 
 .action-card-desc {
   font-size: var(--text-xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text-placeholder);
+}
+
+/* Arrow indicator */
+.action-card::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
+  background-size: contain;
+  opacity: 0.4;
+  transition: all 0.2s ease;
+}
+
+.action-card:hover::after {
+  opacity: 0.8;
+  transform: translateX(2px);
 }
 
 /* ===== FAB (Floating Action Button) ===== */
@@ -1529,21 +1551,13 @@ function showStarsTour() {
     bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Action cards in row on desktop */
+  /* Action cards on desktop - keep horizontal layout but wider */
   .action-cards {
-    flex-direction: row;
-    max-width: 500px;
+    max-width: 480px;
   }
 
   .action-card {
-    flex: 1;
-    flex-direction: column;
-    text-align: center;
-    padding: var(--spacing-lg);
-  }
-
-  .action-card-content {
-    align-items: center;
+    padding: var(--spacing-md) var(--spacing-xl);
   }
 }
 </style>

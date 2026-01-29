@@ -5,6 +5,7 @@ import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
 import { getCollectionDetail, submitRating } from '@/api/rating'
 import type { CollectionDetail, CollectionRatingItem } from '@/types/rating'
+import { getBreadcrumbDisplayName } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
@@ -283,7 +284,7 @@ onMounted(() => {
                 </div>
                 <div class="item-meta">
                   <span class="rating-count">{{ item.ratingCount }} 人评分</span>
-                  <span class="item-breadcrumb-text">{{ item.breadcrumb.minorSection.name }}</span>
+                  <span class="item-breadcrumb-text">{{ getBreadcrumbDisplayName(item.breadcrumb) }}</span>
                 </div>
                 <!-- 热门评论 -->
                 <div class="hot-comment" v-if="item.topComment">

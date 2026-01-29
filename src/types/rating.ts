@@ -743,7 +743,7 @@ export interface CollectionRatingItem {
   averageScore: number
   ratingCount: number
   topComment: TopComment | null
-  breadcrumb: Breadcrumb
+  breadcrumb: Breadcrumb | CategoryBreadcrumb // 兼容新旧格式
   myScore: number | null
   myStars: number | null
 }

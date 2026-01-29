@@ -438,121 +438,101 @@ function showFinalTour() {
         </template>
       </div>
 
-      <!-- 立即评分 -->
-      <div class="quick-rate-section" v-if="!isLoadingHot && hotItems.length > 0">
+      <!-- 热门评分 -->
+      <div id="tour-hot-section" class="hot-section">
         <div class="section-header">
           <h2 class="section-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            立即评分
-          </h2>
-          <span class="section-stat">{{ hotItems.reduce((sum, item) => sum + item.ratingCount, 0) }}+ 条评价</span>
-        </div>
-
-        <div class="quick-rate-list">
-          <div
-            v-for="item in hotItems.slice(0, 3)"
-            :key="item.id"
-            class="quick-rate-card"
-            @click="goToRatingItem(item)"
-          >
-            <div class="quick-rate-cover">
-              <img v-if="item.url" :src="item.url" :alt="item.name" loading="lazy" />
-              <div v-else class="cover-placeholder-mini">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-              </div>
-            </div>
-            <div class="quick-rate-info">
-              <h3 class="quick-rate-name">{{ item.name }}</h3>
-              <div class="quick-rate-stars">
-                <div class="stars-display">
-                  <svg v-for="star in 5" :key="star" viewBox="0 0 24 24" :class="{ filled: star <= Math.round(item.averageScore / 2) }">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                </div>
-                <span class="score-text">{{ formatScore(item.averageScore) }}</span>
-              </div>
-              <p class="quick-rate-meta">
-                <span>{{ getBreadcrumbDisplayName(item.breadcrumb) }}</span>
-                <span class="meta-divider">·</span>
-                <span>{{ item.ratingCount }}人评</span>
-              </p>
-            </div>
-            <svg class="quick-rate-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <!-- 热门评分 -->
-      <div id="tour-hot-section" class="content-card">
-        <div class="card-header">
-          <h2 class="card-header-title">
-            <svg class="title-icon hot" viewBox="0 0 24 24" fill="currentColor">
+            <svg class="title-icon-hot" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 23c-4.97 0-9-3.58-9-8 0-1.95.7-3.76 1.86-5.14A7.5 7.5 0 0 1 9 5c0 .91.2 1.76.56 2.53.49 1.03 1.24 1.91 2.19 2.55A6.18 6.18 0 0 0 12 5.5a5.87 5.87 0 0 1 5.14 3A9.03 9.03 0 0 1 21 15c0 4.42-4.03 8-9 8z"></path>
             </svg>
             热门评分
           </h2>
+          <span v-if="hotItems.length > 0" class="section-stat">{{ hotItems.reduce((sum, item) => sum + item.ratingCount, 0).toLocaleString() }}+ 评价</span>
         </div>
 
-        <!-- 热门加载状态 -->
-        <div v-if="isLoadingHot" class="item-scroll">
-          <div v-for="i in 4" :key="i" class="item-skeleton">
-            <div class="skeleton-cover"></div>
-            <div class="skeleton-info">
-              <div class="skeleton-title"></div>
-              <div class="skeleton-meta"></div>
+        <!-- 加载状态 -->
+        <template v-if="isLoadingHot">
+          <div class="hot-top-skeleton">
+            <div v-for="i in 3" :key="i" class="hot-card-skeleton">
+              <div class="skeleton-cover-sm"></div>
+              <div class="skeleton-content">
+                <div class="skeleton-line w60"></div>
+                <div class="skeleton-line w40"></div>
+                <div class="skeleton-line w80"></div>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
 
         <!-- 热门列表 -->
-        <div v-else-if="hotItems.length > 0" class="item-scroll">
-          <div
-            v-for="(item, index) in hotItems"
-            :key="item.id"
-            class="item-card"
-            @click="goToRatingItem(item)"
-          >
-            <!-- 封面图 -->
-            <div class="item-cover">
-              <img
-                v-if="item.url"
-                :src="item.url"
-                :alt="item.name"
-                loading="lazy"
-              />
-              <div v-else class="cover-placeholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
+        <template v-else-if="hotItems.length > 0">
+          <!-- Top 3 大卡片 -->
+          <div class="hot-top-list">
+            <div
+              v-for="(item, index) in hotItems.slice(0, 3)"
+              :key="item.id"
+              class="hot-card"
+              @click="goToRatingItem(item)"
+            >
+              <div class="hot-card-rank" :class="`rank-${index + 1}`">{{ index + 1 }}</div>
+              <div class="hot-card-cover">
+                <img v-if="item.url" :src="item.url" :alt="item.name" loading="lazy" />
+                <div v-else class="cover-placeholder-mini">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
               </div>
-              <!-- 评分标签 -->
-              <div class="score-badge">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                <span>{{ formatScore(item.averageScore) }}</span>
-              </div>
-              <!-- 排名标签 -->
-              <div v-if="index < 3" class="rank-badge" :class="`rank-${index + 1}`">
-                {{ index + 1 }}
-              </div>
-            </div>
-            <!-- 信息区 -->
-            <div class="item-info">
-              <h3 class="item-name">{{ item.name }}</h3>
-              <p class="item-breadcrumb">{{ getBreadcrumbDisplayName(item.breadcrumb) }}</p>
-              <div class="item-stats">
-                <span class="stat-item">{{ item.ratingCount }} 人评分</span>
+              <div class="hot-card-info">
+                <h3 class="hot-card-name">{{ item.name }}</h3>
+                <div class="hot-card-rating">
+                  <div class="stars-display">
+                    <svg v-for="star in 5" :key="star" viewBox="0 0 24 24" :class="{ filled: star <= Math.round(item.averageScore / 2) }">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                  <span class="score-text">{{ formatScore(item.averageScore) }}</span>
+                  <span class="rating-count">{{ item.ratingCount }}人</span>
+                </div>
+                <div v-if="item.topComment" class="hot-card-comment">
+                  <span class="comment-text">"{{ item.topComment.commentText }}"</span>
+                </div>
+                <div v-else class="hot-card-comment empty">
+                  <span class="comment-text">"快来抢沙发吧！"</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- 更多热门（横向滚动） -->
+          <div v-if="hotItems.length > 3" class="hot-more">
+            <div class="hot-more-header">
+              <span class="hot-more-label">更多热门</span>
+            </div>
+            <div class="hot-scroll">
+              <div
+                v-for="(item, index) in hotItems.slice(3)"
+                :key="item.id"
+                class="hot-scroll-card"
+                @click="goToRatingItem(item)"
+              >
+                <div class="hot-scroll-cover">
+                  <img v-if="item.url" :src="item.url" :alt="item.name" loading="lazy" />
+                  <div v-else class="cover-placeholder-mini">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                  <div class="scroll-score-badge">{{ formatScore(item.averageScore) }}</div>
+                </div>
+                <div class="hot-scroll-info">
+                  <h4 class="hot-scroll-name">{{ item.name }}</h4>
+                  <span class="hot-scroll-count">{{ item.ratingCount }}人评</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
 
         <!-- 空状态 -->
         <div v-else class="empty-state small">
@@ -867,8 +847,8 @@ function showFinalTour() {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* ===== Quick Rate Section ===== */
-.quick-rate-section {
+/* ===== Hot Section ===== */
+.hot-section {
   margin-bottom: var(--spacing-md);
 }
 
@@ -887,10 +867,10 @@ function showFinalTour() {
   font-weight: var(--font-semibold);
 }
 
-.section-title svg {
+.title-icon-hot {
   width: 16px;
   height: 16px;
-  color: var(--color-primary);
+  color: #FF6B6B;
 }
 
 .section-stat {
@@ -898,15 +878,16 @@ function showFinalTour() {
   color: var(--color-text-secondary);
 }
 
-.quick-rate-list {
+/* Hot Top List (Top 3) */
+.hot-top-list {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
 }
 
-.quick-rate-card {
+.hot-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm);
   background: var(--color-card);
@@ -914,26 +895,47 @@ function showFinalTour() {
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
+  position: relative;
 }
 
-.quick-rate-card:hover {
+.hot-card:hover {
   border-color: var(--color-primary);
-  background: var(--color-primary-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.quick-rate-card:active {
-  transform: scale(0.99);
+.hot-card:active {
+  transform: scale(0.995);
 }
 
-.quick-rate-cover {
-  width: 48px;
-  height: 48px;
+.hot-card-rank {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  color: white;
+  border-radius: var(--radius-sm);
+  z-index: 1;
+}
+
+.hot-card-rank.rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); }
+.hot-card-rank.rank-2 { background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%); }
+.hot-card-rank.rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #B8860B 100%); }
+
+.hot-card-cover {
+  width: 52px;
+  height: 52px;
   border-radius: var(--radius-md);
   overflow: hidden;
   flex-shrink: 0;
 }
 
-.quick-rate-cover img {
+.hot-card-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -959,15 +961,15 @@ function showFinalTour() {
   opacity: 0.5;
 }
 
-.quick-rate-info {
+.hot-card-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
-.quick-rate-name {
+.hot-card-name {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   white-space: nowrap;
@@ -975,7 +977,7 @@ function showFinalTour() {
   text-overflow: ellipsis;
 }
 
-.quick-rate-stars {
+.hot-card-rating {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -1003,24 +1005,159 @@ function showFinalTour() {
   color: var(--color-accent);
 }
 
-.quick-rate-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.rating-count {
   font-size: 11px;
   color: var(--color-text-placeholder);
 }
 
-.meta-divider {
-  opacity: 0.5;
+.hot-card-comment {
+  margin-top: 2px;
 }
 
-.quick-rate-arrow {
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-placeholder);
-  flex-shrink: 0;
+.hot-card-comment .comment-text {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+
+.hot-card-comment.empty .comment-text {
+  color: var(--color-text-placeholder);
+}
+
+/* Hot More (Horizontal Scroll) */
+.hot-more {
+  margin-top: var(--spacing-md);
+}
+
+.hot-more-header {
+  margin-bottom: var(--spacing-xs);
+}
+
+.hot-more-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.hot-scroll {
+  display: flex;
+  gap: var(--spacing-sm);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-xs);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hot-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.hot-scroll-card {
+  flex-shrink: 0;
+  width: 100px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.hot-scroll-card:hover {
+  transform: translateY(-2px);
+}
+
+.hot-scroll-card:active {
+  transform: scale(0.98);
+}
+
+.hot-scroll-cover {
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: var(--spacing-xs);
+}
+
+.hot-scroll-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scroll-score-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  color: var(--color-warning);
+}
+
+.hot-scroll-info {
+  text-align: center;
+}
+
+.hot-scroll-name {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.hot-scroll-count {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+}
+
+/* Hot Skeleton */
+.hot-top-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.hot-card-skeleton {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-cover-sm {
+  width: 52px;
+  height: 52px;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.skeleton-line {
+  height: 12px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line.w60 { width: 60%; }
+.skeleton-line.w40 { width: 40%; }
+.skeleton-line.w80 { width: 80%; }
 
 /* ===== Content Card ===== */
 .content-card {
@@ -1437,17 +1574,24 @@ function showFinalTour() {
     font-size: var(--text-base);
   }
 
-  .quick-rate-card {
+  /* Hot section desktop styles */
+  .hot-card {
     padding: var(--spacing-md);
   }
 
-  .quick-rate-cover {
-    width: 56px;
-    height: 56px;
+  .hot-card-cover {
+    width: 60px;
+    height: 60px;
   }
 
-  .quick-rate-name {
+  .hot-card-name {
     font-size: var(--text-base);
+  }
+
+  .hot-card-rank {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
   }
 
   .stars-display svg {
@@ -1459,8 +1603,21 @@ function showFinalTour() {
     font-size: var(--text-sm);
   }
 
-  .quick-rate-meta {
+  .hot-card-comment .comment-text {
     font-size: var(--text-xs);
+  }
+
+  .hot-scroll-card {
+    width: 120px;
+  }
+
+  .hot-scroll-cover {
+    width: 120px;
+    height: 120px;
+  }
+
+  .hot-scroll-name {
+    font-size: var(--text-sm);
   }
 
   .card-header {
@@ -1496,6 +1653,20 @@ function showFinalTour() {
 @media (min-width: 768px) {
   .page-content {
     max-width: 900px;
+  }
+
+  .hot-card-cover {
+    width: 68px;
+    height: 68px;
+  }
+
+  .hot-scroll-card {
+    width: 140px;
+  }
+
+  .hot-scroll-cover {
+    width: 140px;
+    height: 140px;
   }
 
   .item-card,

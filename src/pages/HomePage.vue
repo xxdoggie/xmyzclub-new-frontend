@@ -1410,7 +1410,7 @@ function toggleMobileMenu() {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-lg);
-  min-height: 120px;
+  min-height: 140px;
   color: white;
 }
 
@@ -1458,7 +1458,7 @@ function toggleMobileMenu() {
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin-top: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
 }
 
 .banner-dot {

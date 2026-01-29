@@ -320,10 +320,9 @@ onMounted(() => {
             <label class="filter-label">目标类型</label>
             <select v-model="targetTypeFilter" class="filter-select">
               <option value="all">全部目标</option>
-              <option :value="1">大分区</option>
-              <option :value="2">小分区</option>
-              <option :value="3">评分项目</option>
-              <option :value="4">合集</option>
+              <option :value="1">分类</option>
+              <option :value="2">评分项目</option>
+              <option :value="3">合集</option>
             </select>
           </div>
         </div>

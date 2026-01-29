@@ -16,6 +16,7 @@ import type {
   AdminCollectionItem,
   AdminRatingItem,
 } from '@/types/rating'
+import { getAdminBreadcrumbParts, getAdminBreadcrumbPath } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -370,11 +371,11 @@ onMounted(() => {
                 <div class="item-info">
                   <h3 class="item-name">{{ item.ratingItemName }}</h3>
                   <div class="item-breadcrumb">
-                    <span>{{ item.breadcrumb.school.name }}</span>
-                    <span class="sep">/</span>
-                    <span>{{ item.breadcrumb.majorSection.name }}</span>
-                    <span class="sep">/</span>
-                    <span>{{ item.breadcrumb.minorSection.name }}</span>
+                    <span>{{ getAdminBreadcrumbParts(item.breadcrumb).school }}</span>
+                    <template v-for="(part, idx) in getAdminBreadcrumbParts(item.breadcrumb).parts" :key="idx">
+                      <span class="sep">/</span>
+                      <span>{{ part }}</span>
+                    </template>
                   </div>
                   <div class="item-meta">
                     <span class="meta-item score">
@@ -453,7 +454,7 @@ onMounted(() => {
                 <div class="search-item-info">
                   <div class="search-item-name">{{ item.name }}</div>
                   <div class="search-item-path">
-                    {{ item.breadcrumb.school.name }} / {{ item.breadcrumb.majorSection.name }} / {{ item.breadcrumb.minorSection.name }}
+                    {{ getAdminBreadcrumbPath(item.breadcrumb) }}
                   </div>
                 </div>
                 <div v-if="selectedItemId === item.id" class="check-icon">

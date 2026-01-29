@@ -4,8 +4,9 @@ import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
 import { useScoringTour } from '@/composables/useScoringTour'
-import { getMajorSections, getRandomItems, getHotItems, getCollections } from '@/api/rating'
-import type { MajorSection, RandomRatingItem, Collection } from '@/types/rating'
+import { getCategories, getRandomItems, getHotItems, getCollections } from '@/api/rating'
+import type { Category, RandomRatingItem, Collection } from '@/types/rating'
+import { getBreadcrumbDisplayName } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 
@@ -37,7 +38,7 @@ function goToMyContributions() {
 
 // 状态
 const isLoading = ref(true)
-const majorSections = ref<MajorSection[]>([])
+const categories = ref<Category[]>([])
 const hotItems = ref<RandomRatingItem[]>([])
 const randomItems = ref<RandomRatingItem[]>([])
 const collections = ref<Collection[]>([])
@@ -45,18 +46,18 @@ const isLoadingHot = ref(true)
 const isLoadingRandom = ref(false)
 const isLoadingCollections = ref(true)
 
-// 加载大分区列表
-async function loadMajorSections() {
+// 加载顶级分类列表
+async function loadCategories() {
   isLoading.value = true
   try {
-    const res = await getMajorSections(SCHOOL_ID)
+    const res = await getCategories(SCHOOL_ID)
     if (res.data.code === 200) {
-      majorSections.value = res.data.data
+      categories.value = res.data.data
     } else {
-      toast.error(res.data.message || '获取分区列表失败')
+      toast.error(res.data.message || '获取分类列表失败')
     }
   } catch {
-    toast.error('获取分区列表失败')
+    toast.error('获取分类列表失败')
   } finally {
     isLoading.value = false
   }
@@ -132,9 +133,9 @@ function formatScore(score: number): string {
   return score.toFixed(1)
 }
 
-// 进入大分区
-function goToMajorSection(section: MajorSection) {
-  router.push(`/community/major/${section.id}`)
+// 进入分类
+function goToCategory(category: Category) {
+  router.push(`/community/category/${category.id}`)
 }
 
 // 获取分区图标类型
@@ -155,7 +156,7 @@ function getSectionIcon(name: string): string {
 }
 
 onMounted(() => {
-  loadMajorSections()
+  loadCategories()
   loadHotItems()
   loadRandomItems()
   loadCollections()
@@ -180,7 +181,7 @@ onUnmounted(() => {
 // 等待数据加载完成后启动引导（步骤2）
 function waitForDataAndStartTour() {
   const checkInterval = setInterval(() => {
-    if (!isLoading.value && majorSections.value.length > 0) {
+    if (!isLoading.value && categories.value.length > 0) {
       clearInterval(checkInterval)
       setTimeout(() => {
         startExploreTour()
@@ -216,9 +217,9 @@ function startExploreTour() {
       onNextClick: () => {
         saveStep(TourStep.MINOR_SECTION_INTRO)
         destroyDriver()
-        // 点击第一个分区
-        if (majorSections.value.length > 0) {
-          goToMajorSection(majorSections.value[0]!)
+        // 点击第一个分类
+        if (categories.value.length > 0) {
+          goToCategory(categories.value[0]!)
         }
       },
     }
@@ -397,7 +398,7 @@ function showFinalTour() {
         </div>
 
         <!-- 空状态 -->
-        <div v-else-if="majorSections.length === 0" class="empty-state">
+        <div v-else-if="categories.length === 0" class="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="12" cy="12" r="10"></circle>
             <path d="M8 15h8M9 9h.01M15 9h.01"></path>
@@ -408,34 +409,34 @@ function showFinalTour() {
         <!-- 分区网格 -->
         <div v-else class="section-grid">
           <div
-            v-for="(section, index) in majorSections"
-            :key="section.id"
-            :id="index === 0 ? 'tour-first-major-section' : undefined"
+            v-for="(category, index) in categories"
+            :key="category.id"
+            :id="index === 0 ? 'tour-first-category' : undefined"
             class="section-item"
             :class="`section-item-${(index % 4) + 1}`"
-            @click="goToMajorSection(section)"
+            @click="goToCategory(category)"
           >
             <div class="section-icon">
               <!-- 餐厅图标 -->
-              <svg v-if="getSectionIcon(section.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <svg v-if="getSectionIcon(category.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
                 <path d="M7 2v20"></path>
                 <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
               </svg>
               <!-- 建筑图标 -->
-              <svg v-else-if="getSectionIcon(section.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <svg v-else-if="getSectionIcon(category.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
                 <path d="M9 22v-4h6v4"></path>
                 <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"></path>
               </svg>
               <!-- 考试图标 -->
-              <svg v-else-if="getSectionIcon(section.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <svg v-else-if="getSectionIcon(category.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                 <path d="M9 12h6M9 16h6"></path>
               </svg>
               <!-- 活动图标 -->
-              <svg v-else-if="getSectionIcon(section.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <svg v-else-if="getSectionIcon(category.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -446,7 +447,7 @@ function showFinalTour() {
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
               </svg>
             </div>
-            <span class="section-name">{{ section.name }}</span>
+            <span class="section-name">{{ category.name }}</span>
           </div>
         </div>
       </div>
@@ -509,7 +510,7 @@ function showFinalTour() {
             <!-- 信息区 -->
             <div class="item-info">
               <h3 class="item-name">{{ item.name }}</h3>
-              <p class="item-breadcrumb">{{ item.breadcrumb.minorSection.name }}</p>
+              <p class="item-breadcrumb">{{ getBreadcrumbDisplayName(item.breadcrumb) }}</p>
               <div class="item-stats">
                 <span class="stat-item">{{ item.ratingCount }} 人评分</span>
               </div>
@@ -588,7 +589,7 @@ function showFinalTour() {
             <!-- 信息区 -->
             <div class="item-info">
               <h3 class="item-name">{{ item.name }}</h3>
-              <p class="item-breadcrumb">{{ item.breadcrumb.minorSection.name }}</p>
+              <p class="item-breadcrumb">{{ getBreadcrumbDisplayName(item.breadcrumb) }}</p>
               <!-- 统计 -->
               <div class="item-stats">
                 <span class="stat-item">{{ item.ratingCount }} 人评分</span>

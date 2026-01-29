@@ -271,8 +271,9 @@ function showClickTour() {
     <FeedbackDrawer
       :is-open="isFeedbackOpen"
       :contribution-type="2"
-      :target-type="2"
+      :target-type="1"
       :parent-id="majorId"
+      :school-id="1"
       @close="closeFeedbackDrawer"
       @success="handleFeedbackSuccess"
     />

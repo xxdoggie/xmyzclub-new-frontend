@@ -7,7 +7,7 @@ export interface School {
 }
 
 /**
- * 大分区
+ * 大分区（旧版，保留兼容）
  */
 export interface MajorSection {
   id: number
@@ -17,13 +17,60 @@ export interface MajorSection {
 }
 
 /**
- * 小分区
+ * 小分区（旧版，保留兼容）
  */
 export interface MinorSection {
   id: number
   name: string
   description: string
   url: string | null
+}
+
+/**
+ * 通用分类（新版无限层级结构）
+ */
+export interface Category {
+  id: number
+  name: string
+  description: string
+  depth: number
+  hasChildren: boolean
+  childrenCount: number
+  itemCount: number
+  imageUrl: string | null
+}
+
+/**
+ * 分类面包屑中的祖先项
+ */
+export interface CategoryAncestor {
+  id: number
+  name: string
+  depth: number
+}
+
+/**
+ * 分类面包屑导航（新版）
+ */
+export interface CategoryBreadcrumb {
+  school: School
+  ancestors: CategoryAncestor[]
+  current: CategoryAncestor
+}
+
+/**
+ * 分类详情（包含子分类、评分项目和面包屑）
+ */
+export interface CategoryDetail {
+  id: number
+  name: string
+  description: string
+  depth: number
+  hasChildren: boolean
+  imageUrl: string | null
+  breadcrumb: CategoryBreadcrumb
+  children: Category[]
+  ratingItems: RatingItem[]
 }
 
 /**
@@ -62,16 +109,34 @@ export interface RatingItem {
  * 随机推荐评分项目（包含面包屑）
  */
 export interface RandomRatingItem extends RatingItem {
-  breadcrumb: Breadcrumb
+  breadcrumb: Breadcrumb | CategoryBreadcrumb
 }
 
 /**
- * 面包屑导航
+ * 面包屑导航（旧版，保留兼容）
  */
 export interface Breadcrumb {
   school: School
   majorSection: MajorSection
   minorSection: MinorSection
+}
+
+/**
+ * 获取面包屑显示名称的辅助函数
+ * 兼容新旧两种面包屑格式
+ */
+export function getBreadcrumbDisplayName(breadcrumb: Breadcrumb | CategoryBreadcrumb): string {
+  // 新版格式
+  if ('ancestors' in breadcrumb && 'current' in breadcrumb) {
+    // 返回当前分类的上一级（如果有的话），否则返回当前分类名称
+    const ancestors = breadcrumb.ancestors
+    if (ancestors.length > 0) {
+      return ancestors[ancestors.length - 1]!.name
+    }
+    return breadcrumb.current.name
+  }
+  // 旧版格式
+  return breadcrumb.minorSection.name
 }
 
 /**
@@ -119,7 +184,7 @@ export interface RatingItemDetail {
   url: string | null
   averageScore: number
   ratingCount: number
-  breadcrumb: Breadcrumb
+  breadcrumb: Breadcrumb | CategoryBreadcrumb // 兼容新旧格式
   scoreDistribution: ScoreDistribution | null
   comments: Comment[] | null
   myRating: number | null
@@ -205,10 +270,10 @@ export interface UpdateStatusRequest {
   status: RatingStatus
 }
 
-// ==================== 管理端大分区 (AdminMajorSection) ====================
+// ==================== 管理端大分区 (AdminMajorSection) - 旧版，保留兼容 ====================
 
 /**
- * 管理端大分区信息
+ * 管理端大分区信息（旧版）
  */
 export interface AdminMajorSection {
   id: number
@@ -224,7 +289,7 @@ export interface AdminMajorSection {
 }
 
 /**
- * 创建大分区请求
+ * 创建大分区请求（旧版）
  */
 export interface CreateMajorSectionRequest {
   schoolId: number
@@ -233,7 +298,7 @@ export interface CreateMajorSectionRequest {
 }
 
 /**
- * 更新大分区请求
+ * 更新大分区请求（旧版）
  */
 export interface UpdateMajorSectionRequest {
   schoolId?: number
@@ -241,10 +306,10 @@ export interface UpdateMajorSectionRequest {
   description?: string
 }
 
-// ==================== 管理端小分区 (AdminMinorSection) ====================
+// ==================== 管理端小分区 (AdminMinorSection) - 旧版，保留兼容 ====================
 
 /**
- * 管理端小分区信息
+ * 管理端小分区信息（旧版）
  */
 export interface AdminMinorSection {
   id: number
@@ -262,7 +327,7 @@ export interface AdminMinorSection {
 }
 
 /**
- * 创建小分区请求
+ * 创建小分区请求（旧版）
  */
 export interface CreateMinorSectionRequest {
   majorSectionId: number
@@ -271,7 +336,7 @@ export interface CreateMinorSectionRequest {
 }
 
 /**
- * 更新小分区请求
+ * 更新小分区请求（旧版）
  */
 export interface UpdateMinorSectionRequest {
   majorSectionId?: number
@@ -279,10 +344,84 @@ export interface UpdateMinorSectionRequest {
   description?: string
 }
 
+// ==================== 管理端分类 (AdminCategory) - 新版无限层级 ====================
+
+/**
+ * 管理端分类面包屑项
+ */
+export interface AdminCategoryBreadcrumbItem {
+  id: number
+  name: string
+  depth: number
+}
+
+/**
+ * 管理端分类信息
+ */
+export interface AdminCategory {
+  id: number
+  schoolId: number
+  schoolName: string
+  parentId: number | null
+  parentName: string | null
+  name: string
+  description: string
+  depth: number
+  path: string
+  sortOrder: number
+  imageUrl: string | null
+  status: RatingStatus
+  hasChildren: boolean
+  childrenCount: number
+  itemCount: number
+  breadcrumb: AdminCategoryBreadcrumbItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * 管理端分类列表查询参数
+ */
+export interface AdminCategoryParams {
+  page?: number
+  size?: number
+  schoolId?: number
+  parentId?: number | null
+  status?: RatingStatus
+  depth?: number
+}
+
+/**
+ * 创建分类请求
+ */
+export interface CreateCategoryRequest {
+  schoolId?: number // 创建顶级分类时必填
+  parentId?: number | null // 创建子分类时必填，null 表示顶级分类
+  name: string
+  description?: string
+  sortOrder?: number
+}
+
+/**
+ * 更新分类请求
+ */
+export interface UpdateCategoryRequest {
+  name?: string
+  description?: string
+  sortOrder?: number
+}
+
+/**
+ * 移动分类请求
+ */
+export interface MoveCategoryRequest {
+  targetParentId: number // 目标父分类ID，0 表示移动到顶级
+}
+
 // ==================== 管理端评分项目 (AdminRatingItem) ====================
 
 /**
- * 管理端面包屑信息
+ * 管理端面包屑信息（旧版）
  */
 export interface AdminRatingBreadcrumb {
   school: {
@@ -304,12 +443,139 @@ export interface AdminRatingBreadcrumb {
 }
 
 /**
+ * 管理端评分项目面包屑信息（新版）
+ */
+export interface AdminRatingItemBreadcrumb {
+  school: {
+    id: number
+    name: string
+  }
+  ancestors: AdminCategoryBreadcrumbItem[]
+  current: AdminCategoryBreadcrumbItem
+}
+
+/**
+ * 判断是否为新版面包屑格式
+ */
+export function isNewBreadcrumbFormat(
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
+): breadcrumb is AdminRatingItemBreadcrumb {
+  return 'ancestors' in breadcrumb && 'current' in breadcrumb
+}
+
+/**
+ * 获取管理端面包屑的路径显示（兼容新旧格式）
+ * 返回格式: "学校名 / 分类1 / 分类2 / ..."
+ */
+export function getAdminBreadcrumbPath(
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
+): string {
+  if (isNewBreadcrumbFormat(breadcrumb)) {
+    const parts = [breadcrumb.school.name]
+    breadcrumb.ancestors.forEach((a) => parts.push(a.name))
+    parts.push(breadcrumb.current.name)
+    return parts.join(' / ')
+  }
+  return `${breadcrumb.school.name} / ${breadcrumb.majorSection.name} / ${breadcrumb.minorSection.name}`
+}
+
+/**
+ * 获取管理端面包屑的各部分（兼容新旧格式）
+ * 返回: { school, parts } 其中 parts 是分类/分区名称数组
+ */
+export function getAdminBreadcrumbParts(
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
+): { school: string; parts: string[] } {
+  if (isNewBreadcrumbFormat(breadcrumb)) {
+    const parts = breadcrumb.ancestors.map((a) => a.name)
+    parts.push(breadcrumb.current.name)
+    return { school: breadcrumb.school.name, parts }
+  }
+  return {
+    school: breadcrumb.school.name,
+    parts: [breadcrumb.majorSection.name, breadcrumb.minorSection.name],
+  }
+}
+
+/**
+ * 可点击的面包屑项目
+ */
+export interface ClickableBreadcrumbItem {
+  id: number
+  name: string
+  path: string // 跳转路径
+  isCurrent: boolean
+}
+
+/**
+ * 获取可点击的面包屑数据（支持无限层级）
+ * 返回: { school, categories } 其中每个项目都有 id, name, path
+ */
+export function getClickableBreadcrumb(
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
+): {
+  school: { id: number; name: string; path: string }
+  categories: ClickableBreadcrumbItem[]
+} {
+  if (isNewBreadcrumbFormat(breadcrumb)) {
+    const categories: ClickableBreadcrumbItem[] = []
+    // 添加所有祖先分类（可点击）
+    breadcrumb.ancestors.forEach((ancestor) => {
+      categories.push({
+        id: ancestor.id,
+        name: ancestor.name,
+        path: `/admin/rating/categories/${ancestor.id}`,
+        isCurrent: false,
+      })
+    })
+    // 添加当前分类（不可点击，因为是当前位置）
+    categories.push({
+      id: breadcrumb.current.id,
+      name: breadcrumb.current.name,
+      path: `/admin/rating/categories/${breadcrumb.current.id}`,
+      isCurrent: true,
+    })
+    return {
+      school: {
+        id: breadcrumb.school.id,
+        name: breadcrumb.school.name,
+        path: `/admin/rating/categories?schoolId=${breadcrumb.school.id}`,
+      },
+      categories,
+    }
+  }
+  // 旧版格式兼容
+  return {
+    school: {
+      id: breadcrumb.school.id,
+      name: breadcrumb.school.name,
+      path: `/admin/rating/schools/${breadcrumb.school.id}`,
+    },
+    categories: [
+      {
+        id: breadcrumb.majorSection.id,
+        name: breadcrumb.majorSection.name,
+        path: `/admin/rating/major-sections/${breadcrumb.majorSection.id}`,
+        isCurrent: false,
+      },
+      {
+        id: breadcrumb.minorSection.id,
+        name: breadcrumb.minorSection.name,
+        path: `/admin/rating/minor-sections/${breadcrumb.minorSection.id}`,
+        isCurrent: true,
+      },
+    ],
+  }
+}
+
+/**
  * 管理端评分项目信息
  */
 export interface AdminRatingItem {
   id: number
-  minorSectionId: number
-  breadcrumb: AdminRatingBreadcrumb
+  categoryId: number // 新版使用 categoryId
+  minorSectionId?: number // 旧版兼容
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
   name: string
   description: string
   imageUrl: string | null
@@ -322,10 +588,21 @@ export interface AdminRatingItem {
 }
 
 /**
+ * 管理端评分项目列表查询参数
+ */
+export interface AdminRatingItemParams {
+  page?: number
+  size?: number
+  categoryId?: number
+  status?: RatingStatus
+}
+
+/**
  * 创建评分项目请求
  */
 export interface CreateRatingItemRequest {
-  minorSectionId: number
+  categoryId: number // 新版使用 categoryId
+  minorSectionId?: number // 旧版兼容
   name: string
   description?: string
 }
@@ -334,7 +611,8 @@ export interface CreateRatingItemRequest {
  * 更新评分项目请求
  */
 export interface UpdateRatingItemRequest {
-  minorSectionId?: number
+  categoryId?: number
+  minorSectionId?: number // 旧版兼容
   name?: string
   description?: string
 }
@@ -343,7 +621,8 @@ export interface UpdateRatingItemRequest {
  * 移动评分项目请求
  */
 export interface MoveRatingItemRequest {
-  targetMinorSectionId: number
+  targetCategoryId: number // 新版使用 targetCategoryId
+  targetMinorSectionId?: number // 旧版兼容
 }
 
 // ==================== 管理端评论 (AdminComment) ====================
@@ -464,7 +743,7 @@ export interface CollectionRatingItem {
   averageScore: number
   ratingCount: number
   topComment: TopComment | null
-  breadcrumb: Breadcrumb
+  breadcrumb: Breadcrumb | CategoryBreadcrumb // 兼容新旧格式
   myScore: number | null
   myStars: number | null
 }
@@ -511,7 +790,7 @@ export interface AdminCollectionItem {
   ratingItemId: number
   ratingItemName: string
   ratingItemImageUrl: string | null
-  breadcrumb: AdminRatingBreadcrumb
+  breadcrumb: AdminRatingBreadcrumb | AdminRatingItemBreadcrumb
   averageScore: number
   ratingCount: number
   sortOrder: number
@@ -550,9 +829,9 @@ export type ContributionType = 1 | 2
 
 /**
  * 目标类型
- * 1=大分区, 2=小分区, 3=评分项目, 4=合集
+ * 1=分类, 2=评分项目, 3=合集
  */
-export type TargetType = 1 | 2 | 3 | 4
+export type TargetType = 1 | 2 | 3
 
 /**
  * 贡献状态
@@ -587,6 +866,7 @@ export interface SubmitContributionRequest {
   targetType: TargetType
   targetId?: number | null
   parentId?: number | null
+  schoolId?: number | null // 新建分类时必填
   reason: string
   details: ContributionDetail[]
 }
@@ -607,6 +887,8 @@ export interface Contribution {
   targetName: string | null
   parentId: number | null
   parentName: string | null
+  schoolId: number | null
+  schoolName: string | null
   status: ContributionStatus
   statusDisplay: string
   reason: string
@@ -641,6 +923,8 @@ export interface MyContribution {
   targetTypeDisplay: string
   targetId: number | null
   targetName: string | null
+  schoolId: number | null
+  schoolName: string | null
   status: ContributionStatus
   statusDisplay: string
   reason: string
@@ -732,12 +1016,10 @@ export function getContributionTypeInfo(type: ContributionType): { label: string
 export function getTargetTypeInfo(type: TargetType): { label: string; class: string } {
   switch (type) {
     case 1:
-      return { label: '大分区', class: 'target-major' }
+      return { label: '分类', class: 'target-category' }
     case 2:
-      return { label: '小分区', class: 'target-minor' }
-    case 3:
       return { label: '评分项目', class: 'target-item' }
-    case 4:
+    case 3:
       return { label: '合集', class: 'target-collection' }
     default:
       return { label: '未知', class: 'target-unknown' }

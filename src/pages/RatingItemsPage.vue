@@ -426,7 +426,7 @@ function showStarsTour() {
     <FeedbackDrawer
       :is-open="isFeedbackOpen"
       :contribution-type="2"
-      :target-type="3"
+      :target-type="2"
       :parent-id="minorId"
       @close="closeFeedbackDrawer"
       @success="handleFeedbackSuccess"

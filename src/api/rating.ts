@@ -4,6 +4,8 @@ import type {
   School,
   MajorSection,
   MinorSection,
+  Category,
+  CategoryDetail,
   RatingItem,
   RatingItemDetail,
   Comment,
@@ -14,7 +16,13 @@ import type {
   AdminSchool,
   AdminMajorSection,
   AdminMinorSection,
+  AdminCategory,
+  AdminCategoryParams,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  MoveCategoryRequest,
   AdminRatingItem,
+  AdminRatingItemParams,
   AdminComment,
   AdminUserRating,
   AdminCollection,
@@ -58,24 +66,54 @@ export function getSchools() {
 }
 
 /**
- * 获取学校的大分区列表
+ * 获取学校的大分区列表（旧版 API，保留兼容）
  */
 export function getMajorSections(schoolId: number) {
   return api.get<ApiResponse<MajorSection[]>>(`/rating-community/schools/${schoolId}/major-sections`)
 }
 
 /**
- * 获取大分区的小分区列表
+ * 获取大分区的小分区列表（旧版 API，保留兼容）
  */
 export function getMinorSections(majorSectionId: number) {
   return api.get<ApiResponse<MinorSection[]>>(`/rating-community/major-sections/${majorSectionId}/minor-sections`)
 }
 
 /**
- * 获取小分区的评分项目列表
+ * 获取小分区的评分项目列表（旧版 API，保留兼容）
  */
 export function getRatingItems(minorSectionId: number) {
   return api.get<ApiResponse<RatingItem[]>>(`/rating-community/minor-sections/${minorSectionId}/rating-items`)
+}
+
+// ==================== 新版分类 API（无限层级结构） ====================
+
+/**
+ * 获取学校下的顶级分类列表
+ */
+export function getCategories(schoolId: number) {
+  return api.get<ApiResponse<Category[]>>(`/rating-community/schools/${schoolId}/categories`)
+}
+
+/**
+ * 获取分类的子分类列表
+ */
+export function getCategoryChildren(categoryId: number) {
+  return api.get<ApiResponse<Category[]>>(`/rating-community/categories/${categoryId}/children`)
+}
+
+/**
+ * 获取分类详情（含面包屑、子分类和评分项目）
+ */
+export function getCategoryDetail(categoryId: number) {
+  return api.get<ApiResponse<CategoryDetail>>(`/rating-community/categories/${categoryId}`)
+}
+
+/**
+ * 获取分类下的评分项目列表
+ */
+export function getCategoryRatingItems(categoryId: number) {
+  return api.get<ApiResponse<RatingItem[]>>(`/rating-community/categories/${categoryId}/rating-items`)
 }
 
 /**
@@ -367,16 +405,82 @@ export function deleteMinorSectionImage(id: number) {
   return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/minor-sections/${id}/image`)
 }
 
+// ----- 分类管理（新版无限层级） -----
+
+/**
+ * 获取分类列表（管理端）
+ */
+export function getAdminCategories(params?: AdminCategoryParams) {
+  return api.get<ApiResponse<PaginatedResponse<AdminCategory>>>(`${ADMIN_BASE}/categories`, { params })
+}
+
+/**
+ * 获取分类详情（管理端）
+ */
+export function getAdminCategoryDetail(id: number) {
+  return api.get<ApiResponse<AdminCategory>>(`${ADMIN_BASE}/categories/${id}`)
+}
+
+/**
+ * 创建分类
+ */
+export function createCategory(data: CreateCategoryRequest) {
+  return api.post<ApiResponse<AdminCategory>>(`${ADMIN_BASE}/categories`, data)
+}
+
+/**
+ * 更新分类
+ */
+export function updateCategory(id: number, data: UpdateCategoryRequest) {
+  return api.put<ApiResponse<AdminCategory>>(`${ADMIN_BASE}/categories/${id}`, data)
+}
+
+/**
+ * 删除分类
+ */
+export function deleteCategory(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/categories/${id}`)
+}
+
+/**
+ * 更新分类状态
+ */
+export function updateCategoryStatus(id: number, data: UpdateStatusRequest) {
+  return api.put<ApiResponse<AdminCategory>>(`${ADMIN_BASE}/categories/${id}/status`, data)
+}
+
+/**
+ * 移动分类
+ */
+export function moveCategory(id: number, data: MoveCategoryRequest) {
+  return api.put<ApiResponse<AdminCategory>>(`${ADMIN_BASE}/categories/${id}/move`, data)
+}
+
+/**
+ * 上传分类图片
+ */
+export function uploadCategoryImage(id: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResponse<ImageUploadResponse>>(`${ADMIN_BASE}/categories/${id}/image`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
+ * 删除分类图片
+ */
+export function deleteCategoryImage(id: number) {
+  return api.delete<ApiResponse<null>>(`${ADMIN_BASE}/categories/${id}/image`)
+}
+
 // ----- 评分项目管理 -----
 
 /**
  * 获取评分项目列表（管理端）
  */
-export function getAdminRatingItems(params?: {
-  page?: number
-  size?: number
-  minorSectionId?: number
-  status?: number
+export function getAdminRatingItems(params?: AdminRatingItemParams & {
+  minorSectionId?: number // 旧版兼容
   keyword?: string
 }) {
   return api.get<ApiResponse<PaginatedResponse<AdminRatingItem>>>(`${ADMIN_BASE}/rating-items`, { params })

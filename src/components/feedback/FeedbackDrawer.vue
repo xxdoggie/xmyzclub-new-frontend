@@ -10,12 +10,14 @@ interface Props {
   isOpen: boolean
   // 贡献类型：1=修改现有, 2=新增
   contributionType: ContributionType
-  // 目标类型：1=大分区, 2=小分区, 3=评分项目, 4=合集
+  // 目标类型：1=分类, 2=评分项目, 3=合集
   targetType: TargetType
   // 目标ID（修改时必填）
   targetId?: number | null
-  // 父级ID（新增小分区/评分项目时必填）
+  // 父级ID（新增子分类/评分项目时必填，新增顶级分类时为 null）
   parentId?: number | null
+  // 学校ID（新建分类时必填）
+  schoolId?: number | null
   // 当前名称（修改时可选，用于显示当前值）
   currentName?: string
   // 当前描述（修改时可选，用于显示当前值）
@@ -25,6 +27,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   targetId: null,
   parentId: null,
+  schoolId: null,
   currentName: '',
   currentDescription: '',
 })
@@ -53,10 +56,9 @@ const isUploading = ref(false)
 
 // 目标类型显示文本
 const targetTypeLabels: Record<TargetType, string> = {
-  1: '大分区',
-  2: '小分区',
-  3: '评分项目',
-  4: '合集',
+  1: '分类',
+  2: '评分项目',
+  3: '合集',
 }
 
 // 贡献类型显示文本
@@ -78,7 +80,7 @@ const showDescriptionField = computed(() => true)
 
 // 是否显示图片字段（评分项目和合集支持图片）
 const showImageField = computed(() => {
-  return props.targetType === 3 || props.targetType === 4
+  return props.targetType === 2 || props.targetType === 3
 })
 
 // 重置表单
@@ -231,6 +233,7 @@ async function handleSubmit() {
       targetType: props.targetType,
       targetId: props.contributionType === 1 ? props.targetId : null,
       parentId: props.contributionType === 2 ? props.parentId : null,
+      schoolId: props.contributionType === 2 && props.targetType === 1 ? props.schoolId : null,
       reason: formData.value.reason.trim(),
       details,
     })

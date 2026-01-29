@@ -649,11 +649,54 @@ async function loadDetail(silent = false) {
   }
 }
 
-// 面包屑文本（只显示大分区和小分区）
-const breadcrumbText = computed(() => {
-  if (!detail.value?.breadcrumb) return ''
+// 可点击的面包屑项目（兼容新旧两种格式）
+interface BreadcrumbItem {
+  id: number
+  name: string
+  path: string
+  isCurrent: boolean
+}
+
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
+  if (!detail.value?.breadcrumb) return []
   const b = detail.value.breadcrumb
-  return `${b.majorSection.name} / ${b.minorSection.name}`
+  const items: BreadcrumbItem[] = []
+
+  // 新版格式：ancestors + current
+  if ('ancestors' in b && 'current' in b) {
+    // 添加所有祖先分类（可点击）
+    b.ancestors.forEach((ancestor) => {
+      items.push({
+        id: ancestor.id,
+        name: ancestor.name,
+        path: `/community/category/${ancestor.id}`,
+        isCurrent: false,
+      })
+    })
+    // 添加当前分类（可点击，跳转回分类页面）
+    items.push({
+      id: b.current.id,
+      name: b.current.name,
+      path: `/community/category/${b.current.id}`,
+      isCurrent: true,
+    })
+  } else {
+    // 旧版格式：majorSection + minorSection
+    items.push({
+      id: b.majorSection.id,
+      name: b.majorSection.name,
+      path: `/community/major-section/${b.majorSection.id}`,
+      isCurrent: false,
+    })
+    items.push({
+      id: b.minorSection.id,
+      name: b.minorSection.name,
+      path: `/community/minor-section/${b.minorSection.id}`,
+      isCurrent: true,
+    })
+  }
+
+  return items
 })
 
 // 评分分布数组（从对象转换为数组便于渲染）
@@ -1045,7 +1088,14 @@ function showDetailFeedbackTour() {
             </div>
             <div class="item-info">
               <h1 class="item-name">{{ detail.name }}</h1>
-              <p v-if="breadcrumbText" class="item-breadcrumb">{{ breadcrumbText }}</p>
+              <div v-if="breadcrumbItems.length > 0" class="item-breadcrumb">
+                <template v-for="(item, index) in breadcrumbItems" :key="item.id">
+                  <span v-if="index > 0" class="breadcrumb-sep">/</span>
+                  <router-link :to="item.path" class="breadcrumb-link">
+                    {{ item.name }}
+                  </router-link>
+                </template>
+              </div>
               <p v-if="detail.description" class="item-desc">{{ detail.description }}</p>
             </div>
           </div>
@@ -1625,7 +1675,7 @@ function showDetailFeedbackTour() {
         <FeedbackDrawer
           :is-open="isFeedbackOpen"
           :contribution-type="1"
-          :target-type="3"
+          :target-type="2"
           :target-id="itemId"
           :current-name="detail.name"
           :current-description="detail.description"
@@ -1810,8 +1860,25 @@ function showDetailFeedbackTour() {
 }
 
 .item-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
   font-size: 11px;
+}
+
+.item-breadcrumb .breadcrumb-sep {
+  color: var(--color-text-placeholder);
+}
+
+.item-breadcrumb .breadcrumb-link {
   color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.item-breadcrumb .breadcrumb-link:hover {
+  text-decoration: underline;
 }
 
 .item-desc {

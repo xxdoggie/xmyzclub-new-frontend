@@ -660,106 +660,113 @@ function showStarsTour() {
           </div>
         </div>
 
-        <!-- 评分项目列表视图 -->
-        <div v-else-if="viewMode === 'list'" id="tour-rating-list" class="rating-list">
-          <div
-            v-for="(item, index) in filteredItems"
-            :key="item.id"
-            :id="index === 0 ? 'tour-first-rating-item' : undefined"
-            class="rating-item"
-            @click="goToDetail(item.id)"
-          >
-            <!-- 项目图片 -->
-            <div class="item-image-wrapper">
-              <img
-                v-if="item.url"
-                :src="item.url"
-                :alt="item.name"
-                class="item-image"
-                loading="lazy"
-              />
-              <div v-else class="item-image-placeholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                  <polyline points="21 15 16 10 5 21"></polyline>
-                </svg>
-              </div>
-            </div>
+        <!-- 视图切换容器 -->
+        <Transition name="view-switch" mode="out-in">
+          <!-- 评分项目列表视图 -->
+          <div v-if="viewMode === 'list'" key="list-view" class="view-container">
+            <TransitionGroup name="list" tag="div" id="tour-rating-list" class="rating-list">
+              <div
+                v-for="(item, index) in filteredItems"
+                :key="item.id"
+                :id="index === 0 ? 'tour-first-rating-item' : undefined"
+                class="rating-item"
+                @click="goToDetail(item.id)"
+              >
+                <!-- 项目图片 -->
+                <div class="item-image-wrapper">
+                  <img
+                    v-if="item.url"
+                    :src="item.url"
+                    :alt="item.name"
+                    class="item-image"
+                    loading="lazy"
+                  />
+                  <div v-else class="item-image-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                  </div>
+                </div>
 
-            <!-- 项目信息 -->
-            <div class="item-details">
-              <div class="item-header">
-                <h3 class="item-name">{{ item.name }}</h3>
-                <div class="item-rating">
-                  <span class="item-score">{{ item.averageScore.toFixed(1) }}分</span>
-                  <!-- 星星评分 -->
-                  <div
-                    :id="index === 0 ? 'tour-star-rating' : undefined"
-                    class="star-rating"
-                    @mouseleave="handleStarLeave(item.id)"
-                  >
-                    <button
-                      v-for="star in 5"
-                      :key="star"
-                      class="star-btn"
-                      :class="{ filled: star <= getDisplayStars(item) }"
-                      @click="handleStarClick(item, star, $event)"
-                      @mouseenter="handleStarHover(item.id, star)"
-                    >
-                      <svg viewBox="0 0 24 24" stroke-width="1.5">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                    </button>
+                <!-- 项目信息 -->
+                <div class="item-details">
+                  <div class="item-header">
+                    <h3 class="item-name">{{ item.name }}</h3>
+                    <div class="item-rating">
+                      <span class="item-score">{{ item.averageScore.toFixed(1) }}分</span>
+                      <!-- 星星评分 -->
+                      <div
+                        :id="index === 0 ? 'tour-star-rating' : undefined"
+                        class="star-rating"
+                        @mouseleave="handleStarLeave(item.id)"
+                      >
+                        <button
+                          v-for="star in 5"
+                          :key="star"
+                          class="star-btn"
+                          :class="{ filled: star <= getDisplayStars(item) }"
+                          @click="handleStarClick(item, star, $event)"
+                          @mouseenter="handleStarHover(item.id, star)"
+                        >
+                          <svg viewBox="0 0 24 24" stroke-width="1.5">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="item-meta">
+                    <span class="rating-count">{{ item.ratingCount }} 人评分</span>
+                  </div>
+                  <!-- 热门评论 -->
+                  <div class="hot-comment" v-if="item.topComment">
+                    <span class="comment-text">"{{ item.topComment.commentText }}"</span>
+                    <span class="comment-author">—— {{ item.topComment.nickname }}</span>
+                  </div>
+                  <div class="hot-comment empty" v-else>
+                    <span class="comment-text">"TA还在等着你评论呢！"</span>
                   </div>
                 </div>
               </div>
-              <div class="item-meta">
-                <span class="rating-count">{{ item.ratingCount }} 人评分</span>
-              </div>
-              <!-- 热门评论 -->
-              <div class="hot-comment" v-if="item.topComment">
-                <span class="comment-text">"{{ item.topComment.commentText }}"</span>
-                <span class="comment-author">—— {{ item.topComment.nickname }}</span>
-              </div>
-              <div class="hot-comment empty" v-else>
-                <span class="comment-text">"TA还在等着你评论呢！"</span>
-              </div>
-            </div>
+            </TransitionGroup>
           </div>
-        </div>
 
-        <!-- 评分项目网格视图 -->
-        <div v-else class="rating-grid">
-          <div
-            v-for="(item, index) in filteredItems"
-            :key="item.id"
-            class="grid-item"
-            @click="goToDetail(item.id)"
-          >
-            <!-- 封面图 -->
-            <div class="grid-item-cover">
-              <img
-                v-if="item.url"
-                :src="item.url"
-                :alt="item.name"
-                loading="lazy"
-              />
-              <div v-else class="grid-item-placeholder" :style="{ background: getPlaceholderGradient(index) }">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
+          <!-- 评分项目网格视图 -->
+          <div v-else key="grid-view" class="view-container">
+            <TransitionGroup name="grid" tag="div" class="rating-grid">
+              <div
+                v-for="(item, index) in filteredItems"
+                :key="item.id"
+                class="grid-item"
+                @click="goToDetail(item.id)"
+              >
+                <!-- 封面图 -->
+                <div class="grid-item-cover">
+                  <img
+                    v-if="item.url"
+                    :src="item.url"
+                    :alt="item.name"
+                    loading="lazy"
+                  />
+                  <div v-else class="grid-item-placeholder" :style="{ background: getPlaceholderGradient(index) }">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                  <!-- 评分标签 -->
+                  <div class="grid-item-score">{{ item.averageScore.toFixed(1) }}</div>
+                </div>
+                <!-- 名称 -->
+                <div class="grid-item-info">
+                  <h3 class="grid-item-name">{{ item.name }}</h3>
+                  <span class="grid-item-count">{{ item.ratingCount }} 人评分</span>
+                </div>
               </div>
-              <!-- 评分标签 -->
-              <div class="grid-item-score">{{ item.averageScore.toFixed(1) }}</div>
-            </div>
-            <!-- 名称 -->
-            <div class="grid-item-info">
-              <h3 class="grid-item-name">{{ item.name }}</h3>
-              <span class="grid-item-count">{{ item.ratingCount }} 人评分</span>
-            </div>
+            </TransitionGroup>
           </div>
-        </div>
+        </Transition>
       </template>
     </main>
 
@@ -1666,6 +1673,52 @@ function showStarsTour() {
 .fab-menu-leave-to {
   opacity: 0;
   transform: scale(0.9) translateY(8px);
+}
+
+/* ===== View Container ===== */
+.view-container {
+  width: 100%;
+}
+
+/* ===== List/Grid Sorting Animation ===== */
+.list-move,
+.grid-move {
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Prevent layout jump during leave animation */
+.list-leave-active,
+.grid-leave-active {
+  position: absolute;
+  opacity: 0;
+}
+
+/* Enter animation for new items */
+.list-enter-active,
+.grid-enter-active {
+  transition: all 0.3s ease;
+}
+
+.list-enter-from,
+.grid-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* ===== View Switch Animation ===== */
+.view-switch-enter-active,
+.view-switch-leave-active {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.view-switch-enter-from {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+.view-switch-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
 }
 
 /* ===== Desktop ===== */

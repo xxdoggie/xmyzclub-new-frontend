@@ -496,7 +496,7 @@ function showFinalTour() {
                   <span class="score-text">{{ formatScore(item.averageScore) }}</span>
                 </div>
                 <div v-if="item.topComment" class="hot-card-comment">
-                  <span class="comment-text">"{{ item.topComment.commentText }}" —— {{ item.topComment.username }}</span>
+                  <span class="comment-text">"{{ item.topComment.commentText }}" —— {{ item.topComment.nickname }}</span>
                 </div>
                 <div v-else class="hot-card-comment empty">
                   <span class="comment-text">"快来抢沙发吧！"</span>

@@ -206,6 +206,23 @@ export function getHotItems(count: number = 10) {
   })
 }
 
+/**
+ * 搜索评分项目响应类型
+ */
+export interface SearchRatingItemsResponse {
+  items: RatingItem[]
+  total: number
+}
+
+/**
+ * 搜索评分项目
+ */
+export function searchRatingItems(keyword: string) {
+  return api.get<ApiResponse<SearchRatingItemsResponse>>('/rating-community/search', {
+    params: { keyword },
+  })
+}
+
 // ==================== 管理端 API ====================
 
 const ADMIN_BASE = '/admin/rating-community'

@@ -45,6 +45,9 @@ const filters = [
   { label: '低分', value: 'low' as const },
 ]
 
+// 视图模式
+const viewMode = ref<'list' | 'grid'>('list')
+
 // 星星悬停状态
 const hoverStars = ref<Record<number, number>>({})
 
@@ -570,21 +573,53 @@ function showStarsTour() {
       <!-- 评分项目列表模式 -->
       <template v-else>
         <!-- 筛选区域 - 仅在有内容时显示 -->
-        <nav v-if="filteredItems.length > 0" class="filter-nav">
-          <span class="filter-count">{{ categoryDetail?.ratingItems?.length ?? 0 }} 个评分</span>
-          <span class="filter-separator"></span>
-          <div class="filter-buttons">
-            <button
-              v-for="filter in filters"
-              :key="filter.value"
-              class="filter-btn"
-              :class="{ active: currentFilter === filter.value }"
-              @click="handleFilterChange(filter.value)"
-            >
-              {{ filter.label }}
+        <div v-if="filteredItems.length > 0" class="filter-bar">
+          <nav class="filter-nav">
+            <span class="filter-count">{{ categoryDetail?.ratingItems?.length ?? 0 }} 个评分</span>
+            <span class="filter-separator"></span>
+            <div class="filter-buttons">
+              <button
+                v-for="filter in filters"
+                :key="filter.value"
+                class="filter-btn"
+                :class="{ active: currentFilter === filter.value }"
+                @click="handleFilterChange(filter.value)"
+              >
+                {{ filter.label }}
             </button>
           </div>
         </nav>
+          <div class="view-toggle">
+            <button
+              class="view-btn"
+              :class="{ active: viewMode === 'list' }"
+              @click="viewMode = 'list'"
+              title="列表视图"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+            </button>
+            <button
+              class="view-btn"
+              :class="{ active: viewMode === 'grid' }"
+              @click="viewMode = 'grid'"
+              title="网格视图"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </button>
+          </div>
+        </div>
 
         <!-- 空状态 - 增强版 -->
         <div v-if="filteredItems.length === 0" class="empty-state-enhanced">
@@ -625,8 +660,8 @@ function showStarsTour() {
           </div>
         </div>
 
-        <!-- 评分项目列表 -->
-        <div v-else id="tour-rating-list" class="rating-list">
+        <!-- 评分项目列表视图 -->
+        <div v-else-if="viewMode === 'list'" id="tour-rating-list" class="rating-list">
           <div
             v-for="(item, index) in filteredItems"
             :key="item.id"
@@ -690,6 +725,38 @@ function showStarsTour() {
               <div class="hot-comment empty" v-else>
                 <span class="comment-text">"TA还在等着你评论呢！"</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 评分项目网格视图 -->
+        <div v-else class="rating-grid">
+          <div
+            v-for="(item, index) in filteredItems"
+            :key="item.id"
+            class="grid-item"
+            @click="goToDetail(item.id)"
+          >
+            <!-- 封面图 -->
+            <div class="grid-item-cover">
+              <img
+                v-if="item.url"
+                :src="item.url"
+                :alt="item.name"
+                loading="lazy"
+              />
+              <div v-else class="grid-item-placeholder" :style="{ background: getPlaceholderGradient(index) }">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+              <!-- 评分标签 -->
+              <div class="grid-item-score">{{ item.averageScore.toFixed(1) }}</div>
+            </div>
+            <!-- 名称 -->
+            <div class="grid-item-info">
+              <h3 class="grid-item-name">{{ item.name }}</h3>
+              <span class="grid-item-count">{{ item.ratingCount }} 人评分</span>
             </div>
           </div>
         </div>
@@ -989,13 +1056,20 @@ function showStarsTour() {
   white-space: nowrap;
 }
 
-/* ===== Filter Nav (matches breadcrumb style) ===== */
+/* ===== Filter Bar ===== */
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
 .filter-nav {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  margin-bottom: var(--spacing-md);
   font-size: var(--text-xs);
   background: var(--color-card);
   border: 1px solid var(--color-border);
@@ -1037,6 +1111,45 @@ function showStarsTour() {
 }
 
 .filter-btn.active {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+/* ===== View Toggle ===== */
+.view-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.view-btn:hover:not(.active) {
+  color: var(--color-text-secondary);
+  background: var(--color-border);
+}
+
+.view-btn.active {
   color: var(--color-primary);
   background: var(--color-primary-bg);
 }
@@ -1207,6 +1320,93 @@ function showStarsTour() {
 }
 
 .comment-author {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+}
+
+/* ===== Rating Grid ===== */
+.rating-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.grid-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.grid-item:active {
+  transform: translateY(0);
+}
+
+.grid-item-cover {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.grid-item-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.grid-item-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-item-placeholder svg {
+  width: 28px;
+  height: 28px;
+  color: white;
+  opacity: 0.8;
+}
+
+.grid-item-score {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  color: var(--color-warning);
+}
+
+.grid-item-info {
+  padding: var(--spacing-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grid-item-name {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid-item-count {
   font-size: 10px;
   color: var(--color-text-placeholder);
 }
@@ -1507,8 +1707,11 @@ function showStarsTour() {
     font-size: var(--text-sm);
   }
 
-  .filter-nav {
+  .filter-bar {
     margin-bottom: var(--spacing-lg);
+  }
+
+  .filter-nav {
     font-size: var(--text-sm);
     padding: 8px 12px;
   }
@@ -1518,8 +1721,35 @@ function showStarsTour() {
     font-size: var(--text-sm);
   }
 
+  .view-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .view-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
   .rating-list {
     gap: var(--spacing-md);
+  }
+
+  .rating-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .grid-item-info {
+    padding: var(--spacing-sm);
+  }
+
+  .grid-item-name {
+    font-size: var(--text-sm);
+  }
+
+  .grid-item-count {
+    font-size: var(--text-xs);
   }
 
   .rating-item {

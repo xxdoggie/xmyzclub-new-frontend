@@ -467,12 +467,23 @@ function showFinalTour() {
             </div>
             <div class="quick-rate-info">
               <h3 class="quick-rate-name">{{ item.name }}</h3>
-              <p class="quick-rate-meta">{{ getBreadcrumbDisplayName(item.breadcrumb) }}</p>
+              <div class="quick-rate-stars">
+                <div class="stars-display">
+                  <svg v-for="star in 5" :key="star" viewBox="0 0 24 24" :class="{ filled: star <= Math.round(item.averageScore / 2) }">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <span class="score-text">{{ formatScore(item.averageScore) }}</span>
+              </div>
+              <p class="quick-rate-meta">
+                <span>{{ getBreadcrumbDisplayName(item.breadcrumb) }}</span>
+                <span class="meta-divider">·</span>
+                <span>{{ item.ratingCount }}人评</span>
+              </p>
             </div>
-            <div class="quick-rate-score">
-              <span class="score-value">{{ formatScore(item.averageScore) }}</span>
-              <span class="score-count">{{ item.ratingCount }}人</span>
-            </div>
+            <svg class="quick-rate-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
           </div>
         </div>
       </div>
@@ -951,42 +962,64 @@ function showFinalTour() {
 .quick-rate-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .quick-rate-name {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
-  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.quick-rate-stars {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.stars-display {
+  display: flex;
+  gap: 1px;
+}
+
+.stars-display svg {
+  width: 12px;
+  height: 12px;
+  fill: var(--color-border);
+  stroke: none;
+}
+
+.stars-display svg.filled {
+  fill: var(--color-warning);
+}
+
+.score-text {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
 }
 
 .quick-rate-meta {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.quick-rate-score {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-
-.quick-rate-score .score-value {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--color-primary);
-  line-height: 1;
-}
-
-.quick-rate-score .score-count {
-  font-size: 10px;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
   color: var(--color-text-placeholder);
+}
+
+.meta-divider {
+  opacity: 0.5;
+}
+
+.quick-rate-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
 }
 
 /* ===== Content Card ===== */
@@ -1415,6 +1448,19 @@ function showFinalTour() {
 
   .quick-rate-name {
     font-size: var(--text-base);
+  }
+
+  .stars-display svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .score-text {
+    font-size: var(--text-sm);
+  }
+
+  .quick-rate-meta {
+    font-size: var(--text-xs);
   }
 
   .card-header {

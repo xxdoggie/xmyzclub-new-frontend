@@ -570,8 +570,9 @@ function showStarsTour() {
       <!-- 评分项目列表模式 -->
       <template v-else>
         <!-- 筛选区域 - 仅在有内容时显示 -->
-        <div v-if="filteredItems.length > 0" class="filter-section">
-          <span class="total-count">{{ categoryDetail?.ratingItems?.length ?? 0 }} 个评分</span>
+        <nav v-if="filteredItems.length > 0" class="filter-nav">
+          <span class="filter-count">{{ categoryDetail?.ratingItems?.length ?? 0 }} 个评分</span>
+          <span class="filter-separator"></span>
           <div class="filter-buttons">
             <button
               v-for="filter in filters"
@@ -583,7 +584,7 @@ function showStarsTour() {
               {{ filter.label }}
             </button>
           </div>
-        </div>
+        </nav>
 
         <!-- 空状态 - 增强版 -->
         <div v-if="filteredItems.length === 0" class="empty-state-enhanced">
@@ -988,31 +989,38 @@ function showStarsTour() {
   white-space: nowrap;
 }
 
-/* ===== Filter Section ===== */
-.filter-section {
-  display: flex;
-  justify-content: space-between;
+/* ===== Filter Nav (matches breadcrumb style) ===== */
+.filter-nav {
+  display: inline-flex;
   align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
   margin-bottom: var(--spacing-md);
-  padding: var(--spacing-sm) 0;
+  font-size: var(--text-xs);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
-.total-count {
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
-  font-weight: var(--font-normal);
+.filter-count {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+  padding: 2px 6px;
+}
+
+.filter-separator {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border);
 }
 
 .filter-buttons {
   display: flex;
-  gap: 4px;
-  padding: 3px;
-  background: var(--color-border);
-  border-radius: var(--radius-lg);
+  gap: 2px;
 }
 
 .filter-btn {
-  padding: 6px 12px;
+  padding: 4px 10px;
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
@@ -1025,12 +1033,12 @@ function showStarsTour() {
 
 .filter-btn:hover:not(.active) {
   color: var(--color-text);
+  background: var(--color-primary-bg);
 }
 
 .filter-btn.active {
-  color: var(--color-text);
-  background: var(--color-card);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 /* ===== Rating List ===== */
@@ -1499,16 +1507,14 @@ function showStarsTour() {
     font-size: var(--text-sm);
   }
 
-  .filter-section {
+  .filter-nav {
     margin-bottom: var(--spacing-lg);
-  }
-
-  .total-count {
     font-size: var(--text-sm);
+    padding: 8px 12px;
   }
 
   .filter-btn {
-    padding: 8px 16px;
+    padding: 6px 14px;
     font-size: var(--text-sm);
   }
 

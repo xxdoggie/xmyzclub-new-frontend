@@ -569,9 +569,9 @@ function showStarsTour() {
 
       <!-- 评分项目列表模式 -->
       <template v-else>
-        <!-- 筛选区域 -->
-        <div class="filter-section">
-          <span class="total-count">全部评分 / {{ categoryDetail?.ratingItems?.length ?? 0 }}</span>
+        <!-- 筛选区域 - 仅在有内容时显示 -->
+        <div v-if="filteredItems.length > 0" class="filter-section">
+          <span class="total-count">{{ categoryDetail?.ratingItems?.length ?? 0 }} 个评分</span>
           <div class="filter-buttons">
             <button
               v-for="filter in filters"
@@ -994,38 +994,43 @@ function showStarsTour() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-md);
-  padding: var(--spacing-xs) 0;
+  padding: var(--spacing-sm) 0;
 }
 
 .total-count {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  font-weight: var(--font-normal);
 }
 
 .filter-buttons {
   display: flex;
-  gap: var(--spacing-xs);
+  gap: 4px;
+  padding: 3px;
+  background: var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .filter-btn {
-  padding: var(--spacing-xs) var(--spacing-md);
+  padding: 6px 12px;
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
-  background: var(--color-card);
+  background: transparent;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
 }
 
-.filter-btn:hover {
-  background: var(--color-border);
+.filter-btn:hover:not(.active) {
+  color: var(--color-text);
 }
 
 .filter-btn.active {
-  color: white;
-  background: var(--color-primary);
+  color: var(--color-text);
+  background: var(--color-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* ===== Rating List ===== */
@@ -1499,11 +1504,11 @@ function showStarsTour() {
   }
 
   .total-count {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
   }
 
   .filter-btn {
-    padding: var(--spacing-sm) var(--spacing-lg);
+    padding: 8px 16px;
     font-size: var(--text-sm);
   }
 

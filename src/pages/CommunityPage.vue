@@ -22,6 +22,7 @@ const {
   showCenteredPopover,
   destroyDriver,
   completeTour,
+  forceStartTour,
 } = useScoringTour()
 
 // 固定学校ID
@@ -34,6 +35,13 @@ function goToMyContributions() {
     return
   }
   router.push('/community/contributions')
+}
+
+// 手动开始引导
+function startGuidedTour() {
+  // 强制从社区探索步骤开始（因为已经在社区主页了）
+  forceStartTour(TourStep.COMMUNITY_EXPLORE)
+  waitForDataAndStartTour()
 }
 
 // 状态
@@ -356,15 +364,25 @@ function showFinalTour() {
         <div class="hero-content">
           <h1 class="hero-title">发现 · 评价 · 分享</h1>
           <p class="hero-subtitle desktop-only">和同学们一起探索校园的每一个角落</p>
-          <!-- 我的反馈入口（仅桌面端显示） -->
-          <button class="my-contributions-btn desktop-only" @click="goToMyContributions">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
-              <rect x="9" y="3" width="6" height="4" rx="1"></rect>
-              <path d="M9 12h6M9 16h6"></path>
-            </svg>
-            我的反馈
-          </button>
+          <!-- 操作按钮区（仅桌面端显示） -->
+          <div class="hero-actions desktop-only">
+            <button class="hero-action-btn" @click="goToMyContributions">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+                <rect x="9" y="3" width="6" height="4" rx="1"></rect>
+                <path d="M9 12h6M9 16h6"></path>
+              </svg>
+              我的反馈
+            </button>
+            <button class="hero-action-btn" @click="startGuidedTour">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+              </svg>
+              开始引导
+            </button>
+          </div>
         </div>
         <div class="hero-decoration">
           <svg class="float-icon" style="--delay: 0s; --x: 70%; --y: 15%;" viewBox="0 0 24 24" fill="currentColor">
@@ -725,11 +743,16 @@ function showFinalTour() {
   display: none;
 }
 
-.my-contributions-btn {
+.hero-actions {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.hero-action-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  margin-top: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
@@ -740,13 +763,13 @@ function showFinalTour() {
   transition: all var(--transition-fast);
 }
 
-.my-contributions-btn:hover {
+.hero-action-btn:hover {
   color: var(--color-primary);
   border-color: var(--color-primary);
   background: var(--color-primary-bg);
 }
 
-.my-contributions-btn svg {
+.hero-action-btn svg {
   width: 14px;
   height: 14px;
 }
@@ -1252,7 +1275,7 @@ function showFinalTour() {
     display: block;
   }
 
-  .my-contributions-btn.desktop-only {
+  .hero-actions.desktop-only {
     display: inline-flex;
   }
 

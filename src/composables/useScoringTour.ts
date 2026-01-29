@@ -86,6 +86,14 @@ function resetTour() {
   localStorage.removeItem(STORAGE_KEY_STEP)
 }
 
+// 强制从指定步骤开始引导（忽略已完成状态）
+function forceStartTour(step: TourStepType = TourStep.HOME_COMMUNITY_ENTRY) {
+  isCompleted.value = false
+  currentStep.value = step
+  localStorage.removeItem(STORAGE_KEY_COMPLETED)
+  localStorage.setItem(STORAGE_KEY_STEP, step.toString())
+}
+
 // 创建 driver 实例
 function createDriver(options?: Partial<Parameters<typeof driver>[0]>): Driver {
   if (driverInstance.value) {
@@ -212,6 +220,7 @@ export function useScoringTour() {
     saveStep,
     completeTour,
     resetTour,
+    forceStartTour,
     createDriver,
     highlightElement,
     showCenteredPopover,

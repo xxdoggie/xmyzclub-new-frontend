@@ -1370,8 +1370,8 @@ function toggleMobileMenu() {
 
 /* ===== Banner Section ===== */
 .banner-section {
-  padding: var(--spacing-md) var(--spacing-md);
-  padding-bottom: var(--spacing-xs);
+  padding: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
 }
 
 .banner-container {
@@ -1409,8 +1409,8 @@ function toggleMobileMenu() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md) var(--spacing-lg);
-  min-height: 110px;
+  padding: var(--spacing-lg);
+  min-height: 120px;
   color: white;
 }
 
@@ -1485,8 +1485,8 @@ function toggleMobileMenu() {
 /* ===== Entry Section ===== */
 .entry-section {
   flex: 1;
-  padding: var(--spacing-md) var(--spacing-md);
-  padding-bottom: var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-bottom: var(--spacing-xl);
 }
 
 .entry-container {
@@ -1494,7 +1494,7 @@ function toggleMobileMenu() {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 
 /* Main Entry Cards */
@@ -1502,7 +1502,7 @@ function toggleMobileMenu() {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md);
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -1537,8 +1537,8 @@ function toggleMobileMenu() {
 }
 
 .entry-icon {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   background: var(--entry-bg);
   border-radius: var(--radius-md);
   display: flex;
@@ -1549,8 +1549,8 @@ function toggleMobileMenu() {
 }
 
 .entry-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .entry-content {
@@ -1593,7 +1593,7 @@ function toggleMobileMenu() {
 .secondary-entries {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   margin-top: var(--spacing-xs);
 }
 
@@ -1601,7 +1601,7 @@ function toggleMobileMenu() {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md);
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -1623,8 +1623,8 @@ function toggleMobileMenu() {
 .secondary-card-wall { --secondary-color: #74B9FF; --secondary-bg: rgba(116, 185, 255, 0.1); --secondary-bg-hover: rgba(116, 185, 255, 0.05); }
 
 .secondary-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   background: var(--secondary-bg, var(--color-border));
   border-radius: var(--radius-md);
   display: flex;
@@ -1634,12 +1634,12 @@ function toggleMobileMenu() {
 }
 
 .secondary-icon svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 .secondary-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text);
 }
@@ -1758,13 +1758,13 @@ function toggleMobileMenu() {
 
   /* Banner Section */
   .banner-section {
-    padding: var(--spacing-md) var(--spacing-lg);
-    padding-bottom: var(--spacing-xs);
+    padding: var(--spacing-lg);
+    padding-bottom: var(--spacing-sm);
   }
 
   .banner-content {
-    padding: var(--spacing-md) var(--spacing-lg);
-    min-height: 110px;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    min-height: 130px;
   }
 
   .banner-title {
@@ -1772,45 +1772,46 @@ function toggleMobileMenu() {
   }
 
   .banner-illustration {
-    width: 70px;
-    height: 70px;
+    width: 80px;
+    height: 80px;
   }
 
   /* Entry Section */
   .entry-section {
     padding: var(--spacing-sm) var(--spacing-lg);
+    padding-bottom: var(--spacing-xl);
+  }
+
+  .entry-container {
+    gap: var(--spacing-md);
   }
 
   .entry-card {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-md);
   }
 
   .entry-icon {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 
   .entry-icon svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .entry-title {
-    font-size: var(--text-sm);
+    width: 22px;
+    height: 22px;
   }
 
   .secondary-card {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-md);
   }
 
   .secondary-icon {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
 
   .secondary-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 }
 

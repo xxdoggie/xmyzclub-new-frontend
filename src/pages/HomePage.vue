@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, h } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -33,7 +33,6 @@ interface BannerItem {
   description: string
   gradient: string
   link?: string
-  icon: ReturnType<typeof h>
 }
 
 const banners = ref<BannerItem[]>([
@@ -44,11 +43,6 @@ const banners = ref<BannerItem[]>([
     description: '在这里发现校园生活的无限可能',
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     link: '/community',
-    icon: h('svg', { viewBox: '0 0 80 80', fill: 'none' }, [
-      h('circle', { cx: '40', cy: '40', r: '35', fill: 'rgba(255,255,255,0.2)' }),
-      h('path', { d: 'M25 50 L40 30 L55 50', stroke: 'white', 'stroke-width': '3', fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-      h('circle', { cx: '40', cy: '25', r: '5', fill: 'white' }),
-    ]),
   },
   {
     id: 2,
@@ -57,12 +51,6 @@ const banners = ref<BannerItem[]>([
     description: '敬请期待精彩校园活动',
     gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     link: '/ticket',
-    icon: h('svg', { viewBox: '0 0 80 80', fill: 'none' }, [
-      h('rect', { x: '15', y: '20', width: '50', height: '40', rx: '4', fill: 'rgba(255,255,255,0.2)' }),
-      h('path', { d: 'M15 32 L65 32', stroke: 'white', 'stroke-width': '2' }),
-      h('circle', { cx: '28', cy: '45', r: '6', fill: 'white', opacity: '0.8' }),
-      h('path', { d: 'M40 42 L55 42 M40 48 L50 48', stroke: 'white', 'stroke-width': '2', 'stroke-linecap': 'round' }),
-    ]),
   },
   {
     id: 3,
@@ -71,9 +59,6 @@ const banners = ref<BannerItem[]>([
     description: '为食堂、教学楼、考试打分吧',
     gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     link: '/community',
-    icon: h('svg', { viewBox: '0 0 80 80', fill: 'none' }, [
-      h('polygon', { points: '40,15 47,32 65,32 51,43 56,60 40,50 24,60 29,43 15,32 33,32', fill: 'rgba(255,255,255,0.9)' }),
-    ]),
   },
 ])
 
@@ -644,9 +629,6 @@ function toggleMobileMenu() {
                   <span class="banner-tag">{{ banner.tag }}</span>
                   <h3 class="banner-title">{{ banner.title }}</h3>
                   <p class="banner-desc">{{ banner.description }}</p>
-                </div>
-                <div class="banner-illustration">
-                  <component :is="banner.icon" />
                 </div>
               </div>
             </div>
@@ -1408,15 +1390,15 @@ function toggleMobileMenu() {
 .banner-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: var(--spacing-lg);
-  min-height: 140px;
+  min-height: 120px;
   color: white;
+  text-align: center;
 }
 
 .banner-text {
-  flex: 1;
-  min-width: 0;
+  max-width: 280px;
 }
 
 .banner-tag {
@@ -1438,20 +1420,6 @@ function toggleMobileMenu() {
 .banner-desc {
   font-size: var(--text-xs);
   opacity: 0.85;
-}
-
-.banner-illustration {
-  width: 60px;
-  height: 60px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.banner-illustration svg {
-  width: 100%;
-  height: 100%;
 }
 
 .banner-dots {
@@ -1764,16 +1732,15 @@ function toggleMobileMenu() {
 
   .banner-content {
     padding: var(--spacing-lg) var(--spacing-xl);
-    min-height: 130px;
+    min-height: 110px;
+  }
+
+  .banner-text {
+    max-width: 320px;
   }
 
   .banner-title {
     font-size: var(--text-lg);
-  }
-
-  .banner-illustration {
-    width: 80px;
-    height: 80px;
   }
 
   /* Entry Section */
@@ -2084,17 +2051,16 @@ function toggleMobileMenu() {
   }
 
   .banner-content {
-    min-height: 120px;
+    min-height: 100px;
     padding: var(--spacing-lg);
+  }
+
+  .banner-text {
+    max-width: 360px;
   }
 
   .banner-title {
     font-size: var(--text-lg);
-  }
-
-  .banner-illustration {
-    width: 80px;
-    height: 80px;
   }
 
   .entry-section {

@@ -1392,7 +1392,7 @@ function toggleMobileMenu() {
   align-items: center;
   justify-content: center;
   padding: var(--spacing-lg);
-  min-height: 120px;
+  min-height: 160px;
   color: white;
   text-align: center;
 }
@@ -1732,7 +1732,7 @@ function toggleMobileMenu() {
 
   .banner-content {
     padding: var(--spacing-lg) var(--spacing-xl);
-    min-height: 110px;
+    min-height: 140px;
   }
 
   .banner-text {
@@ -2051,7 +2051,7 @@ function toggleMobileMenu() {
   }
 
   .banner-content {
-    min-height: 100px;
+    min-height: 130px;
     padding: var(--spacing-lg);
   }
 

@@ -70,17 +70,6 @@ async function handleSearch() {
   }
 }
 
-// 清空搜索
-function clearSearch() {
-  searchKeyword.value = ''
-  searchResults.value = []
-  totalCount.value = 0
-  hasSearched.value = false
-  nextTick(() => {
-    searchInputRef.value?.focus()
-  })
-}
-
 // 进入详情页面
 function goToDetail(itemId: number) {
   router.push(`/community/item/${itemId}`)
@@ -166,18 +155,12 @@ onMounted(() => {
           <input
             ref="searchInputRef"
             v-model="searchKeyword"
-            type="search"
+            type="text"
             enterkeyhint="search"
             class="search-input"
             placeholder="搜索食堂、建筑、课程..."
             @keydown="handleKeydown"
           />
-          <button v-if="searchKeyword" class="clear-btn" @click="clearSearch">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
           <button class="search-trigger-btn" @click="handleSearch" :disabled="!searchKeyword.trim()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"></polyline>
@@ -326,8 +309,8 @@ onMounted(() => {
 .search-box {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  gap: var(--spacing-xs);
+  padding: 6px 6px 6px var(--spacing-sm);
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -340,8 +323,8 @@ onMounted(() => {
 }
 
 .search-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   color: var(--color-text-secondary);
   flex-shrink: 0;
 }
@@ -360,34 +343,9 @@ onMounted(() => {
   color: var(--color-text-placeholder);
 }
 
-.clear-btn {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-border);
-  border: none;
-  border-radius: var(--radius-full);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-}
-
-.clear-btn:hover {
-  background: var(--color-text-secondary);
-  color: white;
-}
-
-.clear-btn svg {
-  width: 12px;
-  height: 12px;
-}
-
 .search-trigger-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -416,8 +374,8 @@ onMounted(() => {
 }
 
 .search-trigger-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 /* ===== Filter Section ===== */
@@ -720,14 +678,6 @@ onMounted(() => {
   .page-content {
     padding: var(--spacing-xl);
     max-width: 900px;
-  }
-
-  .search-box {
-    padding: var(--spacing-sm) var(--spacing-lg);
-  }
-
-  .search-input {
-    font-size: var(--text-base);
   }
 
   .filter-section {

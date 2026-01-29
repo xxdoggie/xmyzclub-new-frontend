@@ -1,101 +1,73 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
-import { useScoringTour } from '@/composables/useScoringTour'
-import { getRatingItems, submitRating } from '@/api/rating'
+import { searchRatingItems, submitRating } from '@/api/rating'
 import type { RatingItem } from '@/types/rating'
 import PageHeader from '@/components/layout/PageHeader.vue'
-import PageFooter from '@/components/layout/PageFooter.vue'
-import FeedbackDrawer from '@/components/feedback/FeedbackDrawer.vue'
 
-const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const userStore = useUserStore()
-const {
-  shouldStartTour,
-  getCurrentStep,
-  TourStep,
-  saveStep,
-  highlightElement,
-  destroyDriver,
-  isInStarRatingTour,
-} = useScoringTour()
-
-// 获取路由参数
-const minorId = Number(route.params.minorId)
 
 // 状态
-const isLoading = ref(true)
-const ratingItems = ref<RatingItem[]>([])
-const currentFilter = ref<'hot' | 'high' | 'low'>('hot')
+const searchKeyword = ref('')
+const searchResults = ref<RatingItem[]>([])
+const totalCount = ref(0)
+const isLoading = ref(false)
+const hasSearched = ref(false)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
-// 反馈抽屉状态
-const isFeedbackOpen = ref(false)
-
-function openFeedbackDrawer() {
-  if (!userStore.isLoggedIn) {
-    userStore.openLoginModal()
-    return
-  }
-  isFeedbackOpen.value = true
-}
-
-function closeFeedbackDrawer() {
-  isFeedbackOpen.value = false
-}
-
-function handleFeedbackSuccess() {
-  // 可以在这里做额外处理
-}
-
-// 星星悬停状态：记录每个项目的悬停星数
+// 星星悬停状态
 const hoverStars = ref<Record<number, number>>({})
 
-// 筛选选项
-const filters = [
-  { label: '热门', value: 'hot' as const },
-  { label: '高分', value: 'high' as const },
-  { label: '低分', value: 'low' as const },
-]
+// 格式化面包屑
+function formatBreadcrumb(breadcrumb: any): string {
+  if (!breadcrumb) return ''
 
-// 加载评分项目列表
-async function loadRatingItems() {
+  const parts: string[] = []
+
+  // 添加祖先分类
+  if (breadcrumb.ancestors && Array.isArray(breadcrumb.ancestors)) {
+    breadcrumb.ancestors.forEach((ancestor: any) => {
+      if (ancestor.name) {
+        parts.push(ancestor.name)
+      }
+    })
+  }
+
+  // 添加当前分类
+  if (breadcrumb.current && breadcrumb.current.name) {
+    parts.push(breadcrumb.current.name)
+  }
+
+  return parts.join(' / ')
+}
+
+// 搜索
+async function handleSearch() {
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) {
+    return
+  }
+
   isLoading.value = true
+  hasSearched.value = true
+
   try {
-    const res = await getRatingItems(minorId)
+    const res = await searchRatingItems(keyword)
     if (res.data.code === 200) {
-      ratingItems.value = res.data.data
+      searchResults.value = res.data.data.items
+      totalCount.value = res.data.data.total
     } else {
-      toast.error(res.data.message || '获取评分列表失败')
+      toast.error(res.data.message || '搜索失败')
     }
   } catch {
-    toast.error('获取评分列表失败')
+    toast.error('搜索失败')
   } finally {
     isLoading.value = false
   }
-}
-
-// 筛选后的列表
-const filteredItems = computed(() => {
-  const items = [...ratingItems.value]
-  switch (currentFilter.value) {
-    case 'hot':
-      return items.sort((a, b) => b.ratingCount - a.ratingCount)
-    case 'high':
-      return items.sort((a, b) => b.averageScore - a.averageScore)
-    case 'low':
-      return items.sort((a, b) => a.averageScore - b.averageScore)
-    default:
-      return items
-  }
-})
-
-// 切换筛选
-function handleFilterChange(filter: 'hot' | 'high' | 'low') {
-  currentFilter.value = filter
 }
 
 // 进入详情页面
@@ -112,7 +84,7 @@ function handleStarLeave(itemId: number) {
   hoverStars.value[itemId] = 0
 }
 
-// 获取显示的星数（悬停优先，否则显示已评分数）
+// 获取显示的星数
 function getDisplayStars(item: RatingItem): number {
   if (hoverStars.value[item.id]) {
     return hoverStars.value[item.id] ?? 0
@@ -120,27 +92,18 @@ function getDisplayStars(item: RatingItem): number {
   return item.myStars || 0
 }
 
-// 星星评分点击（乐观更新）
+// 星星评分点击
 async function handleStarClick(item: RatingItem, star: number, event: Event) {
   event.stopPropagation()
-
-  // 在引导模式下，只做视觉反馈，不触发登录和实际评分
-  if (isInStarRatingTour()) {
-    item.myStars = star
-    item.myScore = star * 2
-    return
-  }
 
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
     return
   }
 
-  // 保存原始值用于回滚
   const prevMyStars = item.myStars
   const prevMyScore = item.myScore
 
-  // 乐观更新
   item.myStars = star
   item.myScore = star * 2
 
@@ -152,162 +115,62 @@ async function handleStarClick(item: RatingItem, star: number, event: Event) {
     if (res.data.code === 200) {
       toast.success('评分成功')
     } else {
-      // 失败：回滚
       item.myStars = prevMyStars
       item.myScore = prevMyScore
       toast.error(res.data.message || '评分失败')
     }
   } catch {
-    // 失败：回滚
     item.myStars = prevMyStars
     item.myScore = prevMyScore
     toast.error('评分失败')
   }
 }
 
+// 处理键盘事件
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') {
+    handleSearch()
+  }
+}
+
 onMounted(() => {
-  loadRatingItems()
-
-  // 检查是否需要启动引导
-  if (shouldStartTour()) {
-    const step = getCurrentStep()
-    if (step >= TourStep.RATING_LIST_INTRO && step <= TourStep.RATING_ITEM_STARS) {
-      waitForDataAndStartTour(step)
-    }
-  }
+  nextTick(() => {
+    searchInputRef.value?.focus()
+  })
 })
-
-onUnmounted(() => {
-  destroyDriver()
-})
-
-// 等待数据加载完成后启动引导
-function waitForDataAndStartTour(step: number) {
-  const checkInterval = setInterval(() => {
-    if (!isLoading.value && ratingItems.value.length > 0) {
-      clearInterval(checkInterval)
-      setTimeout(() => {
-        startRatingItemsTour(step)
-      }, 300)
-    }
-  }, 100)
-  setTimeout(() => clearInterval(checkInterval), 5000)
-}
-
-// 启动评分列表引导
-function startRatingItemsTour(step: number) {
-  switch (step) {
-    case TourStep.RATING_LIST_INTRO:
-      showListIntro()
-      break
-    case TourStep.RATING_LIST_FEEDBACK:
-      showFeedbackTour()
-      break
-    case TourStep.RATING_ITEM_CARD:
-      showCardTour()
-      break
-    case TourStep.RATING_ITEM_STARS:
-      showStarsTour()
-      break
-  }
-}
-
-// 步骤6：评分列表介绍
-function showListIntro() {
-  highlightElement(
-    '#tour-rating-list',
-    '评分项目列表',
-    '这里将显示该分区内的所有评分项目，你可以查看评分、热门评论，并对它们进行评分。',
-    {
-      side: 'top',
-      nextBtnText: '我知道了',
-      onNextClick: () => {
-        saveStep(TourStep.RATING_LIST_FEEDBACK)
-        destroyDriver()
-        // 滚动到底部
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-        setTimeout(() => showFeedbackTour(), 500)
-      },
-    }
-  )
-}
-
-// 步骤7：反馈提示
-function showFeedbackTour() {
-  highlightElement(
-    '#tour-rating-feedback',
-    '新建评分项目',
-    '如果没找到想要的评分项目，可以点击这里发起添加请求。',
-    {
-      side: 'top',
-      nextBtnText: '我知道了',
-      onNextClick: () => {
-        saveStep(TourStep.RATING_ITEM_CARD)
-        destroyDriver()
-        // 滚动回顶部
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-        setTimeout(() => showCardTour(), 500)
-      },
-    }
-  )
-}
-
-// 步骤8：评分项目卡片
-function showCardTour() {
-  highlightElement(
-    '#tour-first-rating-item',
-    '评分项目',
-    '这是一个单独的评分项目，你可以直接在这里查看总分、热门评论以及对它进行评分。',
-    {
-      side: 'bottom',
-      nextBtnText: '我知道了',
-      onNextClick: () => {
-        saveStep(TourStep.RATING_ITEM_STARS)
-        destroyDriver()
-        nextTick(() => showStarsTour())
-      },
-    }
-  )
-}
-
-// 步骤9：星星评分
-function showStarsTour() {
-  const description = userStore.isLoggedIn
-    ? '点击星星可以直接对该项目进行评分。现在试试给它打个分吧！'
-    : '点击星星可以直接对该项目进行评分。现在试试点击星星体验一下吧！（登录后即可真正评分）'
-
-  highlightElement(
-    '#tour-star-rating',
-    '快速评分',
-    description,
-    {
-      side: 'left',
-      nextBtnText: '进入详情',
-      allowInteraction: true, // 允许用户点击星星评分
-      onNextClick: () => {
-        saveStep(TourStep.RATING_DETAIL_FEEDBACK)
-        destroyDriver()
-        // 点击第一个评分项目进入详情
-        if (filteredItems.value.length > 0) {
-          goToDetail(filteredItems.value[0]!.id)
-        }
-      },
-    }
-  )
-}
 </script>
 
 <template>
   <div class="page-container">
-    <PageHeader />
+    <PageHeader back-to="/community" />
 
     <main class="page-content">
-      <!-- 骨架屏加载状态 -->
-      <template v-if="isLoading">
-        <div class="skeleton-filter">
-          <div class="skeleton-total"></div>
-          <div class="skeleton-buttons"></div>
+      <!-- 搜索框 -->
+      <div class="search-section">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input
+            ref="searchInputRef"
+            v-model="searchKeyword"
+            type="text"
+            enterkeyhint="search"
+            class="search-input"
+            placeholder="搜索食堂、建筑、课程..."
+            @keydown="handleKeydown"
+          />
+          <button class="search-trigger-btn" @click="handleSearch" :disabled="!searchKeyword.trim()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
         </div>
+      </div>
+
+      <!-- 加载状态 -->
+      <template v-if="isLoading">
         <div class="skeleton-list">
           <div v-for="i in 4" :key="i" class="skeleton-item">
             <div class="skeleton-image"></div>
@@ -320,41 +183,41 @@ function showStarsTour() {
         </div>
       </template>
 
-      <!-- 空状态 -->
-      <div v-else-if="ratingItems.length === 0" class="empty-container">
+      <!-- 空状态：未搜索 -->
+      <div v-else-if="!hasSearched" class="empty-container">
         <div class="empty-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
           </svg>
         </div>
-        <h2>暂无评分项目</h2>
-        <p>该区域暂无可评分的项目</p>
+        <h2>搜索评分项目</h2>
+        <p>输入关键词，点击箭头或按回车搜索</p>
       </div>
 
-      <!-- 正常内容 -->
+      <!-- 空状态：无结果 -->
+      <div v-else-if="searchResults.length === 0" class="empty-container">
+        <div class="empty-icon warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h2>未找到相关结果</h2>
+        <p>换个关键词试试吧</p>
+      </div>
+
+      <!-- 搜索结果 -->
       <template v-else>
-        <!-- 筛选区域 -->
         <div class="filter-section">
-          <span class="total-count">全部评分 / {{ ratingItems.length }}</span>
-          <div class="filter-buttons">
-            <button
-              v-for="filter in filters"
-              :key="filter.value"
-              class="filter-btn"
-              :class="{ active: currentFilter === filter.value }"
-              @click="handleFilterChange(filter.value)"
-            >
-              {{ filter.label }}
-            </button>
-          </div>
+          <span class="total-count">搜索结果 / {{ totalCount }}</span>
         </div>
 
-        <!-- 评分项目列表 -->
-        <div id="tour-rating-list" class="rating-list">
+        <div class="rating-list">
           <div
-            v-for="(item, index) in filteredItems"
+            v-for="item in searchResults"
             :key="item.id"
-            :id="index === 0 ? 'tour-first-rating-item' : undefined"
             class="rating-item"
             @click="goToDetail(item.id)"
           >
@@ -383,11 +246,7 @@ function showStarsTour() {
                 <div class="item-rating">
                   <span class="item-score">{{ item.averageScore.toFixed(1) }}分</span>
                   <!-- 星星评分 -->
-                  <div
-                    :id="index === 0 ? 'tour-star-rating' : undefined"
-                    class="star-rating"
-                    @mouseleave="handleStarLeave(item.id)"
-                  >
+                  <div class="star-rating" @mouseleave="handleStarLeave(item.id)">
                     <button
                       v-for="star in 5"
                       :key="star"
@@ -405,6 +264,7 @@ function showStarsTour() {
               </div>
               <div class="item-meta">
                 <span class="rating-count">{{ item.ratingCount }} 人评分</span>
+                <span v-if="formatBreadcrumb(item.breadcrumb)" class="item-breadcrumb">{{ formatBreadcrumb(item.breadcrumb) }}</span>
               </div>
               <!-- 热门评论 -->
               <div class="hot-comment" v-if="item.topComment">
@@ -417,32 +277,8 @@ function showStarsTour() {
             </div>
           </div>
         </div>
-
-        <!-- 反馈提示 -->
-        <div class="feedback-prompt">
-          <button id="tour-rating-feedback" class="feedback-link" @click="openFeedbackDrawer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="16"></line>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            没找到想要的评分项目？点我发起新建请求
-          </button>
-        </div>
       </template>
     </main>
-
-    <PageFooter />
-
-    <!-- 反馈抽屉 -->
-    <FeedbackDrawer
-      :is-open="isFeedbackOpen"
-      :contribution-type="2"
-      :target-type="2"
-      :parent-id="minorId"
-      @close="closeFeedbackDrawer"
-      @success="handleFeedbackSuccess"
-    />
   </div>
 </template>
 
@@ -465,6 +301,83 @@ function showStarsTour() {
   width: 100%;
 }
 
+/* ===== Search Section ===== */
+.search-section {
+  margin-bottom: var(--spacing-md);
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 6px 6px var(--spacing-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+.search-box:focus-within {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.search-trigger-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-full);
+  color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.search-trigger-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.search-trigger-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.search-trigger-btn:disabled {
+  background: var(--color-border);
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
+}
+
+.search-trigger-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* ===== Filter Section ===== */
 .filter-section {
   display: flex;
@@ -477,32 +390,6 @@ function showStarsTour() {
 .total-count {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-}
-
-.filter-buttons {
-  display: flex;
-  gap: var(--spacing-xs);
-}
-
-.filter-btn {
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
-  background: var(--color-card);
-  border: none;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.filter-btn:hover {
-  background: var(--color-border);
-}
-
-.filter-btn.active {
-  color: white;
-  background: var(--color-primary);
 }
 
 /* ===== Rating List ===== */
@@ -639,11 +526,19 @@ function showStarsTour() {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .rating-count {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+.item-breadcrumb {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  padding-left: var(--spacing-sm);
+  border-left: 1px solid var(--color-border);
 }
 
 /* ===== Hot Comment ===== */
@@ -693,6 +588,11 @@ function showStarsTour() {
   border-radius: var(--radius-xl);
 }
 
+.empty-icon.warning {
+  background: rgba(234, 179, 8, 0.1);
+  color: var(--color-warning);
+}
+
 .empty-icon svg {
   width: 40px;
   height: 40px;
@@ -710,30 +610,6 @@ function showStarsTour() {
 }
 
 /* ===== Skeleton Loading ===== */
-.skeleton-filter {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-  padding: var(--spacing-xs) 0;
-}
-
-.skeleton-total {
-  width: 100px;
-  height: 20px;
-  background: var(--color-border);
-  border-radius: var(--radius-sm);
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
-
-.skeleton-buttons {
-  width: 150px;
-  height: 28px;
-  background: var(--color-border);
-  border-radius: var(--radius-full);
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
-
 .skeleton-list {
   display: flex;
   flex-direction: column;
@@ -797,34 +673,6 @@ function showStarsTour() {
   }
 }
 
-/* ===== Feedback Prompt ===== */
-.feedback-prompt {
-  margin-top: var(--spacing-lg);
-  text-align: center;
-}
-
-.feedback-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  color: var(--color-primary);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.feedback-link:hover {
-  opacity: 0.8;
-}
-
-.feedback-link svg {
-  width: 16px;
-  height: 16px;
-}
-
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
   .page-content {
@@ -838,11 +686,6 @@ function showStarsTour() {
 
   .total-count {
     font-size: var(--text-base);
-  }
-
-  .filter-btn {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    font-size: var(--text-sm);
   }
 
   .rating-list {
@@ -872,6 +715,10 @@ function showStarsTour() {
   }
 
   .rating-count {
+    font-size: var(--text-sm);
+  }
+
+  .item-breadcrumb {
     font-size: var(--text-sm);
   }
 

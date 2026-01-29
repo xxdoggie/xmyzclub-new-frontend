@@ -86,6 +86,14 @@ function resetTour() {
   localStorage.removeItem(STORAGE_KEY_STEP)
 }
 
+// 强制从指定步骤开始引导（忽略已完成状态）
+function forceStartTour(step: TourStepType = TourStep.HOME_COMMUNITY_ENTRY) {
+  isCompleted.value = false
+  currentStep.value = step
+  localStorage.removeItem(STORAGE_KEY_COMPLETED)
+  localStorage.setItem(STORAGE_KEY_STEP, step.toString())
+}
+
 // 创建 driver 实例
 function createDriver(options?: Partial<Parameters<typeof driver>[0]>): Driver {
   if (driverInstance.value) {
@@ -200,6 +208,11 @@ function getCurrentStep(): TourStepType {
   return currentStep.value
 }
 
+// 检查是否在引导的星星评分交互步骤（用于跳过登录检查）
+function isInStarRatingTour(): boolean {
+  return !isCompleted.value && currentStep.value === TourStep.RATING_ITEM_STARS
+}
+
 export function useScoringTour() {
   return {
     // 状态
@@ -212,11 +225,13 @@ export function useScoringTour() {
     saveStep,
     completeTour,
     resetTour,
+    forceStartTour,
     createDriver,
     highlightElement,
     showCenteredPopover,
     destroyDriver,
     shouldStartTour,
     getCurrentStep,
+    isInStarRatingTour,
   }
 }

@@ -22,6 +22,7 @@ const {
   showCenteredPopover,
   destroyDriver,
   completeTour,
+  forceStartTour,
 } = useScoringTour()
 
 // 固定学校ID
@@ -34,6 +35,13 @@ function goToMyContributions() {
     return
   }
   router.push('/community/contributions')
+}
+
+// 手动开始引导
+function startGuidedTour() {
+  // 强制从社区探索步骤开始（因为已经在社区主页了）
+  forceStartTour(TourStep.COMMUNITY_EXPLORE)
+  waitForDataAndStartTour()
 }
 
 // 状态
@@ -350,110 +358,89 @@ function showFinalTour() {
     <PageHeader back-to="/" />
 
     <main class="page-content">
-      <!-- Hero Banner -->
-      <div class="hero-banner">
-        <div class="hero-bg"></div>
-        <div class="hero-content">
-          <h1 class="hero-title">发现 · 评价 · 分享</h1>
-          <p class="hero-subtitle desktop-only">和同学们一起探索校园的每一个角落</p>
-          <!-- 我的反馈入口（仅桌面端显示） -->
-          <button class="my-contributions-btn desktop-only" @click="goToMyContributions">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <!-- 顶部操作区 -->
+      <div class="top-section">
+        <!-- 搜索框 -->
+        <div class="search-box" @click="$router.push('/community/search')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <span>搜索食堂、建筑、课程...</span>
+        </div>
+
+        <!-- 快捷操作 -->
+        <div class="quick-actions">
+          <button class="quick-action-btn" @click="goToMyContributions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
               <rect x="9" y="3" width="6" height="4" rx="1"></rect>
-              <path d="M9 12h6M9 16h6"></path>
             </svg>
-            我的反馈
           </button>
-        </div>
-        <div class="hero-decoration">
-          <svg class="float-icon" style="--delay: 0s; --x: 70%; --y: 15%;" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-          </svg>
-          <svg class="float-icon" style="--delay: 0.5s; --x: 85%; --y: 35%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-          <svg class="float-icon" style="--delay: 1s; --x: 75%; --y: 65%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-          </svg>
-          <svg class="float-icon" style="--delay: 1.5s; --x: 90%; --y: 75%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-          </svg>
+          <button class="quick-action-btn guide-btn" @click="startGuidedTour">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <circle cx="12" cy="17" r="0.5" fill="currentColor"></circle>
+            </svg>
+            <span>引导</span>
+          </button>
         </div>
       </div>
 
-      <!-- 分区入口 -->
-      <div id="tour-explore-section" class="content-card">
-        <div class="card-header">
-          <h2 class="card-header-title">探索分区</h2>
-        </div>
-
+      <!-- 分类胶囊 -->
+      <div id="tour-explore-section" class="category-pills">
         <!-- 加载状态 -->
-        <div v-if="isLoading" class="section-grid">
-          <div v-for="i in 4" :key="i" class="section-card-skeleton">
-            <div class="skeleton-icon"></div>
-            <div class="skeleton-text"></div>
-          </div>
-        </div>
+        <template v-if="isLoading">
+          <div v-for="i in 4" :key="i" class="category-pill-skeleton"></div>
+        </template>
 
-        <!-- 空状态 -->
-        <div v-else-if="categories.length === 0" class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 15h8M9 9h.01M15 9h.01"></path>
-          </svg>
-          <p>暂无分区</p>
-        </div>
-
-        <!-- 分区网格 -->
-        <div v-else class="section-grid">
-          <div
+        <!-- 分类列表 -->
+        <template v-else>
+          <button
             v-for="(category, index) in categories"
             :key="category.id"
             :id="index === 0 ? 'tour-first-category' : undefined"
-            class="section-item"
-            :class="`section-item-${(index % 4) + 1}`"
+            class="category-pill"
+            :class="`category-pill-${(index % 4) + 1}`"
             @click="goToCategory(category)"
           >
-            <div class="section-icon">
-              <!-- 餐厅图标 -->
-              <svg v-if="getSectionIcon(category.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-                <path d="M7 2v20"></path>
-                <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
-              </svg>
-              <!-- 建筑图标 -->
-              <svg v-else-if="getSectionIcon(category.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                <path d="M9 22v-4h6v4"></path>
-                <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"></path>
-              </svg>
-              <!-- 考试图标 -->
-              <svg v-else-if="getSectionIcon(category.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                <path d="M9 12h6M9 16h6"></path>
-              </svg>
-              <!-- 活动图标 -->
-              <svg v-else-if="getSectionIcon(category.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <!-- 默认星星图标 -->
-              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-            </div>
-            <span class="section-name">{{ category.name }}</span>
-          </div>
-        </div>
+            <!-- 餐厅图标 -->
+            <svg v-if="getSectionIcon(category.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+              <path d="M7 2v20"></path>
+              <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
+            </svg>
+            <!-- 建筑图标 -->
+            <svg v-else-if="getSectionIcon(category.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+              <path d="M9 22v-4h6v4"></path>
+              <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"></path>
+            </svg>
+            <!-- 考试图标 -->
+            <svg v-else-if="getSectionIcon(category.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              <path d="M9 12h6M9 16h6"></path>
+            </svg>
+            <!-- 活动图标 -->
+            <svg v-else-if="getSectionIcon(category.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <!-- 默认星星图标 -->
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>{{ category.name }}</span>
+          </button>
+        </template>
       </div>
 
       <!-- 热门评分 -->
-      <div id="tour-hot-section" class="content-card">
+      <div id="tour-hot-section" class="content-card hot-section">
         <div class="card-header">
           <h2 class="card-header-title">
             <svg class="title-icon hot" viewBox="0 0 24 24" fill="currentColor">
@@ -461,62 +448,92 @@ function showFinalTour() {
             </svg>
             热门评分
           </h2>
+          <span v-if="hotItems.length > 0" class="header-stat">{{ hotItems.reduce((sum, item) => sum + item.ratingCount, 0) }}+ 评价</span>
         </div>
 
-        <!-- 热门加载状态 -->
-        <div v-if="isLoadingHot" class="item-scroll">
-          <div v-for="i in 4" :key="i" class="item-skeleton">
-            <div class="skeleton-cover"></div>
-            <div class="skeleton-info">
-              <div class="skeleton-title"></div>
-              <div class="skeleton-meta"></div>
+        <!-- 加载状态 -->
+        <template v-if="isLoadingHot">
+          <div class="hot-top-skeleton">
+            <div v-for="i in 3" :key="i" class="hot-card-skeleton">
+              <div class="skeleton-cover-sm"></div>
+              <div class="skeleton-content">
+                <div class="skeleton-line w60"></div>
+                <div class="skeleton-line w40"></div>
+                <div class="skeleton-line w80"></div>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
 
         <!-- 热门列表 -->
-        <div v-else-if="hotItems.length > 0" class="item-scroll">
-          <div
-            v-for="(item, index) in hotItems"
-            :key="item.id"
-            class="item-card"
-            @click="goToRatingItem(item)"
-          >
-            <!-- 封面图 -->
-            <div class="item-cover">
-              <img
-                v-if="item.url"
-                :src="item.url"
-                :alt="item.name"
-                loading="lazy"
-              />
-              <div v-else class="cover-placeholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
+        <template v-else-if="hotItems.length > 0">
+          <!-- Top 3 大卡片 -->
+          <div class="hot-top-list">
+            <div
+              v-for="(item, index) in hotItems.slice(0, 3)"
+              :key="item.id"
+              class="hot-card"
+              @click="goToRatingItem(item)"
+            >
+              <div class="hot-card-rank" :class="`rank-${index + 1}`">{{ index + 1 }}</div>
+              <span class="hot-card-count">{{ item.ratingCount }}人评分</span>
+              <div class="hot-card-cover">
+                <img v-if="item.url" :src="item.url" :alt="item.name" loading="lazy" />
+                <div v-else class="cover-placeholder-mini">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
               </div>
-              <!-- 评分标签 -->
-              <div class="score-badge">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                <span>{{ formatScore(item.averageScore) }}</span>
-              </div>
-              <!-- 排名标签 -->
-              <div v-if="index < 3" class="rank-badge" :class="`rank-${index + 1}`">
-                {{ index + 1 }}
-              </div>
-            </div>
-            <!-- 信息区 -->
-            <div class="item-info">
-              <h3 class="item-name">{{ item.name }}</h3>
-              <p class="item-breadcrumb">{{ getBreadcrumbDisplayName(item.breadcrumb) }}</p>
-              <div class="item-stats">
-                <span class="stat-item">{{ item.ratingCount }} 人评分</span>
+              <div class="hot-card-info">
+                <h3 class="hot-card-name">{{ item.name }}</h3>
+                <div class="hot-card-rating">
+                  <div class="stars-display">
+                    <svg v-for="star in 5" :key="star" viewBox="0 0 24 24" :class="{ filled: star <= Math.round(item.averageScore / 2) }">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                  <span class="score-text">{{ formatScore(item.averageScore) }}</span>
+                </div>
+                <div v-if="item.topComment" class="hot-card-comment">
+                  <span class="comment-text">"{{ item.topComment.commentText }}" —— {{ item.topComment.nickname }}</span>
+                </div>
+                <div v-else class="hot-card-comment empty">
+                  <span class="comment-text">"快来抢沙发吧！"</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- 更多热门（横向滚动） -->
+          <div v-if="hotItems.length > 3" class="hot-more">
+            <div class="hot-more-header">
+              <span class="hot-more-label">更多热门</span>
+            </div>
+            <div class="hot-scroll">
+              <div
+                v-for="(item, index) in hotItems.slice(3)"
+                :key="item.id"
+                class="hot-scroll-card"
+                @click="goToRatingItem(item)"
+              >
+                <div class="hot-scroll-cover">
+                  <img v-if="item.url" :src="item.url" :alt="item.name" loading="lazy" />
+                  <div v-else class="cover-placeholder-mini">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                  <div class="scroll-score-badge">{{ formatScore(item.averageScore) }}</div>
+                </div>
+                <div class="hot-scroll-info">
+                  <h4 class="hot-scroll-name">{{ item.name }}</h4>
+                  <span class="hot-scroll-count">{{ item.ratingCount }}人评分</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
 
         <!-- 空状态 -->
         <div v-else class="empty-state small">
@@ -686,98 +703,466 @@ function showFinalTour() {
   width: 100%;
 }
 
-/* ===== Hero Banner ===== */
-.hero-banner {
-  position: relative;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-lg);
+/* ===== Top Section ===== */
+.top-section {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-.hero-content {
-  position: relative;
-  z-index: 1;
-}
-
-.hero-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  margin-bottom: var(--spacing-xs);
-  letter-spacing: -0.02em;
-}
-
-.hero-subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-/* 仅桌面端显示 */
-.desktop-only {
-  display: none;
-}
-
-.my-contributions-btn {
-  display: inline-flex;
+.search-box {
+  flex: 1;
+  display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  background: var(--color-bg);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.my-contributions-btn:hover {
-  color: var(--color-primary);
+.search-box:hover {
   border-color: var(--color-primary);
   background: var(--color-primary-bg);
 }
 
-.my-contributions-btn svg {
+.search-box:active {
+  transform: scale(0.99);
+}
+
+.search-box svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.search-box span {
+  font-size: var(--text-sm);
+  color: var(--color-text-placeholder);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quick-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.quick-action-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quick-action-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.quick-action-btn:active {
+  transform: scale(0.95);
+}
+
+.quick-action-btn svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-secondary);
+}
+
+.quick-action-btn:hover svg {
+  color: var(--color-primary);
+}
+
+.quick-action-btn.guide-btn {
+  width: auto;
+  padding: 0 var(--spacing-sm);
+  gap: 4px;
+}
+
+.quick-action-btn.guide-btn span {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.quick-action-btn.guide-btn:hover span {
+  color: var(--color-primary);
+}
+
+/* ===== Category Pills ===== */
+.category-pills {
+  display: flex;
+  gap: var(--spacing-xs);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.category-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.category-pill:hover {
+  border-color: var(--pill-color, var(--color-primary));
+  background: var(--pill-bg, var(--color-primary-bg));
+  color: var(--pill-color, var(--color-primary));
+}
+
+.category-pill:active {
+  transform: scale(0.96);
+}
+
+.category-pill svg {
   width: 14px;
   height: 14px;
+  color: var(--pill-color, var(--color-text-secondary));
 }
 
-.hero-decoration {
+/* 胶囊颜色主题 */
+.category-pill-1 { --pill-color: #FF6B6B; --pill-bg: rgba(255, 107, 107, 0.1); }
+.category-pill-2 { --pill-color: #4ECDC4; --pill-bg: rgba(78, 205, 196, 0.1); }
+.category-pill-3 { --pill-color: #A29BFE; --pill-bg: rgba(162, 155, 254, 0.1); }
+.category-pill-4 { --pill-color: #FDCB6E; --pill-bg: rgba(253, 203, 110, 0.1); }
+
+.category-pill-skeleton {
+  width: 80px;
+  height: 32px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ===== Hot Section ===== */
+.hot-section.content-card {
+  overflow: visible;
+}
+
+.header-stat {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* Hot Top List (Top 3) */
+.hot-top-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+}
+
+.hot-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.hot-card:hover {
+  background: var(--color-bg-hover);
+}
+
+.hot-card:active {
+  transform: scale(0.995);
+}
+
+.hot-card-rank {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
+  top: -4px;
+  left: -4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  color: white;
+  border-radius: var(--radius-sm);
+  z-index: 1;
+}
+
+.hot-card-rank.rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); }
+.hot-card-rank.rank-2 { background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%); }
+.hot-card-rank.rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #B8860B 100%); }
+
+.hot-card-count {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+}
+
+.hot-card-cover {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
-.float-icon {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
+.hot-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-placeholder-mini {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
+}
+
+:root.dark .cover-placeholder-mini {
+  background: linear-gradient(135deg, #1e2538 0%, #252d40 100%);
+}
+
+.cover-placeholder-mini svg {
   width: 20px;
   height: 20px;
   color: var(--color-primary);
-  opacity: 0.4;
-  animation: float 3s ease-in-out infinite;
-  animation-delay: var(--delay);
+  opacity: 0.5;
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-8px) rotate(5deg);
-  }
+.hot-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
+
+.hot-card-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hot-card-rating {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.stars-display {
+  display: flex;
+  gap: 1px;
+}
+
+.stars-display svg {
+  width: 12px;
+  height: 12px;
+  fill: var(--color-border);
+  stroke: none;
+}
+
+.stars-display svg.filled {
+  fill: var(--color-warning);
+}
+
+.score-text {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
+}
+
+.rating-count {
+  font-size: 11px;
+  color: var(--color-text-placeholder);
+}
+
+.hot-card-comment {
+  margin-top: 2px;
+}
+
+.hot-card-comment .comment-text {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hot-card-comment.empty .comment-text {
+  color: var(--color-text-placeholder);
+}
+
+/* Hot More (Horizontal Scroll) */
+.hot-more {
+  padding: 0 var(--spacing-sm) var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-sm);
+}
+
+.hot-more-header {
+  margin-bottom: var(--spacing-xs);
+}
+
+.hot-more-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.hot-scroll {
+  display: flex;
+  gap: var(--spacing-sm);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-xs);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hot-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.hot-scroll-card {
+  flex-shrink: 0;
+  width: 100px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.hot-scroll-card:hover {
+  transform: translateY(-2px);
+}
+
+.hot-scroll-card:active {
+  transform: scale(0.98);
+}
+
+.hot-scroll-cover {
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: var(--spacing-xs);
+}
+
+.hot-scroll-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scroll-score-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  color: var(--color-warning);
+}
+
+.hot-scroll-info {
+  text-align: center;
+}
+
+.hot-scroll-name {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.hot-scroll-count {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+}
+
+/* Hot Skeleton */
+.hot-top-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+}
+
+.hot-card-skeleton {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.skeleton-cover-sm {
+  width: 52px;
+  height: 52px;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.skeleton-line {
+  height: 12px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line.w60 { width: 60%; }
+.skeleton-line.w40 { width: 40%; }
+.skeleton-line.w80 { width: 80%; }
 
 /* ===== Content Card ===== */
 .content-card {
@@ -812,91 +1197,6 @@ function showFinalTour() {
 
 .card-header-title .title-icon.hot {
   color: #FF6B6B;
-}
-
-/* ===== Section Grid (分区卡片) ===== */
-.section-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm);
-}
-
-.section-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-}
-
-.section-item:hover {
-  background: var(--color-bg-hover);
-}
-
-.section-item:active {
-  transform: scale(0.96);
-}
-
-/* 分区颜色主题 */
-.section-item-1 { --item-color: #FF6B6B; --item-bg: rgba(255, 107, 107, 0.1); }
-.section-item-2 { --item-color: #4ECDC4; --item-bg: rgba(78, 205, 196, 0.1); }
-.section-item-3 { --item-color: #A29BFE; --item-bg: rgba(162, 155, 254, 0.1); }
-.section-item-4 { --item-color: #FDCB6E; --item-bg: rgba(253, 203, 110, 0.1); }
-
-.section-icon {
-  width: 36px;
-  height: 36px;
-  background: var(--item-bg);
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 4px;
-  color: var(--item-color);
-}
-
-.section-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.section-name {
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-text);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-/* Skeleton */
-.section-card-skeleton {
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-md);
-  min-height: 100px;
-}
-
-.skeleton-icon {
-  width: 36px;
-  height: 36px;
-  background: var(--color-border);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-sm);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.skeleton-text {
-  height: 16px;
-  width: 60%;
-  background: var(--color-border);
-  border-radius: var(--radius-sm);
-  animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
@@ -1248,29 +1548,86 @@ function showFinalTour() {
 
 /* ===== Desktop ===== */
 @media (min-width: 640px) {
-  .desktop-only {
-    display: block;
-  }
-
-  .my-contributions-btn.desktop-only {
-    display: inline-flex;
-  }
-
   .page-content {
     padding: var(--spacing-lg);
   }
 
-  .hero-banner {
-    padding: var(--spacing-xl);
+  .search-box {
+    padding: var(--spacing-sm) var(--spacing-lg);
   }
 
-  .hero-title {
-    font-size: var(--text-xl);
+  .search-box span {
+    font-size: var(--text-base);
   }
 
-  .float-icon {
-    width: 24px;
-    height: 24px;
+  .quick-action-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .category-pill {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--text-sm);
+  }
+
+  .category-pill svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Hot section desktop styles */
+  .hot-top-list {
+    padding: var(--spacing-md);
+  }
+
+  .hot-more {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+    padding-top: var(--spacing-sm);
+  }
+
+  .hot-card {
+    padding: var(--spacing-md);
+  }
+
+  .hot-card-cover {
+    width: 60px;
+    height: 60px;
+  }
+
+  .hot-card-name {
+    font-size: var(--text-base);
+  }
+
+  .hot-card-rank {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .stars-display svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .score-text {
+    font-size: var(--text-sm);
+  }
+
+  .hot-card-comment .comment-text {
+    font-size: var(--text-xs);
+  }
+
+  .hot-scroll-card {
+    width: 120px;
+  }
+
+  .hot-scroll-cover {
+    width: 120px;
+    height: 120px;
+  }
+
+  .hot-scroll-name {
+    font-size: var(--text-sm);
   }
 
   .card-header {
@@ -1279,25 +1636,6 @@ function showFinalTour() {
 
   .card-header-title {
     font-size: var(--text-base);
-  }
-
-  .section-grid {
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md);
-  }
-
-  .section-icon {
-    width: 44px;
-    height: 44px;
-  }
-
-  .section-icon svg {
-    width: 22px;
-    height: 22px;
-  }
-
-  .section-name {
-    font-size: var(--text-sm);
   }
 
   .item-scroll {
@@ -1325,6 +1663,20 @@ function showFinalTour() {
 @media (min-width: 768px) {
   .page-content {
     max-width: 900px;
+  }
+
+  .hot-card-cover {
+    width: 68px;
+    height: 68px;
+  }
+
+  .hot-scroll-card {
+    width: 140px;
+  }
+
+  .hot-scroll-cover {
+    width: 140px;
+    height: 140px;
   }
 
   .item-card,

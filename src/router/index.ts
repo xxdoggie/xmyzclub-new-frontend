@@ -135,6 +135,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/community/search',
+      name: 'community-search',
+      component: () => import('../pages/CommunitySearchPage.vue'),
+      meta: {
+        level: 2,
+        title: '搜索',
+        parent: 'community',
+      },
+    },
+    {
       path: '/wall',
       name: 'wall',
       component: () => import('../pages/WallPage.vue'),

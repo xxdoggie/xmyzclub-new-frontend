@@ -166,7 +166,8 @@ onMounted(() => {
           <input
             ref="searchInputRef"
             v-model="searchKeyword"
-            type="text"
+            type="search"
+            enterkeyhint="search"
             class="search-input"
             placeholder="搜索食堂、建筑、课程..."
             @keydown="handleKeydown"
@@ -175,6 +176,11 @@ onMounted(() => {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <button class="search-trigger-btn" @click="handleSearch" :disabled="!searchKeyword.trim()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </button>
         </div>
@@ -203,7 +209,7 @@ onMounted(() => {
           </svg>
         </div>
         <h2>搜索评分项目</h2>
-        <p>输入关键词后按回车搜索</p>
+        <p>输入关键词，点击箭头或按回车搜索</p>
       </div>
 
       <!-- 空状态：无结果 -->
@@ -377,6 +383,41 @@ onMounted(() => {
 .clear-btn svg {
   width: 12px;
   height: 12px;
+}
+
+.search-trigger-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-full);
+  color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.search-trigger-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.search-trigger-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.search-trigger-btn:disabled {
+  background: var(--color-border);
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
+}
+
+.search-trigger-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* ===== Filter Section ===== */

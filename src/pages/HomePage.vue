@@ -1370,8 +1370,8 @@ function toggleMobileMenu() {
 
 /* ===== Banner Section ===== */
 .banner-section {
-  padding: var(--spacing-md);
-  padding-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
 }
 
 .banner-container {
@@ -1485,8 +1485,8 @@ function toggleMobileMenu() {
 /* ===== Entry Section ===== */
 .entry-section {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
-  padding-bottom: var(--spacing-xl);
+  padding: var(--spacing-sm);
+  padding-bottom: var(--spacing-lg);
 }
 
 .entry-container {
@@ -1494,7 +1494,7 @@ function toggleMobileMenu() {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 /* Main Entry Cards */
@@ -1593,8 +1593,8 @@ function toggleMobileMenu() {
 .secondary-entries {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-xs);
+  gap: var(--spacing-sm);
+  margin-top: 0;
 }
 
 .secondary-card {

@@ -377,12 +377,13 @@ function showFinalTour() {
               <rect x="9" y="3" width="6" height="4" rx="1"></rect>
             </svg>
           </button>
-          <button class="quick-action-btn" @click="startGuidedTour">
+          <button class="quick-action-btn guide-btn" @click="startGuidedTour">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 16v-4"></path>
-              <path d="M12 8h.01"></path>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <path d="M12 17h.01"></path>
             </svg>
+            <span>引导</span>
           </button>
         </div>
       </div>
@@ -447,7 +448,7 @@ function showFinalTour() {
             </svg>
             热门评分
           </h2>
-          <span v-if="hotItems.length > 0" class="header-stat">{{ hotItems.reduce((sum, item) => sum + item.ratingCount, 0).toLocaleString() }}+ 评价</span>
+          <span v-if="hotItems.length > 0" class="header-stat">{{ hotItems.reduce((sum, item) => sum + item.ratingCount, 0) }}+ 评价</span>
         </div>
 
         <!-- 加载状态 -->
@@ -475,6 +476,7 @@ function showFinalTour() {
               @click="goToRatingItem(item)"
             >
               <div class="hot-card-rank" :class="`rank-${index + 1}`">{{ index + 1 }}</div>
+              <span class="hot-card-count">{{ item.ratingCount }}人评分</span>
               <div class="hot-card-cover">
                 <img v-if="item.url" :src="item.url" :alt="item.name" loading="lazy" />
                 <div v-else class="cover-placeholder-mini">
@@ -492,10 +494,9 @@ function showFinalTour() {
                     </svg>
                   </div>
                   <span class="score-text">{{ formatScore(item.averageScore) }}</span>
-                  <span class="rating-count">{{ item.ratingCount }}人评分</span>
                 </div>
                 <div v-if="item.topComment" class="hot-card-comment">
-                  <span class="comment-text">"{{ item.topComment.commentText }}"</span>
+                  <span class="comment-text">"{{ item.topComment.commentText }}" —— {{ item.topComment.username }}</span>
                 </div>
                 <div v-else class="hot-card-comment empty">
                   <span class="comment-text">"快来抢沙发吧！"</span>
@@ -784,6 +785,21 @@ function showFinalTour() {
   color: var(--color-primary);
 }
 
+.quick-action-btn.guide-btn {
+  width: auto;
+  padding: 0 var(--spacing-sm);
+  gap: 4px;
+}
+
+.quick-action-btn.guide-btn span {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.quick-action-btn.guide-btn:hover span {
+  color: var(--color-primary);
+}
+
 /* ===== Category Pills ===== */
 .category-pills {
   display: flex;
@@ -904,6 +920,14 @@ function showFinalTour() {
 .hot-card-rank.rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); }
 .hot-card-rank.rank-2 { background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%); }
 .hot-card-rank.rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #B8860B 100%); }
+
+.hot-card-count {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+}
 
 .hot-card-cover {
   width: 52px;

@@ -439,15 +439,15 @@ function showFinalTour() {
       </div>
 
       <!-- 热门评分 -->
-      <div id="tour-hot-section" class="hot-section">
-        <div class="section-header">
-          <h2 class="section-title">
-            <svg class="title-icon-hot" viewBox="0 0 24 24" fill="currentColor">
+      <div id="tour-hot-section" class="content-card hot-section">
+        <div class="card-header">
+          <h2 class="card-header-title">
+            <svg class="title-icon hot" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 23c-4.97 0-9-3.58-9-8 0-1.95.7-3.76 1.86-5.14A7.5 7.5 0 0 1 9 5c0 .91.2 1.76.56 2.53.49 1.03 1.24 1.91 2.19 2.55A6.18 6.18 0 0 0 12 5.5a5.87 5.87 0 0 1 5.14 3A9.03 9.03 0 0 1 21 15c0 4.42-4.03 8-9 8z"></path>
             </svg>
             热门评分
           </h2>
-          <span v-if="hotItems.length > 0" class="section-stat">{{ hotItems.reduce((sum, item) => sum + item.ratingCount, 0).toLocaleString() }}+ 评价</span>
+          <span v-if="hotItems.length > 0" class="header-stat">{{ hotItems.reduce((sum, item) => sum + item.ratingCount, 0).toLocaleString() }}+ 评价</span>
         </div>
 
         <!-- 加载状态 -->
@@ -492,7 +492,7 @@ function showFinalTour() {
                     </svg>
                   </div>
                   <span class="score-text">{{ formatScore(item.averageScore) }}</span>
-                  <span class="rating-count">{{ item.ratingCount }}人</span>
+                  <span class="rating-count">{{ item.ratingCount }}人评分</span>
                 </div>
                 <div v-if="item.topComment" class="hot-card-comment">
                   <span class="comment-text">"{{ item.topComment.commentText }}"</span>
@@ -527,7 +527,7 @@ function showFinalTour() {
                 </div>
                 <div class="hot-scroll-info">
                   <h4 class="hot-scroll-name">{{ item.name }}</h4>
-                  <span class="hot-scroll-count">{{ item.ratingCount }}人评</span>
+                  <span class="hot-scroll-count">{{ item.ratingCount }}人评分</span>
                 </div>
               </div>
             </div>
@@ -848,32 +848,11 @@ function showFinalTour() {
 }
 
 /* ===== Hot Section ===== */
-.hot-section {
-  margin-bottom: var(--spacing-md);
+.hot-section.content-card {
+  overflow: visible;
 }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-sm);
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-}
-
-.title-icon-hot {
-  width: 16px;
-  height: 16px;
-  color: #FF6B6B;
-}
-
-.section-stat {
+.header-stat {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
@@ -883,6 +862,7 @@ function showFinalTour() {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
 }
 
 .hot-card {
@@ -890,17 +870,15 @@ function showFinalTour() {
   align-items: flex-start;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
   position: relative;
 }
 
 .hot-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--color-bg-hover);
 }
 
 .hot-card:active {
@@ -1030,7 +1008,10 @@ function showFinalTour() {
 
 /* Hot More (Horizontal Scroll) */
 .hot-more {
-  margin-top: var(--spacing-md);
+  padding: 0 var(--spacing-sm) var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-sm);
 }
 
 .hot-more-header {
@@ -1121,15 +1102,15 @@ function showFinalTour() {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
 }
 
 .hot-card-skeleton {
   display: flex;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
 }
 
 .skeleton-cover-sm {
@@ -1570,11 +1551,16 @@ function showFinalTour() {
     height: 16px;
   }
 
-  .section-title {
-    font-size: var(--text-base);
+  /* Hot section desktop styles */
+  .hot-top-list {
+    padding: var(--spacing-md);
   }
 
-  /* Hot section desktop styles */
+  .hot-more {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+    padding-top: var(--spacing-sm);
+  }
+
   .hot-card {
     padding: var(--spacing-md);
   }

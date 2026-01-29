@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -19,7 +19,6 @@ const {
 
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const isMobileMenuOpen = ref(false)
-const currentBannerIndex = ref(0)
 
 // 退出确认弹窗
 const showLogoutConfirm = ref(false)
@@ -36,41 +35,7 @@ function toggleSection(section: 'nav' | 'admin' | 'account') {
   drawerSections.value[section] = !drawerSections.value[section]
 }
 
-// Banner 轮播数据
-const banners: Array<{
-  title: string
-  subtitle: string
-  gradient: string
-}> = [
-  {
-    title: '欢迎来到厦门一中学生社区',
-    subtitle: '厦门一中学生社区，又名文园九四三站台，于2023年底启用，是厦门一中最大的非官方学生社区，集成宿舍铃声投稿投票、活动抢票、评分社区、成绩查询等功能为一体，为所有厦门一中学生提供便捷的一站式服务。',
-    gradient: 'from-primary to-primary-dark',
-  },
-  {
-    title: '评分社区重新上线',
-    subtitle: '评分社区于2024年首次公开测试，模仿虎扑平台评分模式，一经推出便受到广泛好评。后续将开放用户自主上传评分项目功能，更多评分由你做主！',
-    gradient: 'from-secondary to-info',
-  },
-  {
-    title: '这是一张轮播图',
-    subtitle: '不要看了，这真的只是一张轮播图，只是我不知道放什么。或许你会对厦门高中生王者荣耀电竞联赛感兴趣吗？可以访问 xmkhsl.com 看看哦。',
-    gradient: 'from-accent to-warning',
-  },
-]
-
-// 当前 banner 计算属性（非空断言因为 index 永远在有效范围内）
-const currentBanner = computed(() => {
-  const banner = banners[currentBannerIndex.value]
-  return banner!
-})
-
-// 轮播自动切换
 onMounted(() => {
-  setInterval(() => {
-    currentBannerIndex.value = (currentBannerIndex.value + 1) % banners.length
-  }, 10000)
-
   // 检查是否需要启动评分社区引导
   if (shouldStartTour() && getCurrentStep() === TourStep.HOME_COMMUNITY_ENTRY) {
     setTimeout(() => {
@@ -146,10 +111,6 @@ function navigateTo(path: string) {
 
 function toggleMobileMenu() {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
-}
-
-function goToBanner(index: number) {
-  currentBannerIndex.value = index
 }
 </script>
 
@@ -578,153 +539,100 @@ function goToBanner(index: number) {
 
     <!-- Main Content -->
     <main class="main">
-      <!-- Hero Banner Section - 轻量现代风格 -->
-      <section class="hero-section">
-        <div class="hero-container">
-          <div class="hero-banner-modern">
-            <div class="hero-bg"></div>
-            <div class="hero-content">
-              <Transition name="fade" mode="out-in">
-                <div :key="currentBannerIndex" class="hero-text">
-                  <h2 class="hero-title">{{ currentBanner.title }}</h2>
-                  <p class="hero-subtitle">{{ currentBanner.subtitle }}</p>
-                </div>
-              </Transition>
-              <!-- Banner Indicators 内嵌 -->
-              <div class="hero-indicators-inline">
-                <button
-                  v-for="(_, index) in banners"
-                  :key="index"
-                  class="indicator-dot"
-                  :class="{ active: currentBannerIndex === index }"
-                  @click="goToBanner(index)"
-                ></button>
-              </div>
+      <!-- Welcome Section -->
+      <section class="welcome-section">
+        <div class="welcome-container">
+          <h2 class="welcome-title">👋 欢迎来到学生社区</h2>
+          <p class="welcome-subtitle">探索校园生活的每一个角落</p>
+        </div>
+      </section>
+
+      <!-- Main Entry Cards -->
+      <section class="entry-section">
+        <div class="entry-container">
+          <!-- 活动票务 -->
+          <router-link to="/ticket" class="entry-card entry-card-1">
+            <div class="entry-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
             </div>
-            <!-- 浮动装饰图标 -->
-            <div class="hero-decoration">
-              <svg class="float-icon" style="--delay: 0s; --x: 75%; --y: 15%;" viewBox="0 0 24 24" fill="currentColor">
+            <div class="entry-content">
+              <h3 class="entry-title">活动票务</h3>
+              <p class="entry-desc">在线抢票，不再错过精彩活动</p>
+            </div>
+            <div class="entry-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          </router-link>
+
+          <!-- 评分社区 -->
+          <router-link to="/community" id="tour-community-entry" class="entry-card entry-card-2">
+            <div class="entry-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
               </svg>
-              <svg class="float-icon" style="--delay: 0.5s; --x: 88%; --y: 40%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+            </div>
+            <div class="entry-content">
+              <h3 class="entry-title">评分社区</h3>
+              <p class="entry-desc">分享你的校园体验，查看真实评价</p>
+            </div>
+            <div class="entry-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
-              <svg class="float-icon" style="--delay: 1s; --x: 80%; --y: 70%;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </div>
+          </router-link>
+
+          <!-- 成绩查询 -->
+          <router-link to="/grade" class="entry-card entry-card-3">
+            <div class="entry-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
               </svg>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Quick Actions Section - 网格图标风格 -->
-      <section class="quick-section">
-        <div class="quick-container">
-          <div class="content-card">
-            <div class="card-header">
-              <h3 class="card-header-title">快捷入口</h3>
+            <div class="entry-content">
+              <h3 class="entry-title">成绩查询</h3>
+              <p class="entry-desc">快速查看你的考试成绩</p>
             </div>
-            <div class="quick-grid">
-              <router-link to="/ticket" class="quick-item quick-item-1">
-                <div class="quick-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                </div>
-                <span class="quick-label">活动抢票</span>
-              </router-link>
-
-              <router-link to="/ringtone" class="quick-item quick-item-2">
-                <div class="quick-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 18V5l12-2v13"></path>
-                    <circle cx="6" cy="18" r="3"></circle>
-                    <circle cx="18" cy="16" r="3"></circle>
-                  </svg>
-                </div>
-                <span class="quick-label">宿舍铃声</span>
-              </router-link>
-
-              <router-link to="/grade" class="quick-item quick-item-3">
-                <div class="quick-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
-                </div>
-                <span class="quick-label">分数查询</span>
-              </router-link>
-
-              <router-link to="/community" id="tour-community-entry" class="quick-item quick-item-4">
-                <div class="quick-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                </div>
-                <span class="quick-label">评分社区</span>
-              </router-link>
-
-              <router-link to="/wall" class="quick-item quick-item-5">
-                <div class="quick-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="3" y1="9" x2="21" y2="9"></line>
-                    <line x1="9" y1="21" x2="9" y2="9"></line>
-                  </svg>
-                </div>
-                <span class="quick-label">厦一万能墙</span>
-              </router-link>
+            <div class="entry-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
             </div>
-          </div>
-        </div>
-      </section>
+          </router-link>
 
-      <!-- Update Log Section -->
-      <section class="changelog-section">
-        <div class="changelog-container">
-          <div class="content-card">
-            <div class="card-header">
-              <h3 class="card-header-title">
-                <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <line x1="10" y1="9" x2="8" y2="9"></line>
+          <!-- 次要入口 -->
+          <div class="secondary-entries">
+            <router-link to="/ringtone" class="secondary-card secondary-card-1">
+              <div class="secondary-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
                 </svg>
-                更新日志
-              </h3>
-            </div>
-            <ul class="changelog-list">
-              <li class="changelog-item">
-                <div class="changelog-dot"></div>
-                <span>重新设计网站视觉效果，移动端体验更佳</span>
-              </li>
-              <li class="changelog-item">
-                <div class="changelog-dot"></div>
-                <span>重新设计宿舍铃声投稿/投票功能，修复投票时在部分设备上可能存在的歌曲重叠问题，并优化投稿时歌曲搜索相关逻辑</span>
-              </li>
-              <li class="changelog-item">
-                <div class="changelog-dot"></div>
-                <span>重新开放好分数账号绑定及成绩查询功能</span>
-              </li>
-              <li class="changelog-item">
-                <div class="changelog-dot"></div>
-                <span>重新开放评分社区，后续将启用用户自主上传功能</span>
-              </li>
-              <li class="changelog-item">
-                <div class="changelog-dot"></div>
-                <span>重新设计活动抢票视觉效果，优化操作逻辑</span>
-              </li>
-            </ul>
+              </div>
+              <span class="secondary-label">宿舍铃声</span>
+            </router-link>
+
+            <router-link to="/wall" class="secondary-card secondary-card-2">
+              <div class="secondary-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+              </div>
+              <span class="secondary-label">厦一万能墙</span>
+            </router-link>
           </div>
         </div>
       </section>
@@ -1339,260 +1247,182 @@ function goToBanner(index: number) {
 /* ===== Main Content ===== */
 .main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-/* ===== Hero Section - 轻量现代风格 ===== */
-.hero-section {
-  padding: var(--spacing-md);
-  padding-bottom: 0;
+/* ===== Welcome Section ===== */
+.welcome-section {
+  padding: var(--spacing-lg) var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
 }
 
-.hero-container {
-  max-width: 800px;
+.welcome-container {
+  max-width: 600px;
   margin: 0 auto;
 }
 
-.hero-banner-modern {
-  position: relative;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  padding: var(--spacing-lg);
+.welcome-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-xs);
 }
 
-.hero-banner-modern .hero-bg {
-  position: absolute;
-  inset: 0;
+.welcome-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ===== Entry Section ===== */
+.entry-section {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-bottom: var(--spacing-lg);
+}
+
+.entry-container {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Main Entry Cards */
+.entry-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-}
-
-.hero-banner-modern .hero-content {
-  position: relative;
-  z-index: 1;
-}
-
-.hero-banner-modern .hero-text {
-  margin-bottom: var(--spacing-sm);
-}
-
-.hero-banner-modern .hero-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  margin-bottom: var(--spacing-xs);
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-}
-
-.hero-banner-modern .hero-subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* 轮播指示点 - 内嵌样式 */
-.hero-indicators-inline {
-  display: flex;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-md);
-}
-
-.hero-indicators-inline .indicator-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-border);
-  border: none;
-  cursor: pointer;
+  text-decoration: none;
   transition: all var(--transition-fast);
 }
 
-.hero-indicators-inline .indicator-dot.active {
-  background: var(--color-primary);
-  width: 18px;
-  border-radius: var(--radius-full);
+.entry-card:hover {
+  border-color: var(--entry-color, var(--color-primary));
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
-/* 浮动装饰图标 */
-.hero-banner-modern .hero-decoration {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
+.entry-card:active {
+  transform: scale(0.995);
 }
 
-.hero-banner-modern .float-icon {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: 18px;
-  height: 18px;
-  color: var(--color-primary);
-  opacity: 0.35;
-  animation: float 3s ease-in-out infinite;
-  animation-delay: var(--delay);
-}
+/* Entry card colors */
+.entry-card-1 { --entry-color: #FF6B6B; --entry-bg: rgba(255, 107, 107, 0.1); }
+.entry-card-2 { --entry-color: #FDCB6E; --entry-bg: rgba(253, 203, 110, 0.1); }
+.entry-card-3 { --entry-color: #A29BFE; --entry-bg: rgba(162, 155, 254, 0.1); }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-6px) rotate(5deg);
-  }
-}
-
-/* ===== Quick Actions Section - 网格图标风格 ===== */
-.quick-section {
-  padding: var(--spacing-md);
-  padding-top: var(--spacing-sm);
-}
-
-.quick-container {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-/* 内容卡片 */
-.content-card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+.entry-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--entry-bg);
   border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.card-header-title {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--color-text);
-}
-
-/* 快捷入口网格 */
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm);
-}
-
-.quick-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-}
-
-.quick-item:hover {
-  background: var(--color-bg-hover, rgba(0, 0, 0, 0.03));
-}
-
-.quick-item:active {
-  transform: scale(0.96);
-}
-
-/* 快捷入口颜色主题 */
-.quick-item-1 { --item-color: #FF6B6B; --item-bg: rgba(255, 107, 107, 0.1); }
-.quick-item-2 { --item-color: #4ECDC4; --item-bg: rgba(78, 205, 196, 0.1); }
-.quick-item-3 { --item-color: #A29BFE; --item-bg: rgba(162, 155, 254, 0.1); }
-.quick-item-4 { --item-color: #FDCB6E; --item-bg: rgba(253, 203, 110, 0.1); }
-.quick-item-5 { --item-color: #74B9FF; --item-bg: rgba(116, 185, 255, 0.1); }
-
-.quick-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--item-bg);
-  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
-  color: var(--item-color);
-  transition: transform var(--transition-fast);
+  color: var(--entry-color);
+  flex-shrink: 0;
 }
 
-.quick-item:hover .quick-icon {
-  transform: scale(1.08);
+.entry-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
-.quick-icon svg {
+.entry-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.entry-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-arrow {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-placeholder);
+  flex-shrink: 0;
+}
+
+.entry-arrow svg {
   width: 20px;
   height: 20px;
 }
 
-.quick-label {
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-text);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+.entry-card:hover .entry-arrow {
+  color: var(--entry-color);
 }
 
-/* ===== Changelog Section ===== */
-.changelog-section {
-  padding: var(--spacing-md);
-  padding-top: 0;
-  padding-bottom: var(--spacing-lg);
+/* Secondary Entry Cards */
+.secondary-entries {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
 }
 
-.changelog-container {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-/* 标题图标样式 */
-.card-header-title .title-icon {
-  width: 16px;
-  height: 16px;
-  color: var(--color-primary);
-}
-
-.changelog-list {
-  list-style: none;
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin: 0;
+.secondary-card {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  transition: all var(--transition-fast);
 }
 
-.changelog-item {
+.secondary-card:hover {
+  border-color: var(--secondary-color, var(--color-primary));
+  background: var(--secondary-bg);
+}
+
+.secondary-card:active {
+  transform: scale(0.98);
+}
+
+/* Secondary card colors */
+.secondary-card-1 { --secondary-color: #4ECDC4; --secondary-bg: rgba(78, 205, 196, 0.05); }
+.secondary-card-2 { --secondary-color: #74B9FF; --secondary-bg: rgba(116, 185, 255, 0.05); }
+
+.secondary-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--secondary-bg, var(--color-border));
+  border-radius: var(--radius-full);
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  align-items: center;
+  justify-content: center;
+  color: var(--secondary-color, var(--color-text-secondary));
 }
 
-.changelog-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--color-primary);
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-top: 7px;
+.secondary-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.secondary-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
 }
 
 /* ===== Footer ===== */
@@ -1707,50 +1537,55 @@ function goToBanner(index: number) {
     display: block;
   }
 
-  /* 轮播图 Tablet 适配 */
-  .hero-banner-modern {
-    padding: var(--spacing-xl);
+  /* Welcome Section */
+  .welcome-section {
+    padding: var(--spacing-xl) var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
   }
 
-  .hero-banner-modern .hero-title {
-    font-size: var(--text-xl);
+  .welcome-title {
+    font-size: var(--text-2xl);
   }
 
-  .hero-banner-modern .hero-subtitle {
-    -webkit-line-clamp: 4;
+  .welcome-subtitle {
+    font-size: var(--text-base);
   }
 
-  .hero-banner-modern .float-icon {
-    width: 22px;
-    height: 22px;
+  /* Entry Section */
+  .entry-section {
+    padding: var(--spacing-md) var(--spacing-lg);
   }
 
-  /* 快捷入口 Tablet 适配 */
-  .quick-icon {
+  .entry-card {
+    padding: var(--spacing-lg);
+  }
+
+  .entry-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .entry-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .entry-title {
+    font-size: var(--text-lg);
+  }
+
+  .secondary-card {
+    padding: var(--spacing-lg);
+  }
+
+  .secondary-icon {
     width: 48px;
     height: 48px;
   }
 
-  .quick-icon svg {
+  .secondary-icon svg {
     width: 24px;
     height: 24px;
-  }
-
-  .quick-label {
-    font-size: var(--text-sm);
-  }
-
-  .card-header {
-    padding: var(--spacing-md);
-  }
-
-  .card-header-title {
-    font-size: var(--text-base);
-  }
-
-  .quick-grid {
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md);
   }
 }
 
@@ -2011,57 +1846,23 @@ function goToBanner(index: number) {
     min-width: 0;
   }
 
-  /* 轮播图 Desktop 适配 */
-  .hero-section {
-    padding: var(--spacing-lg) var(--spacing-xl);
-    padding-bottom: 0;
+  /* Welcome & Entry Desktop 适配 */
+  .welcome-section {
+    padding: var(--spacing-2xl) var(--spacing-xl);
+    padding-bottom: var(--spacing-md);
   }
 
-  .hero-container {
-    max-width: 900px;
+  .welcome-container,
+  .entry-container {
+    max-width: 700px;
   }
 
-  .hero-banner-modern {
-    padding: var(--spacing-2xl);
+  .entry-section {
+    padding: var(--spacing-md) var(--spacing-xl);
+    padding-bottom: var(--spacing-2xl);
   }
 
-  .hero-banner-modern .hero-title {
-    font-size: var(--text-2xl);
-  }
-
-  .hero-banner-modern .hero-subtitle {
-    font-size: var(--text-base);
-    -webkit-line-clamp: none;
-    display: block;
-  }
-
-  .hero-banner-modern .float-icon {
-    width: 26px;
-    height: 26px;
-  }
-
-  /* 快捷入口 Desktop 适配 */
-  .quick-section,
-  .changelog-section {
-    padding: var(--spacing-xl);
-  }
-
-  .quick-container,
-  .changelog-container {
-    max-width: 900px;
-  }
-
-  .quick-icon {
-    width: 52px;
-    height: 52px;
-  }
-
-  .quick-icon svg {
-    width: 26px;
-    height: 26px;
-  }
-
-  .changelog-card {
+  .entry-card {
     padding: var(--spacing-lg);
   }
 
@@ -2088,12 +1889,16 @@ function goToBanner(index: number) {
 /* ===== Responsive - Large Desktop ===== */
 @media (min-width: 1280px) {
   .header-container,
-  .hero-container,
-  .quick-container,
-  .changelog-container,
+  .welcome-container,
+  .entry-container,
   .footer-container {
     padding-left: var(--spacing-2xl);
     padding-right: var(--spacing-2xl);
+  }
+
+  .welcome-container,
+  .entry-container {
+    max-width: 800px;
   }
 }
 

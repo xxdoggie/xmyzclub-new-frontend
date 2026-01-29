@@ -208,6 +208,11 @@ function getCurrentStep(): TourStepType {
   return currentStep.value
 }
 
+// 检查是否在引导的星星评分交互步骤（用于跳过登录检查）
+function isInStarRatingTour(): boolean {
+  return !isCompleted.value && currentStep.value === TourStep.RATING_ITEM_STARS
+}
+
 export function useScoringTour() {
   return {
     // 状态
@@ -227,5 +232,6 @@ export function useScoringTour() {
     destroyDriver,
     shouldStartTour,
     getCurrentStep,
+    isInStarRatingTour,
   }
 }

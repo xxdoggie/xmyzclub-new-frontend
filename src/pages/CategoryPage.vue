@@ -21,6 +21,7 @@ const {
   saveStep,
   highlightElement,
   destroyDriver,
+  isInStarRatingTour,
 } = useScoringTour()
 
 // 获取路由参数
@@ -168,6 +169,13 @@ function getDisplayStars(item: RatingItem): number {
 // 星星评分点击
 async function handleStarClick(item: RatingItem, star: number, event: Event) {
   event.stopPropagation()
+
+  // 在引导模式下，只做视觉反馈，不触发登录和实际评分
+  if (isInStarRatingTour()) {
+    item.myStars = star
+    item.myScore = star * 2
+    return
+  }
 
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
@@ -413,10 +421,14 @@ function showCardTour() {
 
 // 步骤9：星星评分
 function showStarsTour() {
+  const description = userStore.isLoggedIn
+    ? '点击星星可以直接对该项目进行评分。现在试试给它打个分吧！'
+    : '点击星星可以直接对该项目进行评分。现在试试点击星星体验一下吧！（登录后即可真正评分）'
+
   highlightElement(
     '#tour-star-rating',
     '快速评分',
-    '点击星星可以直接对该项目进行评分。现在试试给它打个分吧！',
+    description,
     {
       side: 'left',
       nextBtnText: '进入详情',

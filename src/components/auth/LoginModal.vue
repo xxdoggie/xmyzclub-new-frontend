@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { getCampusCaptcha, getQQAuthorizeUrl } from '@/api/auth'
+import { sendSmsCode } from '@/api/sms'
 
 const props = defineProps<{
   show: boolean
@@ -19,13 +20,13 @@ const userStore = useUserStore()
 const toast = useToast()
 
 // Tab 切换
-type TabType = 'login' | 'register' | 'campus'
+type TabType = 'login' | 'register' | 'campus' | 'sms'
 const activeTab = ref<TabType>('login')
 const prevTab = ref<TabType>('login')
 const tabDirection = ref<'left' | 'right'>('right')
 
-// Tab 顺序: login(0) < register(1) < campus(2)
-const tabOrder: Record<TabType, number> = { login: 0, register: 1, campus: 2 }
+// Tab 顺序: login(0) < sms(1) < register(2) < campus(3)
+const tabOrder: Record<TabType, number> = { login: 0, sms: 1, register: 2, campus: 3 }
 
 function switchTab(newTab: TabType) {
   const oldOrder = tabOrder[activeTab.value]
@@ -71,8 +72,16 @@ const campusForm = ref({
   jsessionId: '',
 })
 
+const smsForm = ref({
+  phoneNumber: '',
+  code: '',
+})
+
 // 状态
 const loading = ref(false)
+const smsSending = ref(false)
+const smsCountdown = ref(0)
+let smsCountdownTimer: ReturnType<typeof setInterval> | null = null
 const campusCaptchaImage = ref('')
 const captchaLoading = ref(false)
 
@@ -228,6 +237,86 @@ async function handleCampusLogin() {
   }
 }
 
+// 发送短信验证码
+async function handleSendSmsCode() {
+  const { phoneNumber } = smsForm.value
+  if (!phoneNumber) {
+    toast.warning('请输入手机号')
+    return
+  }
+  if (!/^1[3-9]\d{9}$/.test(phoneNumber)) {
+    toast.warning('请输入正确的手机号')
+    return
+  }
+
+  smsSending.value = true
+
+  try {
+    const res = await sendSmsCode(phoneNumber, 'login')
+    if (res.data.code === 200) {
+      toast.success('验证码已发送')
+      // 开始倒计时
+      smsCountdown.value = res.data.data.cooldownSeconds || 60
+      smsCountdownTimer = setInterval(() => {
+        smsCountdown.value--
+        if (smsCountdown.value <= 0) {
+          if (smsCountdownTimer) {
+            clearInterval(smsCountdownTimer)
+            smsCountdownTimer = null
+          }
+        }
+      }, 1000)
+    } else {
+      toast.error(res.data.message || '发送失败')
+    }
+  } catch {
+    toast.error('网络错误，请稍后重试')
+  } finally {
+    smsSending.value = false
+  }
+}
+
+// 短信登录
+async function handleSmsLogin() {
+  const { phoneNumber, code } = smsForm.value
+  if (!phoneNumber) {
+    toast.warning('请输入手机号')
+    return
+  }
+  if (!/^1[3-9]\d{9}$/.test(phoneNumber)) {
+    toast.warning('请输入正确的手机号')
+    return
+  }
+  if (!code) {
+    toast.warning('请输入验证码')
+    return
+  }
+  if (!/^\d{6}$/.test(code)) {
+    toast.warning('验证码为6位数字')
+    return
+  }
+
+  loading.value = true
+
+  try {
+    const result = await userStore.smsLogin(phoneNumber, code)
+    if (result.code === 200) {
+      if (result.data.isNewUser) {
+        toast.success('欢迎！建议您前往设置页修改用户名')
+      } else {
+        toast.success('登录成功')
+      }
+      handleLoginSuccess()
+    } else {
+      toast.error(result.message || '登录失败')
+    }
+  } catch {
+    toast.error('网络错误，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
 // QQ 登录
 async function handleQQLogin() {
   loading.value = true
@@ -305,14 +394,21 @@ onMounted(() => {
               :class="{ active: activeTab === 'login' }"
               @click="switchTab('login')"
             >
-              普通登录
+              密码登录
+            </button>
+            <button
+              class="login-tab"
+              :class="{ active: activeTab === 'sms' }"
+              @click="switchTab('sms')"
+            >
+              短信登录
             </button>
             <button
               class="login-tab"
               :class="{ active: activeTab === 'campus' }"
               @click="switchTab('campus')"
             >
-              校园网登录
+              校园网
             </button>
           </div>
 
@@ -399,6 +495,64 @@ onMounted(() => {
                 </svg>
               </button>
             </div>
+          </div>
+
+          <!-- 短信登录表单 -->
+          <div v-else-if="activeTab === 'sms'" key="sms" class="modal-body">
+            <div class="form-group">
+              <label class="form-label">手机号</label>
+              <input
+                v-model="smsForm.phoneNumber"
+                type="tel"
+                class="form-input"
+                placeholder="请输入手机号"
+                maxlength="11"
+                :disabled="loading"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">验证码</label>
+              <div class="sms-code-row">
+                <input
+                  v-model="smsForm.code"
+                  type="text"
+                  class="form-input sms-code-input"
+                  placeholder="6位验证码"
+                  maxlength="6"
+                  :disabled="loading"
+                  @keyup.enter="handleSmsLogin"
+                />
+                <button
+                  type="button"
+                  class="sms-send-btn"
+                  :disabled="loading || smsSending || smsCountdown > 0"
+                  @click="handleSendSmsCode"
+                >
+                  {{ smsCountdown > 0 ? `${smsCountdown}s` : (smsSending ? '发送中' : '获取验证码') }}
+                </button>
+              </div>
+            </div>
+
+            <button
+              class="btn btn-primary btn-block btn-touch"
+              :disabled="loading"
+              @click="handleSmsLogin"
+            >
+              {{ loading ? '登录中...' : '登录' }}
+            </button>
+
+            <div class="login-footer">
+              <span class="login-footer-text">没有账号？</span>
+              <button
+                class="btn btn-link"
+                :disabled="loading"
+                @click="switchTab('register')"
+              >
+                立即注册
+              </button>
+            </div>
+
+            <p class="campus-hint">首次使用手机号登录将自动创建账号</p>
           </div>
 
           <!-- 注册表单 -->
@@ -775,6 +929,43 @@ onMounted(() => {
 
 .captcha-input {
   flex: 1;
+}
+
+/* 短信验证码行 */
+.sms-code-row {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.sms-code-input {
+  flex: 1;
+}
+
+.sms-send-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.sms-send-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.sms-send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--color-bg);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .captcha-image {

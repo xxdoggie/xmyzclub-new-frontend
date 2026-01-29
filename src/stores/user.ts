@@ -8,9 +8,11 @@ import type {
   UpdateProfileRequest,
   CampusBindingInfo,
   QQBindingInfo,
+  SmsBindingInfo,
 } from '@/types/user'
 import * as authApi from '@/api/auth'
 import * as userApi from '@/api/user'
+import * as smsApi from '@/api/sms'
 
 const TOKEN_KEY = 'token'
 const USER_KEY = 'user'
@@ -31,6 +33,7 @@ export const useUserStore = defineStore('user', () => {
   // 绑定信息
   const campusBinding = ref<CampusBindingInfo | null>(null)
   const qqBinding = ref<QQBindingInfo | null>(null)
+  const phoneBinding = ref<SmsBindingInfo | null>(null)
 
   // 用户权限
   const permissions = ref<string[]>([])
@@ -261,6 +264,7 @@ export const useUserStore = defineStore('user', () => {
     profile.value = null
     campusBinding.value = null
     qqBinding.value = null
+    phoneBinding.value = null
     permissions.value = []
     permissionsFetched.value = false
     clearLocalStorage()
@@ -430,6 +434,53 @@ export const useUserStore = defineStore('user', () => {
     return res.data
   }
 
+  // ==================== 手机号登录/绑定 ====================
+
+  /**
+   * 手机号登录
+   */
+  async function smsLogin(phoneNumber: string, code: string) {
+    const res = await smsApi.smsLogin(phoneNumber, code)
+    if (res.data.code === 200) {
+      setLoginData(res.data.data)
+    }
+    return res.data
+  }
+
+  /**
+   * 获取手机号绑定信息
+   */
+  async function fetchPhoneBinding() {
+    const res = await smsApi.getPhoneBinding()
+    if (res.data.code === 200) {
+      phoneBinding.value = res.data.data
+    }
+    return res.data
+  }
+
+  /**
+   * 绑定手机号
+   */
+  async function bindPhone(phoneNumber: string, code: string) {
+    const res = await smsApi.bindPhone(phoneNumber, code)
+    if (res.data.code === 200) {
+      // 重新获取绑定信息
+      await fetchPhoneBinding()
+    }
+    return res.data
+  }
+
+  /**
+   * 解绑手机号
+   */
+  async function unbindPhone() {
+    const res = await smsApi.unbindPhone()
+    if (res.data.code === 200) {
+      phoneBinding.value = { bound: false }
+    }
+    return res.data
+  }
+
   /**
    * 打开登录 Modal
    */
@@ -471,6 +522,7 @@ export const useUserStore = defineStore('user', () => {
     profile,
     campusBinding,
     qqBinding,
+    phoneBinding,
     permissions,
     showLoginModal,
     loginModalMessage,
@@ -513,6 +565,12 @@ export const useUserStore = defineStore('user', () => {
     getQQBindAuthorizeUrl,
     bindQQ,
     unbindQQ,
+
+    // Actions - 手机号登录/绑定
+    smsLogin,
+    fetchPhoneBinding,
+    bindPhone,
+    unbindPhone,
 
     // Actions - Modal 控制
     openLoginModal,

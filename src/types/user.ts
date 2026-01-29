@@ -211,6 +211,43 @@ export interface UserPublicProfile {
   contributionCount: number | null
 }
 
+// ==================== 短信验证相关 ====================
+
+/**
+ * 发送短信验证码响应
+ */
+export interface SmsSendResponse {
+  expireSeconds: number
+  remainingDaily: number
+  cooldownSeconds: number
+}
+
+/**
+ * 短信登录/注册响应
+ */
+export interface SmsLoginResponse {
+  token: string
+  user: UserInfo
+  expiresAt: number
+  isNewUser: boolean
+}
+
+/**
+ * 手机号绑定信息
+ */
+export interface SmsBindingInfo {
+  bound: boolean
+  phoneNumber?: string // 脱敏后的手机号，如 138****5678
+  verifiedAt?: string
+}
+
+/**
+ * 检查手机号是否已绑定响应
+ */
+export interface SmsCheckResponse {
+  bound: boolean
+}
+
 // ==================== 管理员用户校园网绑定管理 ====================
 
 /**

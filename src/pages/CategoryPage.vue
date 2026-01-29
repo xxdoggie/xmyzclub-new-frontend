@@ -795,7 +795,7 @@ function showStarsTour() {
       <Transition name="fab-menu">
         <div v-if="isFabExpanded" class="fab-menu">
           <button class="fab-menu-item" @click="openFeedbackDrawer(1)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
               <line x1="12" y1="11" x2="12" y2="17"></line>
               <line x1="9" y1="14" x2="15" y2="14"></line>
@@ -803,7 +803,7 @@ function showStarsTour() {
             <span>新建分类</span>
           </button>
           <button class="fab-menu-item" @click="openFeedbackDrawer(2)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
             </svg>
             <span>新建评分项目</span>
@@ -818,7 +818,7 @@ function showStarsTour() {
         :class="{ expanded: isFabExpanded }"
         @click="toggleFab"
       >
-        <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
@@ -1578,34 +1578,40 @@ function showStarsTour() {
 .fab-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
   z-index: -1;
 }
 
 .fab-menu {
   position: absolute;
   right: 0;
-  bottom: 64px;
+  bottom: 52px;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 2px;
   padding: var(--spacing-xs);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  min-width: 160px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  min-width: 140px;
+}
+
+:root.dark .fab-menu {
+  background: rgba(40, 40, 40, 0.85);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .fab-menu-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-normal);
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
@@ -1620,29 +1626,40 @@ function showStarsTour() {
 }
 
 .fab-menu-item svg {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.fab-menu-item:hover svg {
+  opacity: 1;
 }
 
 .fab-button {
-  width: 56px;
-  height: 56px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  color: var(--color-primary);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb, 99, 102, 241), 0.4);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   transition: all var(--transition-fast);
 }
 
+:root.dark .fab-button {
+  background: rgba(40, 40, 40, 0.85);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 .fab-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(var(--color-primary-rgb, 99, 102, 241), 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .fab-button:active {
@@ -1650,17 +1667,20 @@ function showStarsTour() {
 }
 
 .fab-button.expanded {
-  background: var(--color-text-secondary);
+  background: var(--color-primary);
+  color: white;
+  border-color: transparent;
   transform: rotate(45deg);
 }
 
 .fab-button.expanded:hover {
-  transform: rotate(45deg) scale(1.05);
+  transform: rotate(45deg) translateY(-2px);
 }
 
 .fab-icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.5;
   transition: transform var(--transition-fast);
 }
 

@@ -32,6 +32,10 @@ const categoryDetail = ref<CategoryDetail | null>(null)
 
 // 反馈抽屉状态
 const isFeedbackOpen = ref(false)
+const feedbackTargetType = ref<1 | 2>(1) // 1: 分类, 2: 评分项目
+
+// FAB 状态
+const isFabExpanded = ref(false)
 
 // 筛选相关（用于评分项目列表模式）
 const currentFilter = ref<'hot' | 'high' | 'low'>('hot')
@@ -84,16 +88,26 @@ const breadcrumbs = computed(() => {
 // 学校 ID（用于新建分类时）
 const schoolId = computed(() => categoryDetail.value?.breadcrumb?.school?.id ?? null)
 
-function openFeedbackDrawer() {
+function openFeedbackDrawer(targetType: 1 | 2) {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
     return
   }
+  feedbackTargetType.value = targetType
+  isFabExpanded.value = false
   isFeedbackOpen.value = true
 }
 
 function closeFeedbackDrawer() {
   isFeedbackOpen.value = false
+}
+
+function toggleFab() {
+  isFabExpanded.value = !isFabExpanded.value
+}
+
+function closeFab() {
+  isFabExpanded.value = false
 }
 
 function handleFeedbackSuccess() {
@@ -286,10 +300,10 @@ function showSectionIntro() {
 function showFeedbackTour() {
   highlightElement(
     '#tour-category-feedback',
-    '新建分类',
-    '如果没找到想要的分类，可以点击这里发起添加请求。',
+    '添加内容',
+    '点击这个按钮可以创建新的分类或评分项目。',
     {
-      side: 'top',
+      side: 'left',
       nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.MINOR_SECTION_CLICK)
@@ -361,10 +375,10 @@ function showListIntro() {
 function showRatingFeedbackTour() {
   highlightElement(
     '#tour-rating-feedback',
-    '新建评分项目',
-    '如果没找到想要的评分项目，可以点击这里发起添加请求。',
+    '添加内容',
+    '点击这个按钮可以创建新的分类或评分项目。',
     {
-      side: 'top',
+      side: 'left',
       nextBtnText: '我知道了',
       onNextClick: () => {
         saveStep(TourStep.RATING_ITEM_CARD)
@@ -466,17 +480,45 @@ function showStarsTour() {
           <!-- 桌面端标题 -->
           <h1 class="page-title desktop-only">{{ categoryDetail.name }}</h1>
 
-          <!-- 空状态 -->
-          <div v-if="children.length === 0" class="empty-container">
-            <div class="empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="21" x2="9" y2="9"></line>
-              </svg>
+          <!-- 空状态 - 增强版 -->
+          <div v-if="children.length === 0" class="empty-state-enhanced">
+            <div class="empty-hero">
+              <div class="empty-icon-large">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+              </div>
+              <h2>这里还是一片空白</h2>
+              <p>成为第一个贡献者，帮助完善这个分类</p>
             </div>
-            <h2>暂无子分类</h2>
-            <p>该分类暂无可用子分类</p>
+            <div class="action-cards">
+              <button class="action-card" @click="openFeedbackDrawer(1)">
+                <div class="action-card-icon category">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    <line x1="12" y1="11" x2="12" y2="17"></line>
+                    <line x1="9" y1="14" x2="15" y2="14"></line>
+                  </svg>
+                </div>
+                <div class="action-card-content">
+                  <span class="action-card-title">新建子分类</span>
+                  <span class="action-card-desc">添加一个新的分类层级</span>
+                </div>
+              </button>
+              <button class="action-card" @click="openFeedbackDrawer(2)">
+                <div class="action-card-icon item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <div class="action-card-content">
+                  <span class="action-card-title">新建评分项目</span>
+                  <span class="action-card-desc">直接创建可评分的内容</span>
+                </div>
+              </button>
+            </div>
           </div>
 
           <!-- 子分类网格 -->
@@ -522,18 +564,6 @@ function showStarsTour() {
               </div>
             </div>
           </div>
-
-          <!-- 反馈提示 -->
-          <div class="feedback-prompt">
-            <button id="tour-category-feedback" class="feedback-link" @click="openFeedbackDrawer">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="16"></line>
-                <line x1="8" y1="12" x2="16" y2="12"></line>
-              </svg>
-              没找到想要的分类？点我发起新建请求
-            </button>
-          </div>
         </div>
       </template>
 
@@ -555,15 +585,43 @@ function showStarsTour() {
           </div>
         </div>
 
-        <!-- 空状态 -->
-        <div v-if="filteredItems.length === 0" class="empty-container">
-          <div class="empty-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
+        <!-- 空状态 - 增强版 -->
+        <div v-if="filteredItems.length === 0" class="empty-state-enhanced">
+          <div class="empty-hero">
+            <div class="empty-icon-large">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </div>
+            <h2>这里还是一片空白</h2>
+            <p>成为第一个贡献者，帮助完善这个分类</p>
           </div>
-          <h2>暂无评分项目</h2>
-          <p>该分类暂无可评分的项目</p>
+          <div class="action-cards">
+            <button class="action-card" @click="openFeedbackDrawer(1)">
+              <div class="action-card-icon category">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  <line x1="12" y1="11" x2="12" y2="17"></line>
+                  <line x1="9" y1="14" x2="15" y2="14"></line>
+                </svg>
+              </div>
+              <div class="action-card-content">
+                <span class="action-card-title">新建子分类</span>
+                <span class="action-card-desc">添加一个新的分类层级</span>
+              </div>
+            </button>
+            <button class="action-card" @click="openFeedbackDrawer(2)">
+              <div class="action-card-icon item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+              <div class="action-card-content">
+                <span class="action-card-title">新建评分项目</span>
+                <span class="action-card-desc">直接创建可评分的内容</span>
+              </div>
+            </button>
+          </div>
         </div>
 
         <!-- 评分项目列表 -->
@@ -634,28 +692,57 @@ function showStarsTour() {
             </div>
           </div>
         </div>
-
-        <!-- 反馈提示 -->
-        <div class="feedback-prompt">
-          <button id="tour-rating-feedback" class="feedback-link" @click="openFeedbackDrawer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="16"></line>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            没找到想要的评分项目？点我发起新建请求
-          </button>
-        </div>
       </template>
     </main>
 
     <PageFooter />
 
+    <!-- FAB 浮动操作按钮 -->
+    <div v-if="categoryDetail && !isLoading" id="tour-rating-feedback" class="fab-container">
+      <!-- FAB 遮罩层 -->
+      <Transition name="fade">
+        <div v-if="isFabExpanded" class="fab-overlay" @click="closeFab"></div>
+      </Transition>
+
+      <!-- FAB 菜单 -->
+      <Transition name="fab-menu">
+        <div v-if="isFabExpanded" class="fab-menu">
+          <button class="fab-menu-item" @click="openFeedbackDrawer(1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              <line x1="12" y1="11" x2="12" y2="17"></line>
+              <line x1="9" y1="14" x2="15" y2="14"></line>
+            </svg>
+            <span>新建分类</span>
+          </button>
+          <button class="fab-menu-item" @click="openFeedbackDrawer(2)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>新建评分项目</span>
+          </button>
+        </div>
+      </Transition>
+
+      <!-- FAB 主按钮 -->
+      <button
+        id="tour-category-feedback"
+        class="fab-button"
+        :class="{ expanded: isFabExpanded }"
+        @click="toggleFab"
+      >
+        <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
     <!-- 反馈抽屉 -->
     <FeedbackDrawer
       :is-open="isFeedbackOpen"
       :contribution-type="2"
-      :target-type="showChildren ? 1 : 2"
+      :target-type="feedbackTargetType"
       :parent-id="categoryId"
       :school-id="schoolId"
       @close="closeFeedbackDrawer"
@@ -1111,32 +1198,239 @@ function showStarsTour() {
   color: var(--color-text-placeholder);
 }
 
-/* ===== Feedback Prompt ===== */
-.feedback-prompt {
-  margin-top: var(--spacing-lg);
+/* ===== Enhanced Empty State ===== */
+.empty-state-enhanced {
   text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
 }
 
-.feedback-link {
-  display: inline-flex;
+.empty-hero {
+  margin-bottom: var(--spacing-xl);
+}
+
+.empty-icon-large {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto var(--spacing-lg);
+  display: flex;
   align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary-bg), var(--color-border));
+  color: var(--color-primary);
+  border-radius: var(--radius-2xl);
+}
+
+.empty-icon-large svg {
+  width: 48px;
+  height: 48px;
+}
+
+.empty-hero h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text);
+}
+
+.empty-hero p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ===== Action Cards ===== */
+.action-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.action-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.action-card:active {
+  transform: translateY(0);
+}
+
+.action-card-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+
+.action-card-icon.category {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.action-card-icon.item {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  color: white;
+}
+
+.action-card-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.action-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-card-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+.action-card-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* ===== FAB (Floating Action Button) ===== */
+.fab-container {
+  position: fixed;
+  right: var(--spacing-md);
+  bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+}
+
+.fab-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  z-index: -1;
+}
+
+.fab-menu {
+  position: absolute;
+  right: 0;
+  bottom: 64px;
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  min-width: 160px;
+}
+
+.fab-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--text-sm);
-  color: var(--color-primary);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
   background: transparent;
   border: none;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.fab-menu-item:hover {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.fab-menu-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.fab-button {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb, 99, 102, 241), 0.4);
+  transition: all var(--transition-fast);
+}
+
+.fab-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(var(--color-primary-rgb, 99, 102, 241), 0.5);
+}
+
+.fab-button:active {
+  transform: scale(0.95);
+}
+
+.fab-button.expanded {
+  background: var(--color-text-secondary);
+  transform: rotate(45deg);
+}
+
+.fab-button.expanded:hover {
+  transform: rotate(45deg) scale(1.05);
+}
+
+.fab-icon {
+  width: 24px;
+  height: 24px;
+  transition: transform var(--transition-fast);
+}
+
+/* FAB Transitions */
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity var(--transition-fast);
 }
 
-.feedback-link:hover {
-  opacity: 0.8;
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-.feedback-link svg {
-  width: 16px;
-  height: 16px;
+.fab-menu-enter-active,
+.fab-menu-leave-active {
+  transition: all var(--transition-fast);
+  transform-origin: bottom right;
+}
+
+.fab-menu-enter-from,
+.fab-menu-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(8px);
 }
 
 /* ===== Desktop ===== */
@@ -1229,8 +1523,27 @@ function showStarsTour() {
     font-size: var(--text-xs);
   }
 
-  .feedback-prompt {
-    margin-top: var(--spacing-xl);
+  /* FAB on desktop - positioned with more margin */
+  .fab-container {
+    right: var(--spacing-lg);
+    bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Action cards in row on desktop */
+  .action-cards {
+    flex-direction: row;
+    max-width: 500px;
+  }
+
+  .action-card {
+    flex: 1;
+    flex-direction: column;
+    text-align: center;
+    padding: var(--spacing-lg);
+  }
+
+  .action-card-content {
+    align-items: center;
   }
 }
 </style>

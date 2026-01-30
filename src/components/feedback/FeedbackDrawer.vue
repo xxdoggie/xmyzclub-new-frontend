@@ -66,6 +66,9 @@ interface BatchItem {
   id: number
   name: string
   description: string
+  imageFile: File | null
+  imagePreview: string | null
+  uploadedImageId: number | null
 }
 const batchItems = ref<BatchItem[]>([])
 const batchReason = ref('')
@@ -125,6 +128,9 @@ function addBatchItem() {
     id: ++batchItemIdCounter,
     name: '',
     description: '',
+    imageFile: null,
+    imagePreview: null,
+    uploadedImageId: null,
   })
   // 聚焦到新添加的输入框
   nextTick(() => {
@@ -156,9 +162,72 @@ function resetForm() {
   // 重置批量模式
   isBatchMode.value = false
   batchItems.value = [
-    { id: ++batchItemIdCounter, name: '', description: '' },
+    { id: ++batchItemIdCounter, name: '', description: '', imageFile: null, imagePreview: null, uploadedImageId: null },
   ]
   batchReason.value = ''
+}
+
+// 处理批量项目图片选择
+function handleBatchImageSelect(event: Event, itemId: number) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    toast.error('请选择图片文件')
+    return
+  }
+
+  // 验证文件大小（最大20MB）
+  if (file.size > 20 * 1024 * 1024) {
+    toast.error('图片大小不能超过 20MB')
+    return
+  }
+
+  const item = batchItems.value.find(i => i.id === itemId)
+  if (!item) return
+
+  item.imageFile = file
+  // 创建预览
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    item.imagePreview = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+}
+
+// 移除批量项目图片
+function removeBatchImage(itemId: number) {
+  const item = batchItems.value.find(i => i.id === itemId)
+  if (!item) return
+  item.imageFile = null
+  item.imagePreview = null
+  item.uploadedImageId = null
+}
+
+// 上传批量项目图片
+async function uploadBatchImages(): Promise<boolean> {
+  const itemsWithImages = batchItems.value.filter(item => item.imageFile && item.name.trim())
+
+  for (const item of itemsWithImages) {
+    if (!item.imageFile) continue
+
+    try {
+      const res = await uploadContributionImage(item.imageFile)
+      if (res.data.code === 200) {
+        item.uploadedImageId = res.data.data.id
+      } else {
+        toast.error(`图片上传失败: ${item.name}`)
+        return false
+      }
+    } catch {
+      toast.error(`图片上传失败: ${item.name}`)
+      return false
+    }
+  }
+
+  return true
 }
 
 // 监听打开状态
@@ -328,13 +397,24 @@ async function handleBatchSubmit() {
   if (!validateBatchForm()) return
 
   isSubmitting.value = true
+  isUploading.value = true
   try {
+    // 上传有图片的项目
+    const uploadSuccess = await uploadBatchImages()
+    if (!uploadSuccess) {
+      isSubmitting.value = false
+      isUploading.value = false
+      return
+    }
+    isUploading.value = false
+
     // 过滤有效项目
     const items: BatchRatingItemInput[] = batchItems.value
       .filter(item => item.name.trim())
       .map(item => ({
         name: item.name.trim(),
         description: item.description.trim() || undefined,
+        imageId: item.uploadedImageId || undefined,
       }))
 
     const res = await batchSubmitRatingItems({
@@ -355,6 +435,7 @@ async function handleBatchSubmit() {
     toast.error('提交失败')
   } finally {
     isSubmitting.value = false
+    isUploading.value = false
   }
 }
 
@@ -438,40 +519,43 @@ const validBatchItemCount = computed(() => {
             </div>
 
             <!-- 模式切换（仅新增评分项目时显示） -->
-            <div v-if="canUseBatchMode" class="mode-switch">
-              <button
-                type="button"
-                class="mode-btn"
-                :class="{ active: !isBatchMode }"
-                @click="isBatchMode = false"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="16"></line>
-                  <line x1="8" y1="12" x2="16" y2="12"></line>
-                </svg>
-                <span>单个新增</span>
-              </button>
-              <button
-                type="button"
-                class="mode-btn"
-                :class="{ active: isBatchMode }"
-                @click="isBatchMode = true"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="8" y1="6" x2="21" y2="6"></line>
-                  <line x1="8" y1="12" x2="21" y2="12"></line>
-                  <line x1="8" y1="18" x2="21" y2="18"></line>
-                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                </svg>
-                <span>批量新增</span>
-              </button>
-            </div>
+            <Transition name="fade-slide">
+              <div v-if="canUseBatchMode" class="mode-switch">
+                <button
+                  type="button"
+                  class="mode-btn"
+                  :class="{ active: !isBatchMode }"
+                  @click="isBatchMode = false"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                  </svg>
+                  <span>单个新增</span>
+                </button>
+                <button
+                  type="button"
+                  class="mode-btn"
+                  :class="{ active: isBatchMode }"
+                  @click="isBatchMode = true"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                  </svg>
+                  <span>批量新增</span>
+                </button>
+              </div>
+            </Transition>
 
             <!-- 单个新增表单 -->
-            <form v-if="!isBatchMode" class="feedback-form" @submit.prevent="handleSubmit">
+            <Transition name="mode-switch" mode="out-in">
+            <form v-if="!isBatchMode" key="single" class="feedback-form" @submit.prevent="handleSubmit">
               <!-- 名称 -->
               <div v-if="showNameField" class="form-group">
                 <div class="form-label-row">
@@ -605,7 +689,7 @@ const validBatchItemCount = computed(() => {
             </form>
 
             <!-- 批量新增表单 -->
-            <div v-else class="batch-form">
+            <div v-else key="batch" class="batch-form">
               <!-- 批量项目列表 -->
               <div class="form-group">
                 <div class="form-label-row">
@@ -623,42 +707,72 @@ const validBatchItemCount = computed(() => {
                   <span class="batch-count">{{ validBatchItemCount }} 个有效</span>
                 </div>
 
-                <div class="batch-items">
+                <TransitionGroup name="batch-list" tag="div" class="batch-items">
                   <div
                     v-for="(item, index) in batchItems"
                     :key="item.id"
                     class="batch-item"
                   >
-                    <div class="batch-item-number">{{ index + 1 }}</div>
-                    <div class="batch-item-fields">
-                      <input
-                        v-model="item.name"
-                        type="text"
-                        class="batch-item-input"
-                        placeholder="名称（必填）"
-                        maxlength="100"
-                      />
-                      <input
-                        v-model="item.description"
-                        type="text"
-                        class="batch-item-desc"
-                        placeholder="描述（选填）"
-                        maxlength="500"
-                      />
+                    <div class="batch-item-header">
+                      <div class="batch-item-number">{{ index + 1 }}</div>
+                      <button
+                        type="button"
+                        class="batch-item-remove"
+                        :disabled="batchItems.length <= 1"
+                        @click="removeBatchItem(item.id)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      class="batch-item-remove"
-                      :disabled="batchItems.length <= 1"
-                      @click="removeBatchItem(item.id)"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
+                    <div class="batch-item-content">
+                      <div class="batch-item-fields">
+                        <input
+                          v-model="item.name"
+                          type="text"
+                          class="batch-item-input"
+                          placeholder="名称（必填）"
+                          maxlength="100"
+                        />
+                        <input
+                          v-model="item.description"
+                          type="text"
+                          class="batch-item-desc"
+                          placeholder="描述（选填）"
+                          maxlength="500"
+                        />
+                      </div>
+                      <!-- 批量项目图片 -->
+                      <div class="batch-item-image">
+                        <div v-if="item.imagePreview" class="batch-image-preview">
+                          <img :src="item.imagePreview" alt="预览" />
+                          <button type="button" class="batch-image-remove" @click="removeBatchImage(item.id)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </div>
+                        <label v-else class="batch-image-upload">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            class="hidden-input"
+                            @change="handleBatchImageSelect($event, item.id)"
+                          />
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                          </svg>
+                          <span>添加图片</span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </TransitionGroup>
 
                 <button
                   type="button"
@@ -708,6 +822,7 @@ const validBatchItemCount = computed(() => {
                 </div>
               </div>
             </div>
+            </Transition>
           </div>
 
           <!-- 底部按钮 -->
@@ -1101,52 +1216,72 @@ const validBatchItemCount = computed(() => {
 .batch-items {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
+  position: relative;
 }
 
 .batch-item {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--color-bg);
+  border-radius: 16px;
+  transition: all 0.25s ease;
+}
+
+.batch-item:hover {
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-card) 100%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.batch-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .batch-item-number {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-secondary);
-  background: var(--color-bg);
-  border-radius: 8px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border-radius: 10px;
   flex-shrink: 0;
-  margin-top: 10px;
+}
+
+.batch-item-content {
+  display: flex;
+  gap: var(--spacing-sm);
 }
 
 .batch-item-fields {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .batch-item-input,
 .batch-item-desc {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   font-size: var(--text-sm);
   color: var(--color-text);
-  background: var(--color-bg);
+  background: var(--color-card);
   border: 2px solid transparent;
-  border-radius: 10px;
+  border-radius: 12px;
   transition: all 0.2s ease;
 }
 
 .batch-item-input:hover,
 .batch-item-desc:hover {
-  background: var(--color-card);
+  border-color: var(--color-border);
 }
 
 .batch-item-input:focus,
@@ -1154,6 +1289,7 @@ const validBatchItemCount = computed(() => {
   outline: none;
   background: var(--color-card);
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
 }
 
 .batch-item-input::placeholder,
@@ -1163,12 +1299,12 @@ const validBatchItemCount = computed(() => {
 
 .batch-item-desc {
   font-size: var(--text-xs);
-  padding: 8px 12px;
+  padding: 10px 14px;
 }
 
 .batch-item-remove {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1180,7 +1316,6 @@ const validBatchItemCount = computed(() => {
   border-radius: 8px;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  margin-top: 6px;
 }
 
 .batch-item-remove:hover:not(:disabled) {
@@ -1194,8 +1329,102 @@ const validBatchItemCount = computed(() => {
 }
 
 .batch-item-remove svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
+}
+
+/* ===== Batch Item Image ===== */
+.batch-item-image {
+  flex-shrink: 0;
+  width: 80px;
+}
+
+.batch-image-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 80px;
+  height: 80px;
+  background: var(--color-card);
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.batch-image-upload:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.batch-image-upload svg {
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-placeholder);
+  transition: color 0.2s ease;
+}
+
+.batch-image-upload:hover svg {
+  color: var(--color-primary);
+}
+
+.batch-image-upload span {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+  transition: color 0.2s ease;
+}
+
+.batch-image-upload:hover span {
+  color: var(--color-primary);
+}
+
+.batch-image-preview {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.batch-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.batch-image-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.batch-image-preview:hover .batch-image-remove {
+  opacity: 1;
+}
+
+.batch-image-remove:hover {
+  background: rgba(239, 68, 68, 0.9);
+}
+
+.batch-image-remove svg {
+  width: 12px;
+  height: 12px;
 }
 
 .add-batch-item-btn {
@@ -1203,22 +1432,21 @@ const validBatchItemCount = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 12px var(--spacing-md);
+  padding: 14px var(--spacing-md);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border: 2px dashed var(--color-primary);
-  border-radius: 12px;
+  background: transparent;
+  border: 2px dashed var(--color-border);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   margin-top: var(--spacing-xs);
 }
 
 .add-batch-item-btn:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: white;
-  border-style: solid;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .add-batch-item-btn:disabled {
@@ -1455,6 +1683,59 @@ const validBatchItemCount = computed(() => {
 .drawer-enter-from .drawer-container,
 .drawer-leave-to .drawer-container {
   transform: translateY(100%);
+}
+
+/* ===== Mode Switch Transition ===== */
+.mode-switch-enter-active,
+.mode-switch-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-switch-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.mode-switch-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* ===== Fade Slide Transition ===== */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.25s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* ===== Batch List Transitions ===== */
+.batch-list-enter-active {
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.batch-list-leave-active {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  width: calc(100% - 2px);
+}
+
+.batch-list-enter-from {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.95);
+}
+
+.batch-list-leave-to {
+  opacity: 0;
+  transform: translateX(30px) scale(0.95);
+}
+
+.batch-list-move {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ===== Desktop ===== */

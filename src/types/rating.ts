@@ -872,6 +872,33 @@ export interface SubmitContributionRequest {
 }
 
 /**
+ * 批量提交评分项目的单个项目
+ */
+export interface BatchRatingItemInput {
+  name: string
+  description?: string
+  imageId?: number
+}
+
+/**
+ * 批量提交评分项目请求
+ */
+export interface BatchSubmitRatingItemsRequest {
+  categoryId: number
+  reason?: string
+  items: BatchRatingItemInput[]
+}
+
+/**
+ * 批量提交评分项目响应
+ */
+export interface BatchSubmitRatingItemsResponse {
+  successCount: number
+  totalCount: number
+  contributions: Contribution[]
+}
+
+/**
  * 贡献响应
  */
 export interface Contribution {

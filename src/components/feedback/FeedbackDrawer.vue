@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
-import { submitContribution, uploadContributionImage } from '@/api/rating'
-import type { ContributionType, TargetType, ContributionDetail } from '@/types/rating'
+import { submitContribution, uploadContributionImage, batchSubmitRatingItems } from '@/api/rating'
+import type { ContributionType, TargetType, ContributionDetail, BatchRatingItemInput } from '@/types/rating'
 
 // Props
 interface Props {
@@ -43,7 +43,15 @@ const emit = defineEmits<{
 const toast = useToast()
 const userStore = useUserStore()
 
-// 表单状态
+// 批量模式开关（仅新增评分项目时可用）
+const isBatchMode = ref(false)
+
+// 是否可以使用批量模式
+const canUseBatchMode = computed(() => {
+  return props.contributionType === 2 && props.targetType === 2
+})
+
+// 单个表单状态
 const formData = ref({
   name: '',
   description: '',
@@ -52,6 +60,16 @@ const formData = ref({
 const imageFile = ref<File | null>(null)
 const imagePreview = ref<string | null>(null)
 const uploadedFileId = ref<number | null>(null)
+
+// 批量表单状态
+interface BatchItem {
+  id: number
+  name: string
+  description: string
+}
+const batchItems = ref<BatchItem[]>([])
+const batchReason = ref('')
+let batchItemIdCounter = 0
 
 // 提交状态
 const isSubmitting = ref(false)
@@ -72,17 +90,21 @@ const contributionTypeLabels: Record<ContributionType, string> = {
 
 // 标题
 const drawerTitle = computed(() => {
+  if (isBatchMode.value) {
+    return '批量新增评分项目'
+  }
   return `${contributionTypeLabels[props.contributionType]}${targetTypeLabels[props.targetType]}`
 })
 
 // 是否显示名称字段
-const showNameField = computed(() => true)
+const showNameField = computed(() => !isBatchMode.value)
 
 // 是否显示描述字段
-const showDescriptionField = computed(() => true)
+const showDescriptionField = computed(() => !isBatchMode.value)
 
-// 是否显示图片字段（新增时所有类型都支持图片，修改时评分项目和合集支持）
+// 是否显示图片字段（新增时所有类型都支持图片，修改时评分项目和合集支持，批量模式不支持）
 const showImageField = computed(() => {
+  if (isBatchMode.value) return false
   // 新增时：分类、评分项目、合集都支持图片
   if (props.contributionType === 2) {
     return true
@@ -97,20 +119,28 @@ const isAddMode = computed(() => props.contributionType === 2)
 // 理由字段的标签文本
 const reasonLabel = computed(() => isAddMode.value ? '新增说明' : '修改理由')
 
-// 理由字段的占位符
-const reasonPlaceholder = computed(() => {
-  if (isAddMode.value) {
-    return `请简要说明为什么要新增这个${targetTypeLabels[props.targetType]}，例如：在该分类下缺少此内容`
-  }
-  return '请说明您提交此修改的原因，如：信息有误需要修正、描述不准确等'
-})
+// 添加批量项目
+function addBatchItem() {
+  batchItems.value.push({
+    id: ++batchItemIdCounter,
+    name: '',
+    description: '',
+  })
+  // 聚焦到新添加的输入框
+  nextTick(() => {
+    const inputs = document.querySelectorAll('.batch-item-input')
+    const lastInput = inputs[inputs.length - 1] as HTMLInputElement
+    lastInput?.focus()
+  })
+}
 
-// 提交按钮文本
-const submitButtonText = computed(() => {
-  if (isSubmitting.value) return '提交中...'
-  if (isUploading.value) return '上传中...'
-  return isAddMode.value ? '提交申请' : '提交反馈'
-})
+// 删除批量项目
+function removeBatchItem(id: number) {
+  const index = batchItems.value.findIndex(item => item.id === id)
+  if (index > -1) {
+    batchItems.value.splice(index, 1)
+  }
+}
 
 // 重置表单
 function resetForm() {
@@ -122,6 +152,13 @@ function resetForm() {
   imageFile.value = null
   imagePreview.value = null
   uploadedFileId.value = null
+
+  // 重置批量模式
+  isBatchMode.value = false
+  batchItems.value = [
+    { id: ++batchItemIdCounter, name: '', description: '' },
+  ]
+  batchReason.value = ''
 }
 
 // 监听打开状态
@@ -194,8 +231,8 @@ async function uploadImage(): Promise<number | null> {
   }
 }
 
-// 验证表单
-function validateForm(): boolean {
+// 验证单个表单
+function validateSingleForm(): boolean {
   if (!formData.value.name.trim()) {
     toast.error('请输入名称')
     return false
@@ -207,14 +244,19 @@ function validateForm(): boolean {
   return true
 }
 
-// 提交表单
-async function handleSubmit() {
-  if (!userStore.isLoggedIn) {
-    userStore.openLoginModal()
-    return
+// 验证批量表单
+function validateBatchForm(): boolean {
+  const validItems = batchItems.value.filter(item => item.name.trim())
+  if (validItems.length === 0) {
+    toast.error('请至少填写一个评分项目名称')
+    return false
   }
+  return true
+}
 
-  if (!validateForm()) return
+// 提交单个表单
+async function handleSingleSubmit() {
+  if (!validateSingleForm()) return
 
   isSubmitting.value = true
   try {
@@ -280,6 +322,60 @@ async function handleSubmit() {
     isSubmitting.value = false
   }
 }
+
+// 提交批量表单
+async function handleBatchSubmit() {
+  if (!validateBatchForm()) return
+
+  isSubmitting.value = true
+  try {
+    // 过滤有效项目
+    const items: BatchRatingItemInput[] = batchItems.value
+      .filter(item => item.name.trim())
+      .map(item => ({
+        name: item.name.trim(),
+        description: item.description.trim() || undefined,
+      }))
+
+    const res = await batchSubmitRatingItems({
+      categoryId: props.parentId!,
+      reason: batchReason.value.trim() || undefined,
+      items,
+    })
+
+    if (res.data.code === 200) {
+      const { successCount, totalCount } = res.data.data
+      toast.success(`成功提交 ${successCount}/${totalCount} 个评分项目，等待审核`)
+      emit('success')
+      closeDrawer()
+    } else {
+      toast.error(res.data.message || '提交失败')
+    }
+  } catch {
+    toast.error('提交失败')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// 提交表单
+async function handleSubmit() {
+  if (!userStore.isLoggedIn) {
+    userStore.openLoginModal()
+    return
+  }
+
+  if (isBatchMode.value) {
+    await handleBatchSubmit()
+  } else {
+    await handleSingleSubmit()
+  }
+}
+
+// 有效的批量项目数量
+const validBatchItemCount = computed(() => {
+  return batchItems.value.filter(item => item.name.trim()).length
+})
 </script>
 
 <template>
@@ -287,11 +383,19 @@ async function handleSubmit() {
     <Transition name="drawer">
       <div v-if="isOpen" class="drawer-overlay" @click="closeDrawer">
         <div class="drawer-container" @click.stop>
-          <!-- 头部 - 更活泼的设计 -->
+          <!-- 头部 -->
           <div class="drawer-header">
             <div class="drawer-header-content">
               <div class="drawer-icon">
-                <svg v-if="isAddMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg v-if="isBatchMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                <svg v-else-if="isAddMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="8" x2="12" y2="16"></line>
                   <line x1="8" y1="12" x2="16" y2="12"></line>
@@ -304,7 +408,8 @@ async function handleSubmit() {
               <div class="drawer-title-group">
                 <h3>{{ drawerTitle }}</h3>
                 <p class="drawer-subtitle">
-                  <template v-if="isAddMode">为社区添加新内容</template>
+                  <template v-if="isBatchMode">一次添加多个评分项目</template>
+                  <template v-else-if="isAddMode">为社区添加新内容</template>
                   <template v-else>帮助完善社区信息</template>
                 </p>
               </div>
@@ -319,7 +424,7 @@ async function handleSubmit() {
 
           <!-- 内容 -->
           <div class="drawer-content">
-            <!-- 新增时显示父级路径 - 更友好的卡片样式 -->
+            <!-- 新增时显示父级路径 -->
             <div v-if="isAddMode && parentPath" class="parent-path-card">
               <div class="path-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -332,8 +437,42 @@ async function handleSubmit() {
               </div>
             </div>
 
-            <form class="feedback-form" @submit.prevent="handleSubmit">
-              <!-- 名称 - 更现代的输入框 -->
+            <!-- 模式切换（仅新增评分项目时显示） -->
+            <div v-if="canUseBatchMode" class="mode-switch">
+              <button
+                type="button"
+                class="mode-btn"
+                :class="{ active: !isBatchMode }"
+                @click="isBatchMode = false"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                <span>单个新增</span>
+              </button>
+              <button
+                type="button"
+                class="mode-btn"
+                :class="{ active: isBatchMode }"
+                @click="isBatchMode = true"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                <span>批量新增</span>
+              </button>
+            </div>
+
+            <!-- 单个新增表单 -->
+            <form v-if="!isBatchMode" class="feedback-form" @submit.prevent="handleSubmit">
+              <!-- 名称 -->
               <div v-if="showNameField" class="form-group">
                 <div class="form-label-row">
                   <label class="form-label">
@@ -361,7 +500,7 @@ async function handleSubmit() {
                 </div>
               </div>
 
-              <!-- 描述 - 更舒适的文本域 -->
+              <!-- 描述 -->
               <div v-if="showDescriptionField" class="form-group">
                 <div class="form-label-row">
                   <label class="form-label">
@@ -390,7 +529,7 @@ async function handleSubmit() {
                 </div>
               </div>
 
-              <!-- 图片 - 更有趣的上传区域 -->
+              <!-- 图片 -->
               <div v-if="showImageField" class="form-group">
                 <div class="form-label-row">
                   <label class="form-label">
@@ -432,7 +571,7 @@ async function handleSubmit() {
                 </label>
               </div>
 
-              <!-- 理由/说明 - 更友好的提示 -->
+              <!-- 理由/说明 -->
               <div class="form-group">
                 <div class="form-label-row">
                   <label class="form-label">
@@ -464,9 +603,114 @@ async function handleSubmit() {
                 </div>
               </div>
             </form>
+
+            <!-- 批量新增表单 -->
+            <div v-else class="batch-form">
+              <!-- 批量项目列表 -->
+              <div class="form-group">
+                <div class="form-label-row">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="8" y1="6" x2="21" y2="6"></line>
+                      <line x1="8" y1="12" x2="21" y2="12"></line>
+                      <line x1="8" y1="18" x2="21" y2="18"></line>
+                      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                    评分项目列表
+                  </label>
+                  <span class="batch-count">{{ validBatchItemCount }} 个有效</span>
+                </div>
+
+                <div class="batch-items">
+                  <div
+                    v-for="(item, index) in batchItems"
+                    :key="item.id"
+                    class="batch-item"
+                  >
+                    <div class="batch-item-number">{{ index + 1 }}</div>
+                    <div class="batch-item-fields">
+                      <input
+                        v-model="item.name"
+                        type="text"
+                        class="batch-item-input"
+                        placeholder="名称（必填）"
+                        maxlength="100"
+                      />
+                      <input
+                        v-model="item.description"
+                        type="text"
+                        class="batch-item-desc"
+                        placeholder="描述（选填）"
+                        maxlength="500"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      class="batch-item-remove"
+                      :disabled="batchItems.length <= 1"
+                      @click="removeBatchItem(item.id)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  class="add-batch-item-btn"
+                  :disabled="batchItems.length >= 50"
+                  @click="addBatchItem"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                  </svg>
+                  <span>添加更多</span>
+                  <span class="add-limit">（最多 50 个）</span>
+                </button>
+              </div>
+
+              <!-- 批量新增说明 -->
+              <div class="form-group">
+                <div class="form-label-row">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    新增说明
+                  </label>
+                  <span class="form-optional">选填</span>
+                </div>
+                <div class="textarea-wrapper">
+                  <textarea
+                    v-model="batchReason"
+                    class="form-textarea form-textarea-sm"
+                    placeholder="简单说明为什么要批量添加这些内容~"
+                    rows="2"
+                    maxlength="500"
+                  ></textarea>
+                </div>
+                <div class="form-tip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                    <path d="M12 16v-4"></path>
+                    <path d="M12 8h.01"></path>
+                  </svg>
+                  <span>提交后将由管理员审核，通过后即可生效</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <!-- 底部按钮 - 更圆润活泼 -->
+          <!-- 底部按钮 -->
           <div class="drawer-footer">
             <button class="btn-secondary" @click="closeDrawer">
               <span>下次再说</span>
@@ -483,6 +727,7 @@ async function handleSubmit() {
               <span v-if="isSubmitting || isUploading" class="loading-dots">
                 <span></span><span></span><span></span>
               </span>
+              <span v-else-if="isBatchMode">提交 {{ validBatchItemCount }} 个项目</span>
               <span v-else>{{ isAddMode ? '提交申请' : '提交反馈' }}</span>
             </button>
           </div>
@@ -643,8 +888,51 @@ async function handleSubmit() {
   color: #0c4a6e;
 }
 
+/* ===== Mode Switch ===== */
+.mode-switch {
+  display: flex;
+  gap: var(--spacing-xs);
+  padding: 4px;
+  background: var(--color-bg);
+  border-radius: 12px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px var(--spacing-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mode-btn:hover:not(.active) {
+  color: var(--color-text);
+}
+
+.mode-btn.active {
+  background: var(--color-card);
+  color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
 /* ===== Form ===== */
-.feedback-form {
+.feedback-form,
+.batch-form {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
@@ -794,6 +1082,158 @@ async function handleSubmit() {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
+}
+
+.form-textarea-sm {
+  min-height: 70px;
+}
+
+/* ===== Batch Items ===== */
+.batch-count {
+  font-size: 11px;
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.batch-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.batch-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.batch-item-number {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border-radius: 8px;
+  flex-shrink: 0;
+  margin-top: 10px;
+}
+
+.batch-item-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.batch-item-input,
+.batch-item-desc {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.batch-item-input:hover,
+.batch-item-desc:hover {
+  background: var(--color-card);
+}
+
+.batch-item-input:focus,
+.batch-item-desc:focus {
+  outline: none;
+  background: var(--color-card);
+  border-color: var(--color-primary);
+}
+
+.batch-item-input::placeholder,
+.batch-item-desc::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.batch-item-desc {
+  font-size: var(--text-xs);
+  padding: 8px 12px;
+}
+
+.batch-item-remove {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.batch-item-remove:hover:not(:disabled) {
+  background: var(--color-error-bg, #fef2f2);
+  color: var(--color-error, #ef4444);
+}
+
+.batch-item-remove:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.batch-item-remove svg {
+  width: 16px;
+  height: 16px;
+}
+
+.add-batch-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: 2px dashed var(--color-primary);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: var(--spacing-xs);
+}
+
+.add-batch-item-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+  border-style: solid;
+}
+
+.add-batch-item-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-batch-item-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.add-limit {
+  font-size: var(--text-xs);
+  opacity: 0.7;
 }
 
 /* ===== Image Upload ===== */

@@ -512,7 +512,7 @@ function showFinalTour() {
             </div>
             <div class="hot-scroll">
               <div
-                v-for="(item, index) in hotItems.slice(3)"
+                v-for="item in hotItems.slice(3)"
                 :key="item.id"
                 class="hot-scroll-card"
                 @click="goToRatingItem(item)"

@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import { getCampusCaptcha, checkHasPassword, changePassword, getPrivacySettings, updatePrivacySettings } from '@/api/user'
+import { sendSmsCode } from '@/api/sms'
 import type { PrivacySettings } from '@/types/user'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
@@ -24,8 +25,20 @@ const showAvatarUploader = ref(false)
 
 // 解绑确认弹窗
 const showUnbindConfirm = ref(false)
-const unbindType = ref<'campus' | 'qq'>('campus')
+const unbindType = ref<'campus' | 'qq' | 'phone'>('campus')
 const isUnbinding = ref(false)
+
+// 手机号绑定抽屉
+const showPhoneBindDrawer = ref(false)
+const phoneBindForm = ref({
+  phoneNumber: '',
+  code: '',
+})
+const isPhoneBinding = ref(false)
+const phoneBindErrorMessage = ref('')
+const smsSending = ref(false)
+const smsCountdown = ref(0)
+let smsCountdownTimer: ReturnType<typeof setInterval> | null = null
 
 // 校园网绑定抽屉
 const showCampusBindDrawer = ref(false)
@@ -149,6 +162,7 @@ onMounted(async () => {
       userStore.fetchProfile(),
       userStore.fetchCampusBinding(),
       userStore.fetchQQBinding(),
+      userStore.fetchPhoneBinding(),
       loadPrivacySettings(),
     ])
   } catch (error) {
@@ -293,8 +307,111 @@ async function handleBindQQ() {
   }
 }
 
+// 打开手机号绑定抽屉
+function handleBindPhone() {
+  showPhoneBindDrawer.value = true
+  phoneBindErrorMessage.value = ''
+  phoneBindForm.value = {
+    phoneNumber: '',
+    code: '',
+  }
+  smsCountdown.value = 0
+  if (smsCountdownTimer) {
+    clearInterval(smsCountdownTimer)
+    smsCountdownTimer = null
+  }
+}
+
+// 关闭手机号绑定抽屉
+function closePhoneBindDrawer() {
+  showPhoneBindDrawer.value = false
+  phoneBindErrorMessage.value = ''
+  if (smsCountdownTimer) {
+    clearInterval(smsCountdownTimer)
+    smsCountdownTimer = null
+  }
+}
+
+// 发送手机号绑定验证码
+async function sendPhoneBindCode() {
+  const { phoneNumber } = phoneBindForm.value
+  if (!phoneNumber) {
+    phoneBindErrorMessage.value = '请输入手机号'
+    return
+  }
+  if (!/^1[3-9]\d{9}$/.test(phoneNumber)) {
+    phoneBindErrorMessage.value = '请输入正确的手机号'
+    return
+  }
+
+  smsSending.value = true
+  phoneBindErrorMessage.value = ''
+
+  try {
+    const res = await sendSmsCode(phoneNumber, 'bind_phone')
+    if (res.data.code === 200) {
+      toast.success('验证码已发送')
+      // 开始倒计时
+      smsCountdown.value = res.data.data.cooldownSeconds || 60
+      smsCountdownTimer = setInterval(() => {
+        smsCountdown.value--
+        if (smsCountdown.value <= 0) {
+          if (smsCountdownTimer) {
+            clearInterval(smsCountdownTimer)
+            smsCountdownTimer = null
+          }
+        }
+      }, 1000)
+    } else {
+      phoneBindErrorMessage.value = res.data.message || '发送失败'
+    }
+  } catch {
+    phoneBindErrorMessage.value = '网络错误，请稍后重试'
+  } finally {
+    smsSending.value = false
+  }
+}
+
+// 提交手机号绑定
+async function submitPhoneBind() {
+  const { phoneNumber, code } = phoneBindForm.value
+  if (!phoneNumber) {
+    phoneBindErrorMessage.value = '请输入手机号'
+    return
+  }
+  if (!/^1[3-9]\d{9}$/.test(phoneNumber)) {
+    phoneBindErrorMessage.value = '请输入正确的手机号'
+    return
+  }
+  if (!code) {
+    phoneBindErrorMessage.value = '请输入验证码'
+    return
+  }
+  if (!/^\d{6}$/.test(code)) {
+    phoneBindErrorMessage.value = '验证码为6位数字'
+    return
+  }
+
+  isPhoneBinding.value = true
+  phoneBindErrorMessage.value = ''
+
+  try {
+    const result = await userStore.bindPhone(phoneNumber, code)
+    if (result.code === 200) {
+      toast.success('绑定成功')
+      closePhoneBindDrawer()
+    } else {
+      phoneBindErrorMessage.value = result.message || '绑定失败'
+    }
+  } catch {
+    phoneBindErrorMessage.value = '网络错误，请稍后重试'
+  } finally {
+    isPhoneBinding.value = false
+  }
+}
+
 // 打开解绑确认
-function openUnbindConfirm(type: 'campus' | 'qq') {
+function openUnbindConfirm(type: 'campus' | 'qq' | 'phone') {
   unbindType.value = type
   showUnbindConfirm.value = true
 }
@@ -306,8 +423,10 @@ async function confirmUnbind() {
     let res
     if (unbindType.value === 'campus') {
       res = await userStore.unbindCampus()
-    } else {
+    } else if (unbindType.value === 'qq') {
       res = await userStore.unbindQQ()
+    } else {
+      res = await userStore.unbindPhone()
     }
 
     if (res.code === 200) {
@@ -625,6 +744,39 @@ async function submitChangePassword() {
                     解绑
                   </button>
                 </div>
+
+                <div class="binding-divider"></div>
+
+                <!-- 手机号绑定 -->
+                <div class="binding-item">
+                  <div class="binding-icon phone">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                      <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                    </svg>
+                  </div>
+                  <div class="binding-info">
+                    <h4 class="binding-title">手机号</h4>
+                    <p class="binding-desc" v-if="userStore.phoneBinding?.bound">
+                      已绑定 · {{ userStore.phoneBinding?.phoneNumber }}
+                    </p>
+                    <p class="binding-desc unbound" v-else>未绑定</p>
+                  </div>
+                  <button
+                    v-if="!userStore.phoneBinding?.bound"
+                    class="binding-btn"
+                    @click="handleBindPhone"
+                  >
+                    绑定
+                  </button>
+                  <button
+                    v-else
+                    class="binding-btn unbind"
+                    @click="openUnbindConfirm('phone')"
+                  >
+                    解绑
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -757,7 +909,7 @@ async function submitChangePassword() {
           <div v-if="showUnbindConfirm" class="modal-content" @click.stop>
             <h3 class="modal-title">确认解绑</h3>
             <p class="modal-message">
-              确定要解绑{{ unbindType === 'campus' ? '校园网' : 'QQ' }}账号吗？
+              确定要解绑{{ unbindType === 'campus' ? '校园网' : (unbindType === 'qq' ? 'QQ' : '手机号') }}吗？
             </p>
             <div class="modal-actions">
               <button class="modal-btn cancel" @click="cancelUnbind" :disabled="isUnbinding">取消</button>
@@ -990,6 +1142,76 @@ async function submitChangePassword() {
                 </button>
               </form>
             </template>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
+
+    <!-- 手机号绑定抽屉 -->
+    <Transition name="drawer-fade">
+      <div v-if="showPhoneBindDrawer" class="drawer-overlay" @click="closePhoneBindDrawer">
+        <Transition name="drawer-slide">
+          <div v-if="showPhoneBindDrawer" class="drawer-content" @click.stop>
+            <!-- 抽屉头部 -->
+            <div class="drawer-header">
+              <h3 class="drawer-title">绑定手机号</h3>
+              <button class="drawer-close" @click="closePhoneBindDrawer" :disabled="isPhoneBinding">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <!-- 错误提示 -->
+            <div v-if="phoneBindErrorMessage" class="bind-error">
+              {{ phoneBindErrorMessage }}
+            </div>
+
+            <!-- 绑定表单 -->
+            <form class="bind-form" @submit.prevent="submitPhoneBind">
+              <div class="bind-form-group">
+                <label class="bind-form-label">手机号</label>
+                <input
+                  v-model="phoneBindForm.phoneNumber"
+                  type="tel"
+                  class="bind-form-input"
+                  placeholder="请输入手机号"
+                  maxlength="11"
+                  :disabled="isPhoneBinding"
+                />
+              </div>
+
+              <div class="bind-form-group">
+                <label class="bind-form-label">验证码</label>
+                <div class="sms-code-row">
+                  <input
+                    v-model="phoneBindForm.code"
+                    type="text"
+                    class="bind-form-input sms-code-input"
+                    placeholder="6位验证码"
+                    maxlength="6"
+                    :disabled="isPhoneBinding"
+                  />
+                  <button
+                    type="button"
+                    class="sms-send-btn"
+                    :disabled="isPhoneBinding || smsSending || smsCountdown > 0"
+                    @click="sendPhoneBindCode"
+                  >
+                    {{ smsCountdown > 0 ? `${smsCountdown}s` : (smsSending ? '发送中' : '获取验证码') }}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                class="bind-submit-btn"
+                :disabled="isPhoneBinding"
+              >
+                {{ isPhoneBinding ? '绑定中...' : '绑定' }}
+              </button>
+            </form>
           </div>
         </Transition>
       </div>
@@ -1399,6 +1621,11 @@ async function submitChangePassword() {
 .binding-icon.qq {
   background: rgba(18, 183, 245, 0.1);
   color: #12b7f5;
+}
+
+.binding-icon.phone {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
 }
 
 .binding-icon svg {
@@ -1850,6 +2077,43 @@ async function submitChangePassword() {
 .captcha-loading,
 .captcha-placeholder {
   font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* 短信验证码行 */
+.sms-code-row {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.sms-code-input {
+  flex: 1;
+}
+
+.sms-send-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.sms-send-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.sms-send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--color-bg);
+  border-color: var(--color-border);
   color: var(--color-text-secondary);
 }
 

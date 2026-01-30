@@ -264,7 +264,7 @@ onMounted(() => {
               </div>
               <div class="item-meta">
                 <span class="rating-count">{{ item.ratingCount }} 人评分</span>
-                <span v-if="formatBreadcrumb(item.breadcrumb)" class="item-breadcrumb">{{ formatBreadcrumb(item.breadcrumb) }}</span>
+                <span v-if="'breadcrumb' in item && formatBreadcrumb(item.breadcrumb as string)" class="item-breadcrumb">{{ formatBreadcrumb(item.breadcrumb as string) }}</span>
               </div>
               <!-- 热门评论 -->
               <div class="hot-comment" v-if="item.topComment">

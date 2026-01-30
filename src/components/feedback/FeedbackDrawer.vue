@@ -912,26 +912,26 @@ async function handleSubmit() {
   flex-shrink: 0;
 }
 
-/* ===== Buttons - 活力风格 ===== */
+/* ===== Buttons - 轻量风格 ===== */
 .btn-secondary {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 14px var(--spacing-md);
+  padding: 12px var(--spacing-md);
   font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-medium);
   color: var(--color-text-secondary);
-  background: var(--color-bg);
+  background: transparent;
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-  background: var(--color-border);
+  background: var(--color-bg);
   color: var(--color-text);
 }
 
@@ -940,38 +940,35 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px var(--spacing-md);
+  gap: 6px;
+  padding: 12px var(--spacing-md);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  color: white;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #7c5ce0 100%);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb, 99, 102, 241), 0.35);
 }
 
 .btn-primary svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(var(--color-primary-rgb, 99, 102, 241), 0.45);
+  background: var(--color-primary);
+  color: white;
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  opacity: 0.9;
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 /* ===== Loading Dots ===== */
@@ -982,9 +979,9 @@ async function handleSubmit() {
 }
 
 .loading-dots span {
-  width: 6px;
-  height: 6px;
-  background: white;
+  width: 5px;
+  height: 5px;
+  background: var(--color-primary);
   border-radius: 50%;
   animation: loading-bounce 1.4s infinite ease-in-out both;
 }
@@ -1068,8 +1065,7 @@ async function handleSubmit() {
 
   .btn-secondary,
   .btn-primary {
-    padding: 16px var(--spacing-lg);
-    border-radius: 16px;
+    padding: 14px var(--spacing-lg);
   }
 }
 </style>

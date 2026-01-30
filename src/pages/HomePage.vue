@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import { useScoringTour } from '@/composables/useScoringTour'
+import { getBanners, type Banner } from '@/api/banner'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -24,52 +25,64 @@ const isMobileMenuOpen = ref(false)
 const currentBannerIndex = ref(0)
 let bannerInterval: ReturnType<typeof setInterval> | null = null
 
-// 预留Banner数据 - 后续由API获取
-// TODO: 替换为真实API数据
-interface BannerItem {
-  id: number
-  tag: string
-  title: string
-  description: string
-  gradient: string
-  link?: string
-}
+// 轮播图数据 - 从API获取
+const banners = ref<Banner[]>([])
+const bannersLoading = ref(false)
 
-const banners = ref<BannerItem[]>([
+// 默认轮播图数据（API失败时使用）
+const defaultBanners: Banner[] = [
   {
     id: 1,
-    tag: '公告',
     title: '欢迎来到厦门一中学生社区',
     description: '在这里发现校园生活的无限可能',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    link: '/community',
+    imageUrl: '',
+    linkUrl: '/community',
+    linkType: 'internal',
+    position: 'home',
+    sortOrder: 0,
+    status: 1,
+    startTime: null,
+    endTime: null,
+    createdBy: 1,
+    createdAt: '',
+    updatedAt: '',
   },
-  {
-    id: 2,
-    tag: '活动',
-    title: '新活动即将上线',
-    description: '敬请期待精彩校园活动',
-    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    link: '/ticket',
-  },
-  {
-    id: 3,
-    tag: '功能',
-    title: '评分社区全新上线',
-    description: '为食堂、教学楼、考试打分吧',
-    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    link: '/community',
-  },
-])
+]
+
+// 加载轮播图数据
+async function loadBanners() {
+  bannersLoading.value = true
+  try {
+    const data = await getBanners({ position: 'home' })
+    if (data && data.length > 0) {
+      banners.value = data
+    } else {
+      banners.value = defaultBanners
+    }
+  } catch (error) {
+    console.error('Failed to load banners:', error)
+    banners.value = defaultBanners
+  } finally {
+    bannersLoading.value = false
+  }
+}
 
 function goToBanner(index: number) {
   currentBannerIndex.value = index
   resetBannerInterval()
 }
 
-function handleBannerClick(banner: BannerItem) {
-  if (banner.link) {
-    router.push(banner.link)
+function handleBannerClick(banner: Banner) {
+  // 根据 linkType 处理点击跳转
+  if (banner.linkType === 'none' || !banner.linkUrl) {
+    return // 不跳转
+  }
+  if (banner.linkType === 'internal') {
+    // 站内跳转（使用路由）
+    router.push(banner.linkUrl)
+  } else {
+    // 站外跳转（新窗口打开）
+    window.open(banner.linkUrl, '_blank')
   }
 }
 
@@ -101,7 +114,10 @@ function toggleSection(section: 'nav' | 'admin' | 'account') {
   drawerSections.value[section] = !drawerSections.value[section]
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 加载轮播图数据
+  await loadBanners()
+
   // 启动Banner轮播
   startBannerAutoPlay()
 
@@ -616,7 +632,7 @@ function toggleMobileMenu() {
       <section class="banner-section">
         <div class="banner-container">
           <div class="banner-carousel">
-            <!-- 轮播内容 - 将由API填充 -->
+            <!-- 轮播内容 - 由API填充 -->
             <div
               v-for="(banner, index) in banners"
               :key="banner.id"
@@ -624,17 +640,33 @@ function toggleMobileMenu() {
               :class="{ active: currentBannerIndex === index }"
               @click="handleBannerClick(banner)"
             >
-              <div class="banner-content" :style="{ background: banner.gradient }">
+              <!-- 如果有图片URL则显示图片 -->
+              <div
+                v-if="banner.imageUrl"
+                class="banner-content banner-image"
+                :style="{ backgroundImage: `url(${banner.imageUrl})` }"
+              >
+                <div class="banner-overlay">
+                  <div class="banner-text">
+                    <h3 class="banner-title">{{ banner.title }}</h3>
+                    <p class="banner-desc" v-if="banner.description">{{ banner.description }}</p>
+                  </div>
+                </div>
+              </div>
+              <!-- 否则使用默认渐变色背景 -->
+              <div
+                v-else
+                class="banner-content banner-gradient"
+              >
                 <div class="banner-text">
-                  <span class="banner-tag">{{ banner.tag }}</span>
                   <h3 class="banner-title">{{ banner.title }}</h3>
-                  <p class="banner-desc">{{ banner.description }}</p>
+                  <p class="banner-desc" v-if="banner.description">{{ banner.description }}</p>
                 </div>
               </div>
             </div>
           </div>
           <!-- 轮播指示器 -->
-          <div class="banner-dots">
+          <div class="banner-dots" v-if="banners.length > 1">
             <button
               v-for="(_, index) in banners"
               :key="index"
@@ -1366,11 +1398,14 @@ function toggleMobileMenu() {
   position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
+  /* 移动端使用 4:3 比例 */
+  aspect-ratio: 4 / 3;
 }
 
 .banner-slide {
   display: none;
   cursor: pointer;
+  height: 100%;
 }
 
 .banner-slide.active {
@@ -1392,34 +1427,49 @@ function toggleMobileMenu() {
   align-items: center;
   justify-content: center;
   padding: var(--spacing-lg);
-  min-height: 160px;
+  height: 100%;
   color: white;
   text-align: center;
+}
+
+/* 图片轮播样式 */
+.banner-content.banner-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 0;
+}
+
+.banner-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 60%);
+}
+
+/* 渐变色轮播样式 */
+.banner-content.banner-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .banner-text {
   max-width: 280px;
 }
 
-.banner-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: var(--font-medium);
-  margin-bottom: 6px;
-}
-
 .banner-title {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   margin-bottom: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .banner-desc {
   font-size: var(--text-xs);
-  opacity: 0.85;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .banner-dots {
@@ -1730,9 +1780,13 @@ function toggleMobileMenu() {
     padding-bottom: var(--spacing-sm);
   }
 
+  /* 平板端改为 16:9 比例 */
+  .banner-carousel {
+    aspect-ratio: 16 / 9;
+  }
+
   .banner-content {
     padding: var(--spacing-lg) var(--spacing-xl);
-    min-height: 140px;
   }
 
   .banner-text {
@@ -2050,8 +2104,12 @@ function toggleMobileMenu() {
     max-width: 560px;
   }
 
+  /* 桌面端保持 16:9 比例 */
+  .banner-carousel {
+    aspect-ratio: 16 / 9;
+  }
+
   .banner-content {
-    min-height: 130px;
     padding: var(--spacing-lg);
   }
 

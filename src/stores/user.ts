@@ -85,6 +85,11 @@ export const useUserStore = defineStore('user', () => {
    */
   const canManageUsers = computed(() => hasPermission('user.manage'))
 
+  /**
+   * 检查用户是否可以管理轮播图
+   */
+  const canManageBanners = computed(() => hasPermission('banner.manage'))
+
   // ==================== Actions ====================
 
   /**
@@ -535,6 +540,7 @@ export const useUserStore = defineStore('user', () => {
     canManageRating,
     canManageMessages,
     canManageUsers,
+    canManageBanners,
 
     // Actions - 认证
     restoreSession,

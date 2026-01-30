@@ -551,6 +551,17 @@ const router = createRouter({
         parent: 'home',
       },
     },
+    {
+      path: '/admin/banners',
+      name: 'admin-banners',
+      component: () => import('../pages/admin/BannerManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '轮播图管理',
+        parent: 'home',
+      },
+    },
 
     // ==================== 404 ====================
     {

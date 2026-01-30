@@ -18,6 +18,8 @@ interface Props {
   parentId?: number | null
   // 学校ID（新建分类时必填）
   schoolId?: number | null
+  // 父级路径（新增时显示完整层级，如 "食堂 > 二楼"）
+  parentPath?: string
   // 当前名称（修改时可选，用于显示当前值）
   currentName?: string
   // 当前描述（修改时可选，用于显示当前值）
@@ -28,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   targetId: null,
   parentId: null,
   schoolId: null,
+  parentPath: '',
   currentName: '',
   currentDescription: '',
 })
@@ -78,9 +81,35 @@ const showNameField = computed(() => true)
 // 是否显示描述字段
 const showDescriptionField = computed(() => true)
 
-// 是否显示图片字段（评分项目和合集支持图片）
+// 是否显示图片字段（新增时所有类型都支持图片，修改时评分项目和合集支持）
 const showImageField = computed(() => {
+  // 新增时：分类、评分项目、合集都支持图片
+  if (props.contributionType === 2) {
+    return true
+  }
+  // 修改时：仅评分项目和合集支持图片
   return props.targetType === 2 || props.targetType === 3
+})
+
+// 是否为新增模式
+const isAddMode = computed(() => props.contributionType === 2)
+
+// 理由字段的标签文本
+const reasonLabel = computed(() => isAddMode.value ? '新增说明' : '修改理由')
+
+// 理由字段的占位符
+const reasonPlaceholder = computed(() => {
+  if (isAddMode.value) {
+    return `请简要说明为什么要新增这个${targetTypeLabels[props.targetType]}，例如：在该分类下缺少此内容`
+  }
+  return '请说明您提交此修改的原因，如：信息有误需要修正、描述不准确等'
+})
+
+// 提交按钮文本
+const submitButtonText = computed(() => {
+  if (isSubmitting.value) return '提交中...'
+  if (isUploading.value) return '上传中...'
+  return isAddMode.value ? '提交申请' : '提交反馈'
 })
 
 // 重置表单
@@ -122,9 +151,9 @@ function handleImageSelect(event: Event) {
     return
   }
 
-  // 验证文件大小（最大5MB）
-  if (file.size > 5 * 1024 * 1024) {
-    toast.error('图片大小不能超过5MB')
+  // 验证文件大小（最大20MB）
+  if (file.size > 20 * 1024 * 1024) {
+    toast.error('图片大小不能超过 20MB')
     return
   }
 
@@ -172,7 +201,7 @@ function validateForm(): boolean {
     return false
   }
   if (!formData.value.reason.trim()) {
-    toast.error('请输入反馈理由')
+    toast.error(isAddMode.value ? '请填写新增说明' : '请填写修改理由')
     return false
   }
   return true
@@ -271,8 +300,16 @@ async function handleSubmit() {
 
           <!-- 内容 -->
           <div class="drawer-content">
+            <!-- 新增时显示父级路径 -->
+            <div v-if="isAddMode && parentPath" class="parent-path-info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>在 <strong>{{ parentPath }}</strong> 下新增</span>
+            </div>
+
             <p class="drawer-desc">
-              <template v-if="contributionType === 2">
+              <template v-if="isAddMode">
                 填写以下信息来新增{{ targetTypeLabels[targetType] }}，提交后将由管理员审核。
               </template>
               <template v-else>
@@ -339,18 +376,18 @@ async function handleSubmit() {
                   </svg>
                   <span>点击上传图片</span>
                 </label>
-                <div class="form-hint">支持 jpg、png 格式，最大 5MB</div>
+                <div class="form-hint">支持 JPG、PNG、GIF、WebP 格式，最大 20MB</div>
               </div>
 
-              <!-- 反馈理由 -->
+              <!-- 理由/说明 -->
               <div class="form-group">
                 <label class="form-label">
-                  反馈理由 <span class="required">*</span>
+                  {{ reasonLabel }} <span class="required">*</span>
                 </label>
                 <textarea
                   v-model="formData.reason"
                   class="form-textarea"
-                  placeholder="请说明您提交此反馈的原因，如：信息有误需要修正、发现新内容等"
+                  :placeholder="reasonPlaceholder"
                   rows="3"
                   maxlength="500"
                 ></textarea>
@@ -366,7 +403,7 @@ async function handleSubmit() {
               :disabled="isSubmitting || isUploading"
               @click="handleSubmit"
             >
-              {{ isSubmitting ? '提交中...' : isUploading ? '上传中...' : '提交反馈' }}
+              {{ submitButtonText }}
             </button>
           </div>
         </div>
@@ -439,6 +476,30 @@ async function handleSubmit() {
   flex: 1;
   overflow-y: auto;
   padding: var(--spacing-md);
+}
+
+/* 父级路径信息 */
+.parent-path-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+}
+
+.parent-path-info svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.parent-path-info strong {
+  font-weight: var(--font-semibold);
 }
 
 .drawer-desc {

@@ -92,6 +92,18 @@ const breadcrumbs = computed(() => {
 // 学校 ID（用于新建分类时）
 const schoolId = computed(() => categoryDetail.value?.breadcrumb?.school?.id ?? null)
 
+// 父级路径（用于新建时显示完整层级）
+const parentPath = computed(() => {
+  if (!categoryDetail.value?.breadcrumb) return ''
+  const bc = categoryDetail.value.breadcrumb
+  const parts = [
+    bc.school.name,
+    ...bc.ancestors.map((a) => a.name),
+    bc.current.name,
+  ]
+  return parts.join(' > ')
+})
+
 function openFeedbackDrawer(targetType: 1 | 2) {
   if (!userStore.isLoggedIn) {
     userStore.openLoginModal()
@@ -832,6 +844,7 @@ function showStarsTour() {
       :target-type="feedbackTargetType"
       :parent-id="categoryId"
       :school-id="schoolId"
+      :parent-path="parentPath"
       @close="closeFeedbackDrawer"
       @success="handleFeedbackSuccess"
     />

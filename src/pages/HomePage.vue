@@ -1398,8 +1398,8 @@ function toggleMobileMenu() {
   position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  /* 移动端使用 4:3 比例 */
-  aspect-ratio: 4 / 3;
+  /* 移动端使用 3:2 比例 */
+  aspect-ratio: 3 / 2;
 }
 
 .banner-slide {

@@ -533,21 +533,16 @@ async function handleSubmit() {
 }
 
 .drawer-icon {
-  width: 44px;
-  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #7c5ce0 100%);
-  border-radius: 14px;
-  color: white;
+  color: var(--color-primary);
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb, 99, 102, 241), 0.3);
 }
 
 .drawer-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 .drawer-title-group {
@@ -790,19 +785,15 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 10px;
   font-size: var(--text-xs);
-  color: #92400e;
-  margin-top: var(--spacing-xs);
+  color: var(--color-text-placeholder);
+  margin-top: var(--spacing-sm);
 }
 
 .form-tip svg {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  color: #d97706;
 }
 
 /* ===== Image Upload ===== */
@@ -1039,15 +1030,9 @@ async function handleSubmit() {
     padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-md);
   }
 
-  .drawer-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
-  }
-
   .drawer-icon svg {
-    width: 26px;
-    height: 26px;
+    width: 32px;
+    height: 32px;
   }
 
   .drawer-content {

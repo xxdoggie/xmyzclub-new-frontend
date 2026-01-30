@@ -13,6 +13,7 @@ import {
   type CreateBannerRequest,
   type BannerRequest,
 } from '@/api/banner'
+import { uploadFile } from '@/api/file'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -59,6 +60,10 @@ const showEditModal = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
 const editingBanner = ref<Banner | null>(null)
+
+// 图片上传
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const isUploading = ref(false)
 const formData = ref<CreateBannerRequest>({
   title: '',
   description: '',
@@ -107,6 +112,48 @@ function getLinkTypeLabel(linkType: string) {
     none: '无',
   }
   return map[linkType] || linkType
+}
+
+// 触发文件选择
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
+
+// 处理文件选择和上传
+async function handleFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    toast.error('请选择图片文件')
+    return
+  }
+
+  // 验证文件大小（20MB）
+  if (file.size > 20 * 1024 * 1024) {
+    toast.error('图片大小不能超过 20MB')
+    return
+  }
+
+  isUploading.value = true
+  try {
+    const response = await uploadFile(file, 'banner')
+    formData.value.imageUrl = response.data.data.fileUrl
+    toast.success('图片上传成功')
+  } catch (error) {
+    toast.error('图片上传失败')
+  } finally {
+    isUploading.value = false
+    // 清空 input 以便重复选择同一文件
+    input.value = ''
+  }
+}
+
+// 移除已上传的图片
+function removeImage() {
+  formData.value.imageUrl = ''
 }
 
 // 切换启用/禁用状态
@@ -174,7 +221,7 @@ async function saveBanner() {
     return
   }
   if (!formData.value.imageUrl.trim()) {
-    toast.error('请输入图片地址')
+    toast.error('请上传图片')
     return
   }
 
@@ -452,16 +499,51 @@ onMounted(() => {
 
         <div class="form-group">
           <label class="form-label">
-            图片地址 <span class="required">*</span>
+            轮播图图片 <span class="required">*</span>
           </label>
           <input
-            v-model="formData.imageUrl"
-            type="url"
-            class="form-input"
-            placeholder="请输入图片 URL"
+            ref="fileInputRef"
+            type="file"
+            accept="image/*"
+            class="file-input-hidden"
+            @change="handleFileSelect"
           />
-          <div v-if="formData.imageUrl" class="image-preview">
-            <img :src="formData.imageUrl" alt="预览" />
+          <!-- 已上传图片预览 -->
+          <div v-if="formData.imageUrl" class="uploaded-image-wrapper">
+            <img :src="formData.imageUrl" alt="预览" class="uploaded-image" />
+            <div class="image-actions">
+              <button type="button" class="image-action-btn replace" @click="triggerFileInput" :disabled="isUploading">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                更换
+              </button>
+              <button type="button" class="image-action-btn remove" @click="removeImage" :disabled="isUploading">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                移除
+              </button>
+            </div>
+          </div>
+          <!-- 上传按钮 -->
+          <div v-else class="upload-area" @click="triggerFileInput" :class="{ uploading: isUploading }">
+            <div v-if="isUploading" class="upload-loading">
+              <div class="upload-spinner"></div>
+              <span>上传中...</span>
+            </div>
+            <template v-else>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span class="upload-text">点击上传图片</span>
+              <span class="upload-hint">支持 JPG、PNG、GIF，不超过 20MB</span>
+            </template>
           </div>
         </div>
 
@@ -1047,17 +1129,133 @@ onMounted(() => {
   min-height: 60px;
 }
 
-.image-preview {
-  margin-top: var(--spacing-sm);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  max-height: 150px;
+/* ===== Image Upload ===== */
+.file-input-hidden {
+  display: none;
 }
 
-.image-preview img {
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.upload-area:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.upload-area.uploading {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.upload-area svg {
+  width: 32px;
+  height: 32px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.upload-text {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  margin-bottom: var(--spacing-xs);
+}
+
+.upload-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+}
+
+.upload-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-primary);
+}
+
+.upload-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.uploaded-image-wrapper {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.uploaded-image {
   width: 100%;
-  height: auto;
+  max-height: 200px;
   object-fit: cover;
+  display: block;
+}
+
+.image-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+.image-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.image-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.image-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.image-action-btn.replace {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.image-action-btn.replace:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.image-action-btn.remove {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.image-action-btn.remove:hover:not(:disabled) {
+  background: var(--color-error);
+  color: white;
 }
 
 .modal-actions {

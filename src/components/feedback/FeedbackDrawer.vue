@@ -287,9 +287,28 @@ async function handleSubmit() {
     <Transition name="drawer">
       <div v-if="isOpen" class="drawer-overlay" @click="closeDrawer">
         <div class="drawer-container" @click.stop>
-          <!-- 头部 -->
+          <!-- 头部 - 更活泼的设计 -->
           <div class="drawer-header">
-            <h3>{{ drawerTitle }}</h3>
+            <div class="drawer-header-content">
+              <div class="drawer-icon">
+                <svg v-if="isAddMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </div>
+              <div class="drawer-title-group">
+                <h3>{{ drawerTitle }}</h3>
+                <p class="drawer-subtitle">
+                  <template v-if="isAddMode">为社区添加新内容</template>
+                  <template v-else>帮助完善社区信息</template>
+                </p>
+              </div>
+            </div>
             <button class="drawer-close" @click="closeDrawer">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -300,110 +319,171 @@ async function handleSubmit() {
 
           <!-- 内容 -->
           <div class="drawer-content">
-            <!-- 新增时显示父级路径 -->
-            <div v-if="isAddMode && parentPath" class="parent-path-info">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <span>在 <strong>{{ parentPath }}</strong> 下新增</span>
+            <!-- 新增时显示父级路径 - 更友好的卡片样式 -->
+            <div v-if="isAddMode && parentPath" class="parent-path-card">
+              <div class="path-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+              <div class="path-text">
+                <span class="path-label">添加位置</span>
+                <span class="path-value">{{ parentPath }}</span>
+              </div>
             </div>
 
-            <p class="drawer-desc">
-              <template v-if="isAddMode">
-                填写以下信息来新增{{ targetTypeLabels[targetType] }}，提交后将由管理员审核。
-              </template>
-              <template v-else>
-                填写以下信息来修改{{ targetTypeLabels[targetType] }}，提交后将由管理员审核。
-              </template>
-            </p>
-
             <form class="feedback-form" @submit.prevent="handleSubmit">
-              <!-- 名称 -->
+              <!-- 名称 - 更现代的输入框 -->
               <div v-if="showNameField" class="form-group">
-                <label class="form-label">
-                  名称 <span class="required">*</span>
-                </label>
-                <input
-                  v-model="formData.name"
-                  type="text"
-                  class="form-input"
-                  :placeholder="`请输入${targetTypeLabels[targetType]}名称`"
-                  maxlength="50"
-                />
-                <div class="form-hint">
-                  <span v-if="contributionType === 1 && currentName">当前：{{ currentName }}</span>
+                <div class="form-label-row">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 7V4h16v3"></path>
+                      <path d="M9 20h6"></path>
+                      <path d="M12 4v16"></path>
+                    </svg>
+                    名称
+                  </label>
+                  <span class="form-required">必填</span>
+                </div>
+                <div class="input-wrapper">
+                  <input
+                    v-model="formData.name"
+                    type="text"
+                    class="form-input"
+                    :placeholder="`给这个${targetTypeLabels[targetType]}起个名字吧`"
+                    maxlength="50"
+                  />
+                </div>
+                <div v-if="contributionType === 1 && currentName" class="form-current">
+                  <span class="current-label">当前名称</span>
+                  <span class="current-value">{{ currentName }}</span>
                 </div>
               </div>
 
-              <!-- 描述 -->
+              <!-- 描述 - 更舒适的文本域 -->
               <div v-if="showDescriptionField" class="form-group">
-                <label class="form-label">描述</label>
-                <textarea
-                  v-model="formData.description"
-                  class="form-textarea"
-                  :placeholder="`请输入${targetTypeLabels[targetType]}描述（可选）`"
-                  rows="3"
-                  maxlength="500"
-                ></textarea>
-                <div class="form-hint">
-                  <span v-if="contributionType === 1 && currentDescription">当前：{{ currentDescription }}</span>
+                <div class="form-label-row">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="17" y1="10" x2="3" y2="10"></line>
+                      <line x1="21" y1="6" x2="3" y2="6"></line>
+                      <line x1="21" y1="14" x2="3" y2="14"></line>
+                      <line x1="17" y1="18" x2="3" y2="18"></line>
+                    </svg>
+                    描述
+                  </label>
+                  <span class="form-optional">选填</span>
+                </div>
+                <div class="textarea-wrapper">
+                  <textarea
+                    v-model="formData.description"
+                    class="form-textarea"
+                    :placeholder="`简单介绍一下这个${targetTypeLabels[targetType]}~`"
+                    rows="3"
+                    maxlength="500"
+                  ></textarea>
+                </div>
+                <div v-if="contributionType === 1 && currentDescription" class="form-current">
+                  <span class="current-label">当前描述</span>
+                  <span class="current-value">{{ currentDescription }}</span>
                 </div>
               </div>
 
-              <!-- 图片 -->
+              <!-- 图片 - 更有趣的上传区域 -->
               <div v-if="showImageField" class="form-group">
-                <label class="form-label">图片</label>
-                <div v-if="imagePreview" class="image-preview-wrapper">
+                <div class="form-label-row">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    配图
+                  </label>
+                  <span class="form-optional">选填</span>
+                </div>
+                <div v-if="imagePreview" class="image-preview-card">
                   <img :src="imagePreview" alt="预览" class="image-preview" />
                   <button type="button" class="remove-image-btn" @click="removeImage">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="18" y1="6" x2="6" y2="18"></line>
                       <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
+                    <span>移除</span>
                   </button>
                 </div>
-                <label v-else class="image-upload-btn">
+                <label v-else class="image-upload-area">
                   <input
                     type="file"
                     accept="image/*"
                     class="hidden-input"
                     @change="handleImageSelect"
                   />
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                  </svg>
-                  <span>点击上传图片</span>
+                  <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  <span class="upload-text">点击或拖拽上传图片</span>
+                  <span class="upload-hint">JPG / PNG / GIF / WebP，最大 20MB</span>
                 </label>
-                <div class="form-hint">支持 JPG、PNG、GIF、WebP 格式，最大 20MB</div>
               </div>
 
-              <!-- 理由/说明 -->
+              <!-- 理由/说明 - 更友好的提示 -->
               <div class="form-group">
-                <label class="form-label">
-                  {{ reasonLabel }} <span class="required">*</span>
-                </label>
-                <textarea
-                  v-model="formData.reason"
-                  class="form-textarea"
-                  :placeholder="reasonPlaceholder"
-                  rows="3"
-                  maxlength="500"
-                ></textarea>
+                <div class="form-label-row">
+                  <label class="form-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    {{ reasonLabel }}
+                  </label>
+                  <span class="form-required">必填</span>
+                </div>
+                <div class="textarea-wrapper">
+                  <textarea
+                    v-model="formData.reason"
+                    class="form-textarea"
+                    :placeholder="isAddMode ? '告诉我们为什么要添加这个内容~' : '简单说明一下修改的原因~'"
+                    rows="3"
+                    maxlength="500"
+                  ></textarea>
+                </div>
+                <div class="form-tip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                    <path d="M12 16v-4"></path>
+                    <path d="M12 8h.01"></path>
+                  </svg>
+                  <span>提交后将由管理员审核，通过后即可生效</span>
+                </div>
               </div>
             </form>
           </div>
 
-          <!-- 底部按钮 -->
+          <!-- 底部按钮 - 更圆润活泼 -->
           <div class="drawer-footer">
-            <button class="btn-cancel" @click="closeDrawer">取消</button>
+            <button class="btn-secondary" @click="closeDrawer">
+              <span>下次再说</span>
+            </button>
             <button
-              class="btn-submit"
+              class="btn-primary"
               :disabled="isSubmitting || isUploading"
               @click="handleSubmit"
             >
-              {{ submitButtonText }}
+              <svg v-if="!isSubmitting && !isUploading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 2L11 13"></path>
+                <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+              </svg>
+              <span v-if="isSubmitting || isUploading" class="loading-dots">
+                <span></span><span></span><span></span>
+              </span>
+              <span v-else>{{ isAddMode ? '提交申请' : '提交反馈' }}</span>
             </button>
           </div>
         </div>
@@ -413,115 +493,166 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-/* ===== Drawer ===== */
+/* ===== Drawer Overlay ===== */
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
   align-items: flex-end;
 }
 
+/* ===== Drawer Container ===== */
 .drawer-container {
   width: 100%;
-  max-height: 90vh;
+  max-height: 92vh;
   background: var(--color-card);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-radius: 24px 24px 0 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
 }
 
+/* ===== Header - 活力风格 ===== */
 .drawer-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
+  background: linear-gradient(135deg, var(--color-primary-bg) 0%, transparent 100%);
   flex-shrink: 0;
 }
 
+.drawer-header-content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.drawer-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #7c5ce0 100%);
+  border-radius: 14px;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb, 99, 102, 241), 0.3);
+}
+
+.drawer-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.drawer-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
+}
+
 .drawer-header h3 {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  margin: 0;
+  color: var(--color-text);
+}
+
+.drawer-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .drawer-close {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  background: transparent;
+  background: var(--color-bg);
   border: none;
   color: var(--color-text-secondary);
   cursor: pointer;
-  border-radius: var(--radius-full);
-  transition: background var(--transition-fast);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .drawer-close:hover {
-  background: var(--color-bg);
+  background: var(--color-border);
+  transform: rotate(90deg);
 }
 
 .drawer-close svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
+/* ===== Content ===== */
 .drawer-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
 }
 
-/* 父级路径信息 */
-.parent-path-info {
+/* ===== 父级路径卡片 ===== */
+.parent-path-card {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-md);
-  font-size: var(--text-sm);
-  color: var(--color-primary);
-}
-
-.parent-path-info svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.parent-path-info strong {
-  font-weight: var(--font-semibold);
-}
-
-.drawer-desc {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-lg);
-  line-height: 1.5;
-}
-
-.drawer-footer {
-  display: flex;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  border-top: 1px solid var(--color-border);
-  flex-shrink: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 14px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.path-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 10px;
+  color: #0ea5e9;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+}
+
+.path-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.path-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.path-label {
+  font-size: var(--text-xs);
+  color: #0369a1;
+}
+
+.path-value {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: #0c4a6e;
 }
 
 /* ===== Form ===== */
 .feedback-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
 }
 
 .form-group {
@@ -530,123 +661,239 @@ async function handleSubmit() {
   gap: var(--spacing-xs);
 }
 
+.form-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .form-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+.form-label svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-secondary);
+}
+
+.form-required {
+  font-size: 11px;
+  font-weight: var(--font-medium);
+  color: white;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.form-optional {
+  font-size: 11px;
+  font-weight: var(--font-medium);
+  color: var(--color-text-placeholder);
+  background: var(--color-bg);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+/* ===== Input Wrapper ===== */
+.input-wrapper,
+.textarea-wrapper {
+  position: relative;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.form-input:hover {
+  background: var(--color-card);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.form-input:focus {
+  outline: none;
+  background: var(--color-card);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-bg);
+}
+
+.form-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  resize: none;
+  min-height: 100px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.form-textarea:hover {
+  background: var(--color-card);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.form-textarea:focus {
+  outline: none;
+  background: var(--color-card);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-bg);
+}
+
+.form-textarea::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* ===== Current Value Display ===== */
+.form-current {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg);
+  border-radius: 8px;
+  font-size: var(--text-xs);
+}
+
+.current-label {
+  color: var(--color-text-placeholder);
+}
+
+.current-value {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+}
+
+/* ===== Form Tip ===== */
+.form-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 10px;
+  font-size: var(--text-xs);
+  color: #92400e;
+  margin-top: var(--spacing-xs);
+}
+
+.form-tip svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: #d97706;
+}
+
+/* ===== Image Upload ===== */
+.image-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl);
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-card) 100%);
+  border: 2px dashed var(--color-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.image-upload-area:hover {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-card) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.upload-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary-bg) 0%, #ede9fe 100%);
+  border-radius: 16px;
+  color: var(--color-primary);
+}
+
+.upload-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.upload-text {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text);
 }
 
-.form-label .required {
-  color: var(--color-error);
-}
-
-.form-input {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-.form-textarea {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  resize: vertical;
-  min-height: 80px;
-  transition: border-color var(--transition-fast);
-  font-family: inherit;
-}
-
-.form-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-.form-hint {
+.upload-hint {
   font-size: var(--text-xs);
   color: var(--color-text-placeholder);
-}
-
-/* ===== Image Upload ===== */
-.image-upload-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-lg);
-  background: var(--color-bg);
-  border: 2px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.image-upload-btn:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.image-upload-btn svg {
-  width: 32px;
-  height: 32px;
-  color: var(--color-text-placeholder);
-}
-
-.image-upload-btn span {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
 }
 
 .hidden-input {
   display: none;
 }
 
-.image-preview-wrapper {
+/* ===== Image Preview ===== */
+.image-preview-card {
   position: relative;
   display: inline-block;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .image-preview {
   max-width: 100%;
   max-height: 200px;
-  border-radius: var(--radius-md);
+  display: block;
   object-fit: cover;
 }
 
 .remove-image-btn {
   position: absolute;
-  top: var(--spacing-xs);
-  right: var(--spacing-xs);
-  width: 24px;
-  height: 24px;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  background: rgba(0, 0, 0, 0.6);
+  gap: 4px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: 20px;
   color: white;
+  font-size: var(--text-xs);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .remove-image-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(239, 68, 68, 0.9);
 }
 
 .remove-image-btn svg {
@@ -654,44 +901,111 @@ async function handleSubmit() {
   height: 14px;
 }
 
-/* ===== Buttons ===== */
-.btn-cancel {
+/* ===== Footer ===== */
+.drawer-footer {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  padding-bottom: max(var(--spacing-lg), env(safe-area-inset-bottom));
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* ===== Buttons - 活力风格 ===== */
+.btn-secondary {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px var(--spacing-md);
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
   background: var(--color-border);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background var(--transition-fast);
+  color: var(--color-text);
 }
 
-.btn-cancel:hover {
-  background: var(--color-text-placeholder);
-}
-
-.btn-submit {
+.btn-primary {
   flex: 2;
-  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px var(--spacing-md);
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--font-semibold);
   color: white;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #7c5ce0 100%);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb, 99, 102, 241), 0.35);
 }
 
-.btn-submit:hover:not(:disabled) {
-  opacity: 0.9;
+.btn-primary svg {
+  width: 18px;
+  height: 18px;
 }
 
-.btn-submit:disabled {
-  opacity: 0.5;
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(var(--color-primary-rgb, 99, 102, 241), 0.45);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ===== Loading Dots ===== */
+.loading-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loading-dots span {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: loading-bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes loading-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* ===== Transitions ===== */
@@ -702,7 +1016,7 @@ async function handleSubmit() {
 
 .drawer-enter-active .drawer-container,
 .drawer-leave-active .drawer-container {
-  transition: transform 0.3s ease;
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .drawer-enter-from,
@@ -718,21 +1032,44 @@ async function handleSubmit() {
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
   .drawer-container {
-    max-width: 500px;
+    max-width: 480px;
     margin: 0 auto;
-    max-height: 80vh;
+    max-height: 85vh;
+    border-radius: 28px 28px 0 0;
   }
 
   .drawer-header {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-md);
+  }
+
+  .drawer-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+  }
+
+  .drawer-icon svg {
+    width: 26px;
+    height: 26px;
   }
 
   .drawer-content {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-xl) var(--spacing-xl);
   }
 
   .drawer-footer {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  .form-input,
+  .form-textarea {
+    padding: 16px 18px;
+  }
+
+  .btn-secondary,
+  .btn-primary {
+    padding: 16px var(--spacing-lg);
+    border-radius: 16px;
   }
 }
 </style>

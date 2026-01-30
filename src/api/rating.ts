@@ -56,6 +56,8 @@ import type {
   ReviewContributionRequest,
   DailyRatingStatistics,
   DailyRatingStatisticsParams,
+  BatchSubmitRatingItemsRequest,
+  BatchSubmitRatingItemsResponse,
 } from '@/types/rating'
 
 /**
@@ -756,6 +758,13 @@ export function batchAddCollectionItems(collectionId: number, data: BatchAddColl
  */
 export function submitContribution(data: SubmitContributionRequest) {
   return api.post<ApiResponse<Contribution>>('/rating-community/contributions', data)
+}
+
+/**
+ * 批量提交评分项目
+ */
+export function batchSubmitRatingItems(data: BatchSubmitRatingItemsRequest) {
+  return api.post<ApiResponse<BatchSubmitRatingItemsResponse>>('/rating-community/contributions/batch-rating-items', data)
 }
 
 /**

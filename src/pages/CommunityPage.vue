@@ -389,54 +389,62 @@ function showFinalTour() {
       </div>
 
       <!-- 分类胶囊 -->
-      <div id="tour-explore-section" class="category-pills">
-        <!-- 加载状态 -->
-        <template v-if="isLoading">
-          <div v-for="i in 4" :key="i" class="category-pill-skeleton"></div>
-        </template>
+      <div id="tour-explore-section" class="category-pills-wrapper">
+        <div class="category-pills" :class="{ 'first-load': !isLoading }">
+          <!-- 加载状态 -->
+          <template v-if="isLoading">
+            <div v-for="i in 4" :key="i" class="category-pill-skeleton"></div>
+          </template>
 
-        <!-- 分类列表 -->
-        <template v-else>
-          <button
-            v-for="(category, index) in categories"
-            :key="category.id"
-            :id="index === 0 ? 'tour-first-category' : undefined"
-            class="category-pill"
-            :class="`category-pill-${(index % 4) + 1}`"
-            @click="goToCategory(category)"
-          >
-            <!-- 餐厅图标 -->
-            <svg v-if="getSectionIcon(category.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-              <path d="M7 2v20"></path>
-              <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
-            </svg>
-            <!-- 建筑图标 -->
-            <svg v-else-if="getSectionIcon(category.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-              <path d="M9 22v-4h6v4"></path>
-              <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"></path>
-            </svg>
-            <!-- 考试图标 -->
-            <svg v-else-if="getSectionIcon(category.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-              <path d="M9 12h6M9 16h6"></path>
-            </svg>
-            <!-- 活动图标 -->
-            <svg v-else-if="getSectionIcon(category.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <!-- 默认星星图标 -->
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            <span>{{ category.name }}</span>
-          </button>
-        </template>
+          <!-- 分类列表 -->
+          <template v-else>
+            <button
+              v-for="(category, index) in categories"
+              :key="category.id"
+              :id="index === 0 ? 'tour-first-category' : undefined"
+              class="category-pill"
+              :class="`category-pill-${(index % 4) + 1}`"
+              @click="goToCategory(category)"
+            >
+              <!-- 餐厅图标 -->
+              <svg v-if="getSectionIcon(category.name) === 'utensils'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                <path d="M7 2v20"></path>
+                <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
+              </svg>
+              <!-- 建筑图标 -->
+              <svg v-else-if="getSectionIcon(category.name) === 'building'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                <path d="M9 22v-4h6v4"></path>
+                <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"></path>
+              </svg>
+              <!-- 考试图标 -->
+              <svg v-else-if="getSectionIcon(category.name) === 'clipboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                <path d="M9 12h6M9 16h6"></path>
+              </svg>
+              <!-- 活动图标 -->
+              <svg v-else-if="getSectionIcon(category.name) === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <!-- 默认星星图标 -->
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <span>{{ category.name }}</span>
+              <!-- 箭头图标 -->
+              <svg class="pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </template>
+        </div>
+        <!-- 右侧渐变遮罩 -->
+        <div class="category-pills-fade"></div>
       </div>
 
       <!-- 热门评分 -->
@@ -801,18 +809,48 @@ function showFinalTour() {
 }
 
 /* ===== Category Pills ===== */
+.category-pills-wrapper {
+  position: relative;
+  margin-bottom: var(--spacing-md);
+}
+
 .category-pills {
   display: flex;
   gap: var(--spacing-xs);
   overflow-x: auto;
   padding-bottom: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  padding-right: 32px; /* 为渐变遮罩留出空间 */
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 
 .category-pills::-webkit-scrollbar {
   display: none;
+}
+
+/* 首次加载时的滑动提示动画 */
+.category-pills.first-load {
+  animation: shimmy 0.8s ease-out 0.3s;
+}
+
+@keyframes shimmy {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-12px); }
+  50% { transform: translateX(6px); }
+  75% { transform: translateX(-3px); }
+  100% { transform: translateX(0); }
+}
+
+/* 右侧渐变遮罩 */
+.category-pills-fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: var(--spacing-sm);
+  width: 48px;
+  background: linear-gradient(to left, var(--color-bg) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .category-pill {
@@ -846,6 +884,20 @@ function showFinalTour() {
   width: 14px;
   height: 14px;
   color: var(--pill-color, var(--color-text-secondary));
+}
+
+/* 胶囊箭头图标 */
+.category-pill .pill-arrow {
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-placeholder);
+  margin-left: -2px;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.category-pill:hover .pill-arrow {
+  color: var(--pill-color, var(--color-primary));
+  transform: translateX(2px);
 }
 
 /* 胶囊颜色主题 */

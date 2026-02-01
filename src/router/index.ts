@@ -618,13 +618,24 @@ const router = createRouter({
       },
     },
     {
-      path: '/admin/museum/events/:id',
+      path: '/admin/museum/events/:id/edit',
       name: 'admin-museum-event-edit',
       component: () => import('../pages/admin/MuseumEventEditPage.vue'),
       meta: {
         requiresAuth: true,
         level: 4,
         title: '编辑活动',
+        parent: 'admin-museum-events',
+      },
+    },
+    {
+      path: '/admin/museum/events/:id/content',
+      name: 'admin-museum-event-content',
+      component: () => import('../pages/admin/MuseumEventContentPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '内容管理',
         parent: 'admin-museum-events',
       },
     },

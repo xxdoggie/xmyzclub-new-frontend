@@ -135,9 +135,15 @@ function goToCreate() {
   router.push('/admin/museum/events/create')
 }
 
+// 跳转到内容管理页面
+function goToContent(event: Event) {
+  router.push(`/admin/museum/events/${event.id}/content`)
+}
+
 // 跳转到编辑页面
-function goToEdit(event: Event) {
-  router.push(`/admin/museum/events/${event.id}`)
+function goToEdit(event: Event, e: MouseEvent) {
+  e.stopPropagation()
+  router.push(`/admin/museum/events/${event.id}/edit`)
 }
 
 // 发布活动
@@ -445,7 +451,7 @@ onMounted(() => {
                 v-for="event in events"
                 :key="event.id"
                 class="event-card"
-                @click="goToEdit(event)"
+                @click="goToContent(event)"
               >
                 <!-- 选择框 -->
                 <div class="event-checkbox" @click.stop>
@@ -530,6 +536,12 @@ onMounted(() => {
 
                 <!-- 操作按钮 -->
                 <div class="event-actions">
+                  <button
+                    class="action-btn edit"
+                    @click="goToEdit(event, $event)"
+                  >
+                    编辑
+                  </button>
                   <button
                     v-if="event.status === 0"
                     class="action-btn publish"
@@ -1197,6 +1209,16 @@ onMounted(() => {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.action-btn.edit {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.action-btn.edit:hover {
+  background: var(--color-primary);
+  color: white;
 }
 
 .action-btn.publish {

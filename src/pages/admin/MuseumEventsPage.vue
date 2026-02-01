@@ -4,15 +4,17 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import {
-  adminGetMoments,
-  adminApproveMoment,
-  adminRejectMoment,
-  adminTakedownMoment,
-  adminDeleteMoment,
-  adminBatchMomentAction,
+  adminGetEvents,
+  adminDeleteEvent,
+  adminPublishEvent,
+  adminUnpublishEvent,
+  adminFeatureEvent,
+  adminUnfeatureEvent,
+  adminBatchEventAction,
+  adminGetTags,
 } from '@/api/museum'
-import type { Moment, MomentStatus, GetMomentsParams } from '@/types/museum'
-import { getMomentStatusInfo } from '@/types/museum'
+import type { Event, EventStatus, GetEventsParams, Tag } from '@/types/museum'
+import { getEventStatusInfo } from '@/types/museum'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PageFooter from '@/components/layout/PageFooter.vue'
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb.vue'
@@ -23,17 +25,19 @@ const toast = useToast()
 
 // 状态
 const isLoading = ref(true)
-const moments = ref<Moment[]>([])
+const events = ref<Event[]>([])
+const tags = ref<Tag[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
 
 // 筛选状态
-const statusFilter = ref<'all' | MomentStatus>('all')
+const statusFilter = ref<'all' | EventStatus>('all')
+const tagFilter = ref<number | null>(null)
 const keyword = ref('')
 
 // Tab 切换动画
-const tabOrder = ['all', 0, 1, 2, 3] as const
+const tabOrder = ['all', 0, 1, 2] as const
 const slideDirection = ref<'left' | 'right' | ''>('')
 const isAnimating = ref(false)
 
@@ -45,7 +49,7 @@ watch(statusFilter, (newVal, oldVal) => {
   slideDirection.value = newIndex > oldIndex ? 'left' : 'right'
   isAnimating.value = true
   currentPage.value = 1
-  loadMoments()
+  loadEvents()
 
   nextTick(() => {
     setTimeout(() => {
@@ -57,50 +61,51 @@ watch(statusFilter, (newVal, oldVal) => {
 
 // 删除确认
 const showDeleteConfirm = ref(false)
-const deleteTarget = ref<Moment | null>(null)
+const deleteTarget = ref<Event | null>(null)
 const isDeleting = ref(false)
-
-// 拒绝/下架 Modal
-const showRejectModal = ref(false)
-const rejectTarget = ref<Moment | null>(null)
-const rejectReason = ref('')
-const isRejecting = ref(false)
-const rejectAction = ref<'reject' | 'takedown'>('reject')
-
-// 详情 Modal
-const showDetailModal = ref(false)
-const detailTarget = ref<Moment | null>(null)
 
 // 批量选择
 const selectedIds = ref<number[]>([])
 const isAllSelected = computed(() => {
-  if (moments.value.length === 0) return false
-  return moments.value.every((m) => selectedIds.value.includes(m.id))
+  if (events.value.length === 0) return false
+  return events.value.every((e) => selectedIds.value.includes(e.id))
 })
 
 // 计算总页数
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
-// 加载瞬间列表
-async function loadMoments() {
+// 加载标签列表
+async function loadTags() {
+  try {
+    tags.value = await adminGetTags({ status: 1 })
+  } catch (error) {
+    console.error('Failed to load tags:', error)
+  }
+}
+
+// 加载活动列表
+async function loadEvents() {
   isLoading.value = true
   try {
-    const params: GetMomentsParams = {
+    const params: GetEventsParams = {
       page: currentPage.value,
       size: pageSize.value,
     }
     if (statusFilter.value !== 'all') {
       params.status = statusFilter.value
     }
+    if (tagFilter.value) {
+      params.tagId = tagFilter.value
+    }
     if (keyword.value.trim()) {
       params.keyword = keyword.value.trim()
     }
-    const data = await adminGetMoments(params)
-    moments.value = data.list
+    const data = await adminGetEvents(params)
+    events.value = data.list
     total.value = data.total
     selectedIds.value = []
   } catch (error) {
-    toast.error('获取瞬间列表失败')
+    toast.error('获取活动列表失败')
   } finally {
     isLoading.value = false
   }
@@ -109,75 +114,77 @@ async function loadMoments() {
 // 搜索
 function handleSearch() {
   currentPage.value = 1
-  loadMoments()
+  loadEvents()
+}
+
+// 筛选标签变化
+function handleTagChange() {
+  currentPage.value = 1
+  loadEvents()
 }
 
 // 翻页
 function goToPage(page: number) {
   if (page < 1 || page > totalPages.value) return
   currentPage.value = page
-  loadMoments()
+  loadEvents()
 }
 
-// 审核通过
-async function approveMoment(moment: Moment, event?: Event) {
-  event?.stopPropagation()
+// 跳转到创建页面
+function goToCreate() {
+  router.push('/admin/museum/events/create')
+}
+
+// 跳转到编辑页面
+function goToEdit(event: Event) {
+  router.push(`/admin/museum/events/${event.id}`)
+}
+
+// 发布活动
+async function publishEvent(event: Event, e: MouseEvent) {
+  e.stopPropagation()
   try {
-    await adminApproveMoment(moment.id)
-    toast.success('已通过审核')
-    loadMoments()
+    await adminPublishEvent(event.id)
+    toast.success('已发布')
+    loadEvents()
   } catch (error) {
-    toast.error('操作失败')
+    toast.error('发布失败')
   }
 }
 
-// 打开拒绝 Modal
-function openRejectModal(moment: Moment, action: 'reject' | 'takedown', event?: Event) {
-  event?.stopPropagation()
-  rejectTarget.value = moment
-  rejectAction.value = action
-  rejectReason.value = ''
-  showRejectModal.value = true
-}
-
-// 确认拒绝/下架
-async function confirmReject() {
-  if (!rejectTarget.value) return
-  if (!rejectReason.value.trim()) {
-    toast.error('请输入原因')
-    return
-  }
-
-  isRejecting.value = true
+// 下架活动
+async function unpublishEvent(event: Event, e: MouseEvent) {
+  e.stopPropagation()
   try {
-    if (rejectAction.value === 'reject') {
-      await adminRejectMoment(rejectTarget.value.id, { reason: rejectReason.value.trim() })
-      toast.success('已拒绝')
+    await adminUnpublishEvent(event.id)
+    toast.success('已下架')
+    loadEvents()
+  } catch (error) {
+    toast.error('下架失败')
+  }
+}
+
+// 设为精选
+async function featureEvent(event: Event, e: MouseEvent) {
+  e.stopPropagation()
+  try {
+    if (event.isFeatured) {
+      await adminUnfeatureEvent(event.id)
+      toast.success('已取消精选')
     } else {
-      await adminTakedownMoment(rejectTarget.value.id, { reason: rejectReason.value.trim() })
-      toast.success('已下架')
+      await adminFeatureEvent(event.id)
+      toast.success('已设为精选')
     }
-    showRejectModal.value = false
-    rejectTarget.value = null
-    loadMoments()
+    loadEvents()
   } catch (error) {
     toast.error('操作失败')
-  } finally {
-    isRejecting.value = false
   }
-}
-
-// 关闭拒绝 Modal
-function closeRejectModal() {
-  showRejectModal.value = false
-  rejectTarget.value = null
-  rejectReason.value = ''
 }
 
 // 打开删除确认
-function openDeleteConfirm(moment: Moment, event?: Event) {
-  event?.stopPropagation()
-  deleteTarget.value = moment
+function openDeleteConfirm(event: Event, e: MouseEvent) {
+  e.stopPropagation()
+  deleteTarget.value = event
   showDeleteConfirm.value = true
 }
 
@@ -187,11 +194,11 @@ async function confirmDelete() {
 
   isDeleting.value = true
   try {
-    await adminDeleteMoment(deleteTarget.value.id)
+    await adminDeleteEvent(deleteTarget.value.id)
     toast.success('删除成功')
     showDeleteConfirm.value = false
     deleteTarget.value = null
-    loadMoments()
+    loadEvents()
   } catch (error) {
     toast.error('删除失败')
   } finally {
@@ -203,18 +210,6 @@ async function confirmDelete() {
 function cancelDelete() {
   showDeleteConfirm.value = false
   deleteTarget.value = null
-}
-
-// 打开详情 Modal
-function openDetailModal(moment: Moment) {
-  detailTarget.value = moment
-  showDetailModal.value = true
-}
-
-// 关闭详情 Modal
-function closeDetailModal() {
-  showDetailModal.value = false
-  detailTarget.value = null
 }
 
 // 切换选择
@@ -232,46 +227,35 @@ function toggleSelectAll() {
   if (isAllSelected.value) {
     selectedIds.value = []
   } else {
-    selectedIds.value = moments.value.map((m) => m.id)
+    selectedIds.value = events.value.map((e) => e.id)
   }
 }
 
 // 批量操作
-async function batchAction(action: 'approve' | 'reject' | 'takedown' | 'delete') {
+async function batchAction(action: 'publish' | 'unpublish' | 'feature' | 'unfeature' | 'delete') {
   if (selectedIds.value.length === 0) {
-    toast.error('请先选择要操作的瞬间')
+    toast.error('请先选择要操作的活动')
     return
   }
 
   const actionLabels = {
-    approve: '通过',
-    reject: '拒绝',
-    takedown: '下架',
+    publish: '发布',
+    unpublish: '下架',
+    feature: '设为精选',
+    unfeature: '取消精选',
     delete: '删除',
   }
 
   try {
-    await adminBatchMomentAction({
+    await adminBatchEventAction({
       ids: selectedIds.value,
       action,
     })
     toast.success(`批量${actionLabels[action]}成功`)
-    loadMoments()
+    loadEvents()
   } catch (error) {
     toast.error(`批量${actionLabels[action]}失败`)
   }
-}
-
-// 格式化日期时间
-function formatDateTime(dateStr: string) {
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 // 格式化日期
@@ -290,7 +274,8 @@ onMounted(() => {
     router.push('/')
     return
   }
-  loadMoments()
+  loadTags()
+  loadEvents()
 })
 </script>
 
@@ -309,14 +294,23 @@ onMounted(() => {
         <div class="page-header-section">
           <div class="header-main">
             <div class="header-text">
-              <h1 class="page-title">瞬间管理</h1>
-              <p class="page-subtitle">审核和管理用户投稿的瞬间</p>
+              <h1 class="page-title">活动管理</h1>
+              <p class="page-subtitle">创建和管理时间线活动</p>
+            </div>
+            <div class="header-actions">
+              <button class="action-button primary" @click="goToCreate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                创建活动
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- 搜索栏 -->
-        <div class="search-bar">
+        <!-- 搜索和筛选 -->
+        <div class="filter-bar">
           <div class="search-input-wrapper">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
@@ -326,10 +320,16 @@ onMounted(() => {
               v-model="keyword"
               type="text"
               class="search-input"
-              placeholder="搜索瞬间内容..."
+              placeholder="搜索活动..."
               @keyup.enter="handleSearch"
             />
           </div>
+          <select v-model="tagFilter" class="filter-select" @change="handleTagChange">
+            <option :value="null">全部标签</option>
+            <option v-for="tag in tags" :key="tag.id" :value="tag.id">
+              {{ tag.name }}
+            </option>
+          </select>
           <button class="search-btn" @click="handleSearch">搜索</button>
         </div>
 
@@ -347,7 +347,7 @@ onMounted(() => {
             :class="{ active: statusFilter === 0 }"
             @click="statusFilter = 0"
           >
-            待审核
+            草稿
           </button>
           <button
             class="status-tab"
@@ -361,19 +361,12 @@ onMounted(() => {
             :class="{ active: statusFilter === 2 }"
             @click="statusFilter = 2"
           >
-            已拒绝
-          </button>
-          <button
-            class="status-tab"
-            :class="{ active: statusFilter === 3 }"
-            @click="statusFilter = 3"
-          >
             已下架
           </button>
         </div>
 
         <!-- 批量操作栏 -->
-        <div v-if="moments.length > 0" class="batch-actions">
+        <div v-if="events.length > 0" class="batch-actions">
           <label class="select-all">
             <input
               type="checkbox"
@@ -384,28 +377,25 @@ onMounted(() => {
           </label>
           <div class="batch-btns">
             <button
-              v-if="statusFilter === 0 || statusFilter === 'all'"
-              class="batch-btn approve"
+              class="batch-btn publish"
               :disabled="selectedIds.length === 0"
-              @click="batchAction('approve')"
+              @click="batchAction('publish')"
             >
-              批量通过
+              批量发布
             </button>
             <button
-              v-if="statusFilter === 0 || statusFilter === 'all'"
-              class="batch-btn reject"
+              class="batch-btn unpublish"
               :disabled="selectedIds.length === 0"
-              @click="batchAction('reject')"
-            >
-              批量拒绝
-            </button>
-            <button
-              v-if="statusFilter === 1 || statusFilter === 'all'"
-              class="batch-btn takedown"
-              :disabled="selectedIds.length === 0"
-              @click="batchAction('takedown')"
+              @click="batchAction('unpublish')"
             >
               批量下架
+            </button>
+            <button
+              class="batch-btn feature"
+              :disabled="selectedIds.length === 0"
+              @click="batchAction('feature')"
+            >
+              批量精选
             </button>
             <button
               class="batch-btn delete"
@@ -433,111 +423,137 @@ onMounted(() => {
             }"
           >
             <!-- 空状态 -->
-            <div v-if="moments.length === 0" class="empty-container">
+            <div v-if="events.length === 0" class="empty-container">
               <div class="empty-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               </div>
-              <h2>{{ statusFilter === 'all' ? '暂无瞬间' : '暂无相关瞬间' }}</h2>
-              <p>{{ statusFilter === 'all' ? '还没有用户投稿瞬间' : '没有找到该状态的瞬间' }}</p>
+              <h2>{{ statusFilter === 'all' ? '暂无活动' : '暂无相关活动' }}</h2>
+              <p>{{ statusFilter === 'all' ? '还没有创建任何活动' : '没有找到该状态的活动' }}</p>
+              <button v-if="statusFilter === 'all'" class="empty-action-btn" @click="goToCreate">
+                创建第一个活动
+              </button>
             </div>
 
-            <!-- 瞬间列表 -->
-            <div v-else class="moments-list">
+            <!-- 活动列表 -->
+            <div v-else class="events-list">
               <div
-                v-for="moment in moments"
-                :key="moment.id"
-                class="moment-card"
-                @click="openDetailModal(moment)"
+                v-for="event in events"
+                :key="event.id"
+                class="event-card"
+                @click="goToEdit(event)"
               >
                 <!-- 选择框 -->
-                <div class="moment-checkbox" @click.stop>
+                <div class="event-checkbox" @click.stop>
                   <input
                     type="checkbox"
-                    :checked="selectedIds.includes(moment.id)"
-                    @change="toggleSelect(moment.id)"
+                    :checked="selectedIds.includes(event.id)"
+                    @change="toggleSelect(event.id)"
                   />
                 </div>
 
-                <!-- 用户信息 -->
-                <div class="moment-user">
-                  <div class="user-avatar">
-                    {{ moment.isAnonymous ? '匿' : moment.nickname?.charAt(0) || moment.username.charAt(0) }}
+                <!-- 活动封面 -->
+                <div class="event-cover">
+                  <img
+                    v-if="event.coverUrl"
+                    :src="event.coverUrl"
+                    :alt="event.title"
+                    class="cover-image"
+                  />
+                  <div v-else class="cover-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
                   </div>
-                  <div class="user-info">
-                    <span class="user-name">
-                      {{ moment.isAnonymous ? '匿名用户' : (moment.nickname || moment.username) }}
+                  <span v-if="event.isFeatured" class="featured-badge">精选</span>
+                </div>
+
+                <!-- 活动信息 -->
+                <div class="event-info">
+                  <div class="event-header">
+                    <h3 class="event-title">{{ event.title }}</h3>
+                    <span class="status-badge" :class="getEventStatusInfo(event.status).class">
+                      {{ getEventStatusInfo(event.status).label }}
                     </span>
-                    <span v-if="moment.isAnonymous" class="anonymous-badge">匿名</span>
                   </div>
-                </div>
-
-                <!-- 瞬间内容 -->
-                <div class="moment-content">
-                  <p class="content-text">{{ moment.content }}</p>
-                  <!-- 图片预览 -->
-                  <div v-if="moment.images && moment.images.length > 0" class="content-images">
-                    <img
-                      v-for="(img, index) in moment.images.slice(0, 3)"
-                      :key="index"
-                      :src="img"
-                      class="content-image"
-                    />
-                    <div v-if="moment.images.length > 3" class="more-images">
-                      +{{ moment.images.length - 3 }}
-                    </div>
+                  <p v-if="event.subtitle" class="event-subtitle">{{ event.subtitle }}</p>
+                  <div class="event-tags" v-if="event.tags && event.tags.length > 0">
+                    <span
+                      v-for="tag in event.tags"
+                      :key="tag.id"
+                      class="event-tag"
+                      :style="{ backgroundColor: tag.color + '20', color: tag.color }"
+                    >
+                      {{ tag.name }}
+                    </span>
                   </div>
-                </div>
-
-                <!-- 瞬间元信息 -->
-                <div class="moment-meta">
-                  <span class="status-badge" :class="getMomentStatusInfo(moment.status).class">
-                    {{ getMomentStatusInfo(moment.status).label }}
-                  </span>
-                  <span v-if="moment.eventTitle" class="event-tag">{{ moment.eventTitle }}</span>
-                  <span class="meta-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                    </svg>
-                    {{ moment.likeCount }}
-                  </span>
-                  <span class="meta-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    {{ moment.commentCount }}
-                  </span>
-                  <span class="meta-time">{{ formatDate(moment.createdAt) }}</span>
+                  <div class="event-meta">
+                    <span class="meta-item">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      {{ formatDate(event.startDate) }}
+                    </span>
+                    <span v-if="event.location" class="meta-item">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                      </svg>
+                      {{ event.location }}
+                    </span>
+                    <span class="meta-item">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      {{ event.viewCount }}
+                    </span>
+                    <span class="meta-item">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      {{ event.momentCount }}
+                    </span>
+                  </div>
                 </div>
 
                 <!-- 操作按钮 -->
-                <div class="moment-actions">
+                <div class="event-actions">
                   <button
-                    v-if="moment.status === 0"
-                    class="action-btn approve"
-                    @click="approveMoment(moment, $event)"
+                    v-if="event.status === 0"
+                    class="action-btn publish"
+                    @click="publishEvent(event, $event)"
                   >
-                    通过
+                    发布
                   </button>
                   <button
-                    v-if="moment.status === 0"
-                    class="action-btn reject"
-                    @click="openRejectModal(moment, 'reject', $event)"
-                  >
-                    拒绝
-                  </button>
-                  <button
-                    v-if="moment.status === 1"
-                    class="action-btn takedown"
-                    @click="openRejectModal(moment, 'takedown', $event)"
+                    v-if="event.status === 1"
+                    class="action-btn unpublish"
+                    @click="unpublishEvent(event, $event)"
                   >
                     下架
                   </button>
                   <button
+                    class="action-btn feature"
+                    :class="{ active: event.isFeatured }"
+                    @click="featureEvent(event, $event)"
+                  >
+                    {{ event.isFeatured ? '取消精选' : '精选' }}
+                  </button>
+                  <button
                     class="action-btn delete"
-                    @click="openDeleteConfirm(moment, $event)"
+                    @click="openDeleteConfirm(event, $event)"
                   >
                     删除
                   </button>
@@ -575,39 +591,12 @@ onMounted(() => {
 
     <PageFooter />
 
-    <!-- 拒绝/下架 Modal -->
-    <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
-      <div class="modal-content">
-        <h3 class="modal-title">{{ rejectAction === 'reject' ? '拒绝审核' : '下架瞬间' }}</h3>
-        <div class="form-group">
-          <label class="form-label">
-            {{ rejectAction === 'reject' ? '拒绝原因' : '下架原因' }}
-            <span class="required">*</span>
-          </label>
-          <textarea
-            v-model="rejectReason"
-            class="form-textarea"
-            :placeholder="rejectAction === 'reject' ? '请输入拒绝原因' : '请输入下架原因'"
-            rows="3"
-          ></textarea>
-        </div>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" @click="closeRejectModal" :disabled="isRejecting">
-            取消
-          </button>
-          <button class="modal-btn confirm danger" @click="confirmReject" :disabled="isRejecting">
-            {{ isRejecting ? '处理中...' : '确认' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- 删除确认弹窗 -->
     <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
       <div class="modal-content">
         <h3 class="modal-title">确认删除</h3>
         <p class="modal-desc">
-          确定要删除这条瞬间吗？此操作不可撤销。
+          确定要删除活动"{{ deleteTarget?.title }}"吗？此操作不可撤销。
         </p>
         <div class="modal-actions">
           <button class="modal-btn cancel" @click="cancelDelete" :disabled="isDeleting">
@@ -615,103 +604,6 @@ onMounted(() => {
           </button>
           <button class="modal-btn confirm danger" @click="confirmDelete" :disabled="isDeleting">
             {{ isDeleting ? '删除中...' : '确认删除' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 详情 Modal -->
-    <div v-if="showDetailModal && detailTarget" class="modal-overlay" @click.self="closeDetailModal">
-      <div class="modal-content modal-lg">
-        <h3 class="modal-title">瞬间详情</h3>
-
-        <!-- 用户信息 -->
-        <div class="detail-user">
-          <div class="user-avatar large">
-            {{ detailTarget.isAnonymous ? '匿' : detailTarget.nickname?.charAt(0) || detailTarget.username.charAt(0) }}
-          </div>
-          <div class="user-info">
-            <span class="user-name">
-              {{ detailTarget.isAnonymous ? '匿名用户' : (detailTarget.nickname || detailTarget.username) }}
-            </span>
-            <span v-if="!detailTarget.isAnonymous" class="user-username">@{{ detailTarget.username }}</span>
-            <span v-if="detailTarget.isAnonymous" class="anonymous-badge">匿名投稿</span>
-          </div>
-          <span class="status-badge" :class="getMomentStatusInfo(detailTarget.status).class">
-            {{ getMomentStatusInfo(detailTarget.status).label }}
-          </span>
-        </div>
-
-        <!-- 内容 -->
-        <div class="detail-content">
-          <p>{{ detailTarget.content }}</p>
-        </div>
-
-        <!-- 图片 -->
-        <div v-if="detailTarget.images && detailTarget.images.length > 0" class="detail-images">
-          <img
-            v-for="(img, index) in detailTarget.images"
-            :key="index"
-            :src="img"
-            class="detail-image"
-          />
-        </div>
-
-        <!-- 元信息 -->
-        <div class="detail-meta">
-          <div class="meta-row">
-            <span class="meta-label">瞬间时间：</span>
-            <span class="meta-value">{{ formatDateTime(detailTarget.momentTime) }}</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">投稿时间：</span>
-            <span class="meta-value">{{ formatDateTime(detailTarget.createdAt) }}</span>
-          </div>
-          <div v-if="detailTarget.eventTitle" class="meta-row">
-            <span class="meta-label">关联活动：</span>
-            <span class="meta-value">{{ detailTarget.eventTitle }}</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">点赞数：</span>
-            <span class="meta-value">{{ detailTarget.likeCount }}</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">评论数：</span>
-            <span class="meta-value">{{ detailTarget.commentCount }}</span>
-          </div>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="detail-actions">
-          <button
-            v-if="detailTarget.status === 0"
-            class="action-btn approve"
-            @click="approveMoment(detailTarget); closeDetailModal()"
-          >
-            通过审核
-          </button>
-          <button
-            v-if="detailTarget.status === 0"
-            class="action-btn reject"
-            @click="closeDetailModal(); openRejectModal(detailTarget, 'reject')"
-          >
-            拒绝
-          </button>
-          <button
-            v-if="detailTarget.status === 1"
-            class="action-btn takedown"
-            @click="closeDetailModal(); openRejectModal(detailTarget, 'takedown')"
-          >
-            下架
-          </button>
-          <button
-            class="action-btn delete"
-            @click="closeDetailModal(); openDeleteConfirm(detailTarget)"
-          >
-            删除
-          </button>
-          <button class="modal-btn cancel" @click="closeDetailModal">
-            关闭
           </button>
         </div>
       </div>
@@ -772,15 +664,49 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-/* ===== Search Bar ===== */
-.search-bar {
+.header-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.action-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.action-button.primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.action-button.primary:hover {
+  background: var(--color-primary-dark);
+}
+
+/* ===== Filter Bar ===== */
+.filter-bar {
   display: flex;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
 .search-input-wrapper {
   flex: 1;
+  min-width: 200px;
   position: relative;
 }
 
@@ -809,6 +735,16 @@ onMounted(() => {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-bg);
+}
+
+.filter-select {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
 }
 
 .search-btn {
@@ -848,7 +784,7 @@ onMounted(() => {
 
 .status-tab {
   flex: 1;
-  min-width: 50px;
+  min-width: 60px;
   padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
@@ -923,33 +859,33 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.batch-btn.approve {
+.batch-btn.publish {
   background: var(--color-success-bg);
   color: var(--color-success);
 }
 
-.batch-btn.approve:hover:not(:disabled) {
+.batch-btn.publish:hover:not(:disabled) {
   background: var(--color-success);
   color: white;
 }
 
-.batch-btn.reject {
+.batch-btn.unpublish {
   background: var(--color-warning-bg);
   color: var(--color-warning);
 }
 
-.batch-btn.reject:hover:not(:disabled) {
+.batch-btn.unpublish:hover:not(:disabled) {
   background: var(--color-warning);
   color: white;
 }
 
-.batch-btn.takedown {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+.batch-btn.feature {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
-.batch-btn.takedown:hover:not(:disabled) {
-  background: var(--color-warning);
+.batch-btn.feature:hover:not(:disabled) {
+  background: var(--color-primary);
   color: white;
 }
 
@@ -1056,16 +992,33 @@ onMounted(() => {
 .empty-container p {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
 }
 
-/* ===== Moment List ===== */
-.moments-list {
+.empty-action-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.empty-action-btn:hover {
+  background: var(--color-primary-dark);
+}
+
+/* ===== Event List ===== */
+.events-list {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
 }
 
-.moment-card {
+.event-card {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
@@ -1078,124 +1031,86 @@ onMounted(() => {
   position: relative;
 }
 
-.moment-card:hover {
+.event-card:hover {
   border-color: var(--color-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.moment-checkbox {
+.event-checkbox {
   position: absolute;
   top: var(--spacing-md);
   right: var(--spacing-md);
+  z-index: 1;
 }
 
-.moment-checkbox input {
+.event-checkbox input {
   width: 18px;
   height: 18px;
   cursor: pointer;
 }
 
-/* ===== User Info ===== */
-.moment-user {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+/* ===== Event Cover ===== */
+.event-cover {
+  width: 100%;
+  height: 120px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
 }
 
-.user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  flex-shrink: 0;
-}
-
-.user-avatar.large {
-  width: 48px;
-  height: 48px;
-  font-size: var(--text-base);
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  flex-wrap: wrap;
-}
-
-.user-name {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-}
-
-.user-username {
-  font-size: var(--text-xs);
+  background: var(--color-border);
   color: var(--color-text-placeholder);
 }
 
-.anonymous-badge {
+.cover-placeholder svg {
+  width: 32px;
+  height: 32px;
+}
+
+.featured-badge {
+  position: absolute;
+  top: var(--spacing-xs);
+  left: var(--spacing-xs);
+  padding: 2px 8px;
   font-size: 10px;
-  padding: 2px 6px;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
+  font-weight: var(--font-semibold);
+  color: white;
+  background: var(--color-primary);
   border-radius: var(--radius-sm);
 }
 
-/* ===== Moment Content ===== */
-.moment-content {
-  padding-right: 30px;
+/* ===== Event Info ===== */
+.event-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.content-text {
-  font-size: var(--text-sm);
-  line-height: 1.6;
-  color: var(--color-text);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.content-images {
-  display: flex;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-sm);
-}
-
-.content-image {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-}
-
-.more-images {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-}
-
-/* ===== Moment Meta ===== */
-.moment-meta {
+.event-header {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  margin-bottom: 4px;
   flex-wrap: wrap;
-  font-size: var(--text-xs);
-  color: var(--color-text-placeholder);
+}
+
+.event-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-badge {
@@ -1206,9 +1121,9 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.status-badge.status-pending {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+.status-badge.status-draft {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .status-badge.status-published {
@@ -1216,22 +1131,41 @@ onMounted(() => {
   color: var(--color-success);
 }
 
-.status-badge.status-rejected {
-  background: var(--color-error-bg);
-  color: var(--color-error);
+.status-badge.status-unpublished {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
-.status-badge.status-takedown {
-  background: var(--color-border);
+.event-subtitle {
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-tags {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+  flex-wrap: wrap;
 }
 
 .event-tag {
   font-size: 10px;
+  font-weight: var(--font-medium);
   padding: 2px 6px;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
   border-radius: var(--radius-sm);
+}
+
+.event-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
 }
 
 .meta-item {
@@ -1245,17 +1179,14 @@ onMounted(() => {
   height: 12px;
 }
 
-.meta-time {
-  margin-left: auto;
-}
-
-/* ===== Moment Actions ===== */
-.moment-actions {
+/* ===== Event Actions ===== */
+.event-actions {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
   padding-top: var(--spacing-sm);
   border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
 }
 
 .action-btn {
@@ -1268,33 +1199,38 @@ onMounted(() => {
   transition: all var(--transition-fast);
 }
 
-.action-btn.approve {
+.action-btn.publish {
   background: var(--color-success-bg);
   color: var(--color-success);
 }
 
-.action-btn.approve:hover {
+.action-btn.publish:hover {
   background: var(--color-success);
   color: white;
 }
 
-.action-btn.reject {
+.action-btn.unpublish {
   background: var(--color-warning-bg);
   color: var(--color-warning);
 }
 
-.action-btn.reject:hover {
+.action-btn.unpublish:hover {
   background: var(--color-warning);
   color: white;
 }
 
-.action-btn.takedown {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+.action-btn.feature {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
-.action-btn.takedown:hover {
-  background: var(--color-warning);
+.action-btn.feature:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.action-btn.feature.active {
+  background: var(--color-primary);
   color: white;
 }
 
@@ -1374,12 +1310,6 @@ onMounted(() => {
   width: 100%;
 }
 
-.modal-content.modal-lg {
-  max-width: 500px;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
 .modal-title {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
@@ -1392,47 +1322,10 @@ onMounted(() => {
   margin-bottom: var(--spacing-lg);
 }
 
-/* ===== Form ===== */
-.form-group {
-  margin-bottom: var(--spacing-md);
-}
-
-.form-label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text);
-  margin-bottom: var(--spacing-xs);
-}
-
-.form-label .required {
-  color: var(--color-error);
-}
-
-.form-textarea {
-  width: 100%;
-  padding: var(--spacing-sm);
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-  resize: vertical;
-  min-height: 80px;
-}
-
-.form-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-bg);
-}
-
 .modal-actions {
   display: flex;
   gap: var(--spacing-sm);
   justify-content: flex-end;
-  margin-top: var(--spacing-lg);
 }
 
 .modal-btn {
@@ -1476,86 +1369,6 @@ onMounted(() => {
   opacity: 0.9;
 }
 
-/* ===== Detail Modal ===== */
-.detail-user {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-  flex-wrap: wrap;
-}
-
-.detail-user .status-badge {
-  margin-left: auto;
-}
-
-.detail-content {
-  padding: var(--spacing-md);
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-md);
-}
-
-.detail-content p {
-  font-size: var(--text-sm);
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.detail-images {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-}
-
-.detail-image {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.detail-meta {
-  padding: var(--spacing-md);
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-md);
-}
-
-.meta-row {
-  display: flex;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xs);
-  font-size: var(--text-sm);
-}
-
-.meta-row:last-child {
-  margin-bottom: 0;
-}
-
-.meta-label {
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
-
-.meta-value {
-  color: var(--color-text);
-}
-
-.detail-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-}
-
-.detail-actions .action-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--text-sm);
-}
-
 /* ===== Desktop ===== */
 @media (min-width: 1024px) {
   .breadcrumb-wrapper {
@@ -1593,41 +1406,33 @@ onMounted(() => {
     padding: var(--spacing-sm) var(--spacing-md);
   }
 
-  .moment-card {
+  .event-card {
     flex-direction: row;
     align-items: flex-start;
     gap: var(--spacing-md);
   }
 
-  .moment-checkbox {
+  .event-checkbox {
     position: static;
     display: flex;
     align-items: center;
   }
 
-  .moment-user {
+  .event-cover {
+    width: 160px;
+    height: 100px;
     flex-shrink: 0;
-    width: 120px;
-    flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
   }
 
-  .moment-content {
+  .event-info {
     flex: 1;
-    min-width: 0;
-    padding-right: 0;
   }
 
-  .content-text {
-    -webkit-line-clamp: 2;
+  .event-title {
+    font-size: var(--text-base);
   }
 
-  .moment-meta {
-    width: 100%;
-  }
-
-  .moment-actions {
+  .event-actions {
     flex-shrink: 0;
     padding-top: 0;
     padding-left: var(--spacing-md);
@@ -1635,6 +1440,7 @@ onMounted(() => {
     border-left: 1px solid var(--color-border);
     flex-direction: column;
     align-items: flex-end;
+    flex-wrap: nowrap;
   }
 
   .arrow-icon {

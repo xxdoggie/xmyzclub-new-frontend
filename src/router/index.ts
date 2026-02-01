@@ -562,6 +562,17 @@ const router = createRouter({
         parent: 'home',
       },
     },
+    {
+      path: '/admin/moments',
+      name: 'admin-moments',
+      component: () => import('../pages/admin/MomentManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '瞬间管理',
+        parent: 'home',
+      },
+    },
 
     // ==================== 404 ====================
     {

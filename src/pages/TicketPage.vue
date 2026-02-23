@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -34,12 +34,17 @@ const filterOptions = [
 // 加载活动列表
 async function loadActivities(isLoadMore = false) {
   if (!userStore.isLoggedIn) {
+    activities.value = []
+    total.value = 0
     isLoading.value = false
+    isLoadingMore.value = false
     return
   }
 
   if (isLoadMore) {
     isLoadingMore.value = true
+  } else {
+    isLoading.value = true
   }
 
   try {
@@ -125,6 +130,24 @@ function formatDate(dateStr: string) {
 onMounted(() => {
   loadActivities()
 })
+
+watch(
+  () => userStore.isLoggedIn,
+  (isLoggedIn) => {
+    if (isLoggedIn) {
+      page.value = 1
+      loadActivities()
+      return
+    }
+
+    activities.value = []
+    total.value = 0
+    page.value = 1
+    isLoading.value = false
+    isLoadingMore.value = false
+    isFilterLoading.value = false
+  }
+)
 </script>
 
 <template>

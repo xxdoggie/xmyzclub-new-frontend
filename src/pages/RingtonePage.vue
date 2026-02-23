@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -24,6 +24,7 @@ const displayCampaigns = computed(() => {
 // 加载活动列表
 async function loadCampaigns() {
   if (!userStore.isLoggedIn) {
+    campaigns.value = []
     isLoading.value = false
     return
   }
@@ -88,6 +89,19 @@ function goToCampaign(campaign: Campaign) {
 onMounted(() => {
   loadCampaigns()
 })
+
+watch(
+  () => userStore.isLoggedIn,
+  (isLoggedIn) => {
+    if (isLoggedIn) {
+      loadCampaigns()
+      return
+    }
+
+    campaigns.value = []
+    isLoading.value = false
+  }
+)
 </script>
 
 <template>

@@ -569,6 +569,14 @@ onMounted(() => {
             </div>
           </div>
 
+          <div class="vote-reminder" role="note" aria-label="投票账号绑定提醒">
+            <div class="vote-reminder-icon" aria-hidden="true">!</div>
+            <div class="vote-reminder-content">
+              <p class="vote-reminder-title">投票前请先确认账号绑定状态</p>
+              <p class="vote-reminder-text">根据最新规定，为防止刷票，投票账号必须至少绑定校园网或QQ账号其中之一才可进行投票</p>
+            </div>
+          </div>
+
           <!-- 步骤1：选择宿舍楼（分楼投票模式） -->
           <section v-if="currentStep === 'building' && isByBuilding" class="step-section">
             <div class="buildings-grid">
@@ -904,6 +912,52 @@ onMounted(() => {
 
 .meta-item.countdown {
   color: var(--color-warning);
+}
+
+/* ===== Vote Reminder ===== */
+.vote-reminder {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(249, 115, 22, 0.12));
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  border-radius: var(--radius-lg);
+}
+
+.vote-reminder-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.vote-reminder-content {
+  min-width: 0;
+}
+
+.vote-reminder-title {
+  margin: 0 0 4px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: #b91c1c;
+}
+
+.vote-reminder-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: #7f1d1d;
 }
 
 /* ===== Section ===== */

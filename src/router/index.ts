@@ -562,6 +562,83 @@ const router = createRouter({
         parent: 'home',
       },
     },
+    {
+      path: '/admin/museum',
+      name: 'admin-museum',
+      component: () => import('../pages/admin/MuseumIndexPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '时间线管理',
+        parent: 'home',
+      },
+    },
+    {
+      path: '/admin/museum/moments',
+      name: 'admin-museum-moments',
+      component: () => import('../pages/admin/MomentManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '瞬间管理',
+        parent: 'admin-museum',
+      },
+    },
+    {
+      path: '/admin/museum/tags',
+      name: 'admin-museum-tags',
+      component: () => import('../pages/admin/MuseumTagsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '标签管理',
+        parent: 'admin-museum',
+      },
+    },
+    {
+      path: '/admin/museum/events',
+      name: 'admin-museum-events',
+      component: () => import('../pages/admin/MuseumEventsPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '活动管理',
+        parent: 'admin-museum',
+      },
+    },
+    {
+      path: '/admin/museum/events/create',
+      name: 'admin-museum-event-create',
+      component: () => import('../pages/admin/MuseumEventEditPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '创建活动',
+        parent: 'admin-museum-events',
+      },
+    },
+    {
+      path: '/admin/museum/events/:id/edit',
+      name: 'admin-museum-event-edit',
+      component: () => import('../pages/admin/MuseumEventEditPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '编辑活动',
+        parent: 'admin-museum-events',
+      },
+    },
+    {
+      path: '/admin/museum/events/:id/content',
+      name: 'admin-museum-event-content',
+      component: () => import('../pages/admin/MuseumEventContentPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 4,
+        title: '内容管理',
+        parent: 'admin-museum-events',
+      },
+    },
 
     // ==================== 404 ====================
     {

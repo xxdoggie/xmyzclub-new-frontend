@@ -291,7 +291,7 @@ function toggleMobileMenu() {
         <!-- 可滚动内容区域 -->
         <div class="sidebar-scroll-content">
           <!-- 管理区域 -->
-          <div class="sidebar-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers || userStore.canManageBanners">
+          <div class="sidebar-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers || userStore.canManageBanners || userStore.canManageMuseum">
             <div class="sidebar-section-header">
               <span class="sidebar-section-title">管理后台</span>
             </div>
@@ -368,6 +368,15 @@ function toggleMobileMenu() {
                   </svg>
                 </div>
                 <span>轮播图管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageMuseum" to="/admin/museum" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <span>时间线管理</span>
               </router-link>
             </nav>
           </div>
@@ -509,7 +518,7 @@ function toggleMobileMenu() {
         </div>
 
         <!-- 管理区域 -->
-        <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers || userStore.canManageBanners">
+        <div class="drawer-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers || userStore.canManageBanners || userStore.canManageMuseum">
           <button class="drawer-section-header" @click="toggleSection('admin')">
             <span class="drawer-section-title">管理</span>
             <svg class="drawer-section-arrow" :class="{ collapsed: !drawerSections.admin }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -590,6 +599,15 @@ function toggleMobileMenu() {
                   </svg>
                 </div>
                 <span>轮播图管理</span>
+              </a>
+              <a v-if="userStore.canManageMuseum" class="drawer-nav-item" @click="navigateTo('/admin/museum')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <span>时间线管理</span>
               </a>
             </nav>
           </Transition>

@@ -10,11 +10,14 @@ import VxFooter from './components/VxFooter.vue'
 import VxLoading from './components/VxLoading.vue'
 import VxNoticeHost from './components/VxNoticeHost.vue'
 import VxTabs from './components/VxTabs.vue'
+import { useIsDesktop } from './composables/useIsDesktop'
 import './voices-theme.css'
 
 const router = useRouter()
 const userStore = useUserStore()
 const notice = useVxNotice()
+// 桌面端拆顶栏：悬浮返回 + 页内标题行
+const isDesktop = useIsDesktop()
 
 const tab = ref('questions')
 const myQuestions = ref<MyQuestion[]>([])
@@ -50,13 +53,15 @@ onMounted(() => {
 
 <template>
   <div class="vx-page">
-    <header class="vx-topbar vx-topbar--center">
+    <header v-if="!isDesktop" class="vx-topbar vx-topbar--center">
       <VxBackButton to="/voices" />
       <span class="vx-topbar-title">我的档案袋</span>
     </header>
+    <VxBackButton v-else to="/voices" class="vx-desk-back" />
 
     <main class="vx-container mine-container">
-      <div class="mine-head">
+      <div class="mine-head" :class="{ 'vx-desk-head': isDesktop }">
+        <h2 v-if="isDesktop">我的档案袋</h2>
         <VxTabs
           v-model="tab"
           :options="[
@@ -177,6 +182,24 @@ onMounted(() => {
 @media (max-width: 560px) {
   .mine-head {
     margin-top: 2px;
+  }
+}
+
+/* ---------- 桌面端（≥920px） ---------- */
+@media (min-width: 920px) {
+  .mine-container {
+    max-width: 760px;
+  }
+
+  /* 标题居左、页签居右（覆盖移动端的居中） */
+  .mine-head.vx-desk-head {
+    justify-content: space-between;
+  }
+
+  .mine-head :deep(.vx-tab) {
+    font-size: 13px;
+    padding: 6px 12px;
+    letter-spacing: 0.5px;
   }
 }
 </style>

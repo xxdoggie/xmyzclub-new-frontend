@@ -19,6 +19,7 @@ import VxLoading from './components/VxLoading.vue'
 import VxNoticeHost from './components/VxNoticeHost.vue'
 import VxSealLine from './components/VxSealLine.vue'
 import VxTabs from './components/VxTabs.vue'
+import { useIsDesktop } from './composables/useIsDesktop'
 import { useVoiceIdentity } from './composables/useVoiceIdentity'
 import './voices-theme.css'
 
@@ -27,6 +28,8 @@ const userStore = useUserStore()
 const notice = useVxNotice()
 // 身份走本地缓存：页签渲染与初始筛选即时确定，避免跳变
 const { identity: myIdentity, setIdentity, syncFromServer } = useVoiceIdentity()
+// 桌面端拆顶栏：悬浮返回 + 页内标题行
+const isDesktop = useIsDesktop()
 
 const status = ref<VoicesStatus | null>(null)
 // 首次进入默认「可能问我」（有身份时）+「默认（随机）」
@@ -218,13 +221,15 @@ onBeforeUnmount(() => observer?.disconnect())
 
 <template>
   <div class="vx-page">
-    <header class="vx-topbar vx-topbar--center">
+    <header v-if="!isDesktop" class="vx-topbar vx-topbar--center">
       <VxBackButton to="/voices" />
       <span class="vx-topbar-title">答题大厅</span>
     </header>
+    <VxBackButton v-else to="/voices" class="vx-desk-back" />
 
-    <main class="vx-container">
-      <div class="wall-toolbar">
+    <main class="vx-container wall-container">
+      <div class="wall-toolbar" :class="{ 'vx-desk-head': isDesktop }">
+        <h2 v-if="isDesktop">答题大厅</h2>
         <VxTabs
           v-if="showScopeTabs"
           :options="scopeOptions"
@@ -235,7 +240,7 @@ onBeforeUnmount(() => observer?.disconnect())
           {{ userStore.isLoggedIn ? '登记身份后可筛选可能问你的试卷 →' : '登录并登记身份后即可作答 →' }}
         </button>
 
-        <VxTabs :options="sortOptions" :model-value="sort" @update:model-value="switchSort" />
+        <VxTabs class="wall-sort" :options="sortOptions" :model-value="sort" @update:model-value="switchSort" />
       </div>
 
       <!-- 全部试卷：目标人群多选过滤 -->
@@ -539,5 +544,27 @@ onBeforeUnmount(() => observer?.disconnect())
 .guide-fade-enter-from,
 .guide-fade-leave-to {
   opacity: 0;
+}
+
+/* ---------- 桌面端（≥920px） ---------- */
+@media (min-width: 920px) {
+  .wall-container {
+    max-width: 1200px;
+  }
+
+  .wall-toolbar {
+    justify-content: flex-start;
+    gap: 16px;
+  }
+
+  .wall-sort {
+    margin-left: auto;
+  }
+
+  .wall-toolbar :deep(.vx-tab) {
+    font-size: 13px;
+    padding: 6px 14px;
+    letter-spacing: 1px;
+  }
 }
 </style>

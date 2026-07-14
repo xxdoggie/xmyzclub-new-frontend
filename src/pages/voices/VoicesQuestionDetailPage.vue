@@ -29,6 +29,7 @@ import VxLoading from './components/VxLoading.vue'
 import VxNoticeHost from './components/VxNoticeHost.vue'
 import VxPen from './components/VxPen.vue'
 import VxSealLine from './components/VxSealLine.vue'
+import { useIsDesktop } from './composables/useIsDesktop'
 import { useVoiceIdentity } from './composables/useVoiceIdentity'
 import './voices-theme.css'
 
@@ -39,6 +40,8 @@ const route = useRoute()
 const userStore = useUserStore()
 const notice = useVxNotice()
 const { identity: myIdentity, setIdentity } = useVoiceIdentity()
+// 桌面端拆顶栏：悬浮返回（试卷本身即标题，不另设页内标题）
+const isDesktop = useIsDesktop()
 
 const questionId = Number(route.params.id)
 const detail = ref<QuestionDetail | null>(null)
@@ -398,10 +401,11 @@ function onBound(identity: VoiceIdentity) {
 
 <template>
   <div class="vx-page">
-    <header class="vx-topbar vx-topbar--center">
+    <header v-if="!isDesktop" class="vx-topbar vx-topbar--center">
       <VxBackButton />
       <span class="vx-topbar-title">试题详情</span>
     </header>
+    <VxBackButton v-else class="vx-desk-back" />
 
     <main class="vx-container detail-container">
       <VxLoading v-if="loading" text="调卷中…" />
@@ -1094,6 +1098,17 @@ function onBound(identity: VoiceIdentity) {
 
   .detail-q {
     font-size: 19px;
+  }
+}
+
+/* ---------- 桌面端（≥920px） ---------- */
+@media (min-width: 920px) {
+  .detail-container {
+    max-width: 760px;
+  }
+
+  .detail-paper {
+    margin-top: 12px;
   }
 }
 </style>

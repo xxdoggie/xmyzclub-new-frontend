@@ -419,6 +419,8 @@
   color: var(--vx-ink);
   background-image: linear-gradient(transparent 96%, var(--vx-line) 96%);
   background-size: 100% 2em;
+  /* 内容滚动时横线跟着文字一起滚，避免文字动线不动的割裂感 */
+  background-attachment: local;
   line-height: 2em;
   min-height: 6em;
   padding: 0;
@@ -596,6 +598,38 @@
 .vx-modal-leave-to .vx-modal {
   transform: translateY(12px) rotate(1deg);
   opacity: 0;
+}
+
+/* ---------- 桌面端（≥920px）：拆顶栏公共件 ---------- */
+@media (min-width: 920px) {
+  /* 悬浮返回按钮（替代顶栏，配合 VxBackButton 使用） */
+  .vx-desk-back {
+    position: fixed;
+    left: 26px;
+    top: 26px;
+    z-index: 60;
+    width: 44px;
+    height: 44px;
+  }
+
+  /* 页内标题行（替代顶栏标题，右侧可放页签等工具） */
+  .vx-desk-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 2px solid var(--vx-ink);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+
+  .vx-desk-head h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--vx-ink);
+  }
 }
 
 /* ---------- 网格 ---------- */

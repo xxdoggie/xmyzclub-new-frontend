@@ -845,7 +845,7 @@ function toggleMobileMenu() {
             </div>
           </router-link>
 
-          <!-- 跨代留声（与采墨文学社合作）：入口暂时隐藏，恢复时取消下方注释
+          <!-- 跨代留声（与采墨文学社合作） -->
           <router-link to="/voices" class="entry-card entry-card-voices">
             <div class="entry-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -863,7 +863,6 @@ function toggleMobileMenu() {
               </svg>
             </div>
           </router-link>
-          -->
 
           <!-- 次要入口 -->
           <div class="secondary-entries">

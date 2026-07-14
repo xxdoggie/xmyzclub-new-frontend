@@ -20,6 +20,7 @@ import VxLoading from './components/VxLoading.vue'
 import VxNoticeHost from './components/VxNoticeHost.vue'
 import VxPen from './components/VxPen.vue'
 import VxSealLine from './components/VxSealLine.vue'
+import { useIsDesktop } from './composables/useIsDesktop'
 import { usePageScrollLock } from './composables/usePageScrollLock'
 import { useVoiceIdentity } from './composables/useVoiceIdentity'
 import './voices-theme.css'
@@ -35,6 +36,9 @@ const { identity: myIdentity, setIdentity, syncFromServer } = useVoiceIdentity()
 
 // 出卷页为单屏页面：锁定整页滚动，题目输入框自适应撑满剩余空间
 usePageScrollLock()
+
+// 桌面端拆顶栏：悬浮返回 + 页内标题行
+const isDesktop = useIsDesktop()
 
 const statusLoaded = ref(false)
 const showBindModal = ref(false)
@@ -159,12 +163,16 @@ function onBindClose() {
 
 <template>
   <div class="vx-page vx-page--lock">
-    <header class="vx-topbar vx-topbar--center">
+    <header v-if="!isDesktop" class="vx-topbar vx-topbar--center">
       <VxBackButton to="/voices" />
       <span class="vx-topbar-title">我要出卷</span>
     </header>
+    <VxBackButton v-else to="/voices" class="vx-desk-back" />
 
     <main class="vx-container ask-container">
+      <div v-if="isDesktop" class="vx-desk-head">
+        <h2>我要出卷</h2>
+      </div>
       <Transition :name="paperTransition" mode="out-in">
         <!-- 有身份缓存时直接渲染表单；仅在无缓存且状态未返回时短暂显示 -->
         <VxLoading v-if="!myIdentity && !statusLoaded" key="loading" text="备卷中…" />

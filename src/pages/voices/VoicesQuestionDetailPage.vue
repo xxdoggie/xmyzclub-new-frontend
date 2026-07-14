@@ -547,9 +547,10 @@ function onBound(identity: VoiceIdentity) {
                 没有「{{ viewLabel }}」的答卷，换个身份看看
               </div>
 
-              <div v-for="a in displayAnswers" :key="a.id" class="vx-answer-item">
+              <TransitionGroup name="ans" tag="div" class="answers-list">
+                <div v-for="a in displayAnswers" :key="a.id" class="vx-answer-item">
                 <span class="vx-answer-who" :class="`vx-id-${a.answererIdentity}`">
-                  <IdentityIcon :identity="a.answererIdentity" :size="15" />{{ a.answererIdentityLabel }} 答：<template v-if="a.mine">（我）</template>
+                  <IdentityIcon :identity="a.answererIdentity" :size="15" />{{ a.answererIdentityLabel }}<template v-if="a.mine">（我）</template> 答：
                 </span>
                 <button
                   class="like-btn"
@@ -570,7 +571,8 @@ function onBound(identity: VoiceIdentity) {
                   举报
                 </button>
                 <div class="vx-answer-text vx-ruled">{{ a.content }}</div>
-              </div>
+                </div>
+              </TransitionGroup>
             </div>
           </div>
         </div>
@@ -742,6 +744,9 @@ function onBound(identity: VoiceIdentity) {
 .fav-label {
   font-family: var(--vx-serif);
   font-size: 12px;
+  /* 固定为「已收藏」三字宽度，切换状态时按钮不变宽，二维码不动 */
+  min-width: 3em;
+  text-align: center;
 }
 
 .fav-btn--on {
@@ -943,6 +948,30 @@ function onBound(identity: VoiceIdentity) {
 .answers-inner {
   overflow: hidden;
   min-height: 0;
+}
+
+/* 排序/刷新/筛选变化时，每份答卷平滑滑到新位置（FLIP） */
+.answers-list {
+  position: relative;
+}
+
+.ans-move,
+.ans-enter-active,
+.ans-leave-active {
+  transition: transform 0.45s cubic-bezier(0.25, 0.8, 0.3, 1), opacity 0.3s ease;
+}
+
+.ans-enter-from,
+.ans-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+/* 离场项脱离文档流，让留下的项立即开始移动 */
+.ans-leave-active {
+  position: absolute;
+  left: 0;
+  right: 0;
 }
 
 .detail-noanswer {

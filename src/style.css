@@ -109,6 +109,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  /* 禁用双击放大（iOS Safari 无视 viewport 的 user-scalable=no，需靠 touch-action） */
+  touch-action: manipulation;
 }
 
 html {

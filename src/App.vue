@@ -17,11 +17,39 @@ onMounted(() => {
 
   // 监听 token 过期事件
   window.addEventListener('auth:token-expired', handleTokenExpired)
+
+  // iOS 键盘收起后的页面偏移兜底：
+  // 滚动锁定页/弹窗内聚焦输入框时，iOS 会把整页往上顶来露出输入框，
+  // 键盘收起后偶尔不复位（顶部被顶出屏幕、底部留白且拉不回来），
+  // 在视口恢复/失焦时把超出可滚动范围的偏移钳回合法位置。
+  window.visualViewport?.addEventListener('resize', fixViewportOffset)
+  document.addEventListener('focusout', scheduleViewportFix)
 })
 
 onUnmounted(() => {
   window.removeEventListener('auth:token-expired', handleTokenExpired)
+  window.visualViewport?.removeEventListener('resize', fixViewportOffset)
+  document.removeEventListener('focusout', scheduleViewportFix)
 })
+
+function fixViewportOffset() {
+  // 输入框仍在聚焦（键盘还开着）时不干预，避免把输入框顶出视野
+  const active = document.activeElement
+  if (
+    active instanceof HTMLElement &&
+    (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
+  ) {
+    return
+  }
+  const se = document.scrollingElement || document.documentElement
+  const max = Math.max(0, se.scrollHeight - window.innerHeight)
+  if (se.scrollTop > max) window.scrollTo(0, max)
+}
+
+function scheduleViewportFix() {
+  // 等键盘收起动画结束后再校正
+  setTimeout(fixViewportOffset, 80)
+}
 
 // 路由导航守卫 - 设置过渡动画方向
 router.beforeEach((to, from) => {

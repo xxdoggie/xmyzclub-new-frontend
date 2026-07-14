@@ -281,7 +281,7 @@ onBeforeUnmount(() => observer?.disconnect())
             <span class="wall-targets">
               <span v-for="t in q.targetIdentities" :key="t" class="vx-target-chip">{{ identityLabel(t) }}卷</span>
             </span>
-            <span>已收 <b>{{ q.answerCount }}</b> 份答卷</span>
+            <span class="wall-count">已有 <b>{{ q.answerCount }}</b> 人回答</span>
           </div>
         </div>
       </div>
@@ -421,6 +421,20 @@ onBeforeUnmount(() => observer?.disconnect())
   display: flex;
   gap: 5px;
   flex-wrap: wrap;
+}
+
+/* 大厅卡片间距略收紧 */
+.vx-grid {
+  gap: 12px;
+}
+
+.wall-count {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.wall-count b {
+  font-size: 13px;
 }
 
 .wall-sentinel {

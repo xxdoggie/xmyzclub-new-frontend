@@ -352,6 +352,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/admin/music-download',
+      name: 'admin-music-download',
+      component: () => import('../pages/admin/MusicDownloadPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '歌曲下载',
+        parent: 'home',
+      },
+    },
+    {
       path: '/admin/campaigns',
       name: 'admin-campaigns',
       component: () => import('../pages/admin/CampaignManagePage.vue'),
@@ -637,6 +648,154 @@ const router = createRouter({
         level: 4,
         title: '内容管理',
         parent: 'admin-museum-events',
+      },
+    },
+
+    // ==================== 辩论赛投票 ====================
+    {
+      path: '/vote',
+      name: 'debate-vote',
+      component: () => import('../pages/vote/VotePage.vue'),
+      meta: {
+        level: 1,
+        title: '辩论赛投票',
+      },
+    },
+    {
+      path: '/vote/display',
+      name: 'debate-vote-display',
+      component: () => import('../pages/vote/VoteDisplayPage.vue'),
+      meta: {
+        level: 1,
+        title: '辩论赛实时结果',
+      },
+    },
+    {
+      path: '/vote/screen',
+      name: 'debate-vote-screen',
+      component: () => import('../pages/vote/VoteScreenPage.vue'),
+      meta: {
+        level: 1,
+        title: '辩论赛投屏二维码',
+      },
+    },
+    {
+      path: '/admin/debate',
+      name: 'admin-debate',
+      component: () => import('../pages/vote/admin/DebateAdminPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '辩论赛管理',
+        parent: 'home',
+      },
+    },
+
+    // ==================== 实时唱票 ====================
+    {
+      path: '/tally/screen/:id',
+      name: 'tally-screen',
+      component: () => import('../pages/tally/ScreenPage.vue'),
+      meta: {
+        level: 1,
+        title: '实时唱票',
+      },
+    },
+    {
+      path: '/admin/tally',
+      name: 'admin-tally',
+      component: () => import('../pages/tally/admin/TallyActivitiesPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '实时唱票管理',
+        parent: 'home',
+      },
+    },
+    {
+      path: '/admin/tally/activities/:id/edit',
+      name: 'admin-tally-edit',
+      component: () => import('../pages/tally/admin/TallyActivityEditPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '配置活动',
+        parent: 'admin-tally',
+      },
+    },
+    {
+      path: '/admin/tally/activities/:id/control',
+      name: 'admin-tally-control',
+      component: () => import('../pages/tally/admin/TallyControlPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 3,
+        title: '唱票控制台',
+        parent: 'admin-tally',
+      },
+    },
+
+    // ==================== 跨代留声（合作项目，独立入口） ====================
+    {
+      path: '/voices',
+      name: 'voices',
+      component: () => import('../pages/voices/VoicesHomePage.vue'),
+      meta: {
+        level: 1,
+        title: '跨代留声',
+      },
+    },
+    {
+      path: '/voices/ask',
+      name: 'voices-ask',
+      component: () => import('../pages/voices/VoicesAskPage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '我要出卷',
+        parent: 'voices',
+      },
+    },
+    {
+      path: '/voices/mine',
+      name: 'voices-mine',
+      component: () => import('../pages/voices/VoicesMinePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '我的档案袋',
+        parent: 'voices',
+      },
+    },
+    {
+      path: '/voices/answer',
+      name: 'voices-answer',
+      component: () => import('../pages/voices/VoicesAnswerPage.vue'),
+      meta: {
+        level: 2,
+        title: '答题大厅',
+        parent: 'voices',
+      },
+    },
+    {
+      path: '/voices/question/:id',
+      name: 'voices-question-detail',
+      component: () => import('../pages/voices/VoicesQuestionDetailPage.vue'),
+      meta: {
+        level: 3,
+        title: '试题详情',
+        parent: 'voices-answer',
+      },
+    },
+    {
+      path: '/admin/voices',
+      name: 'admin-voices',
+      component: () => import('../pages/admin/VoicesManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '跨代留声管理',
+        parent: 'home',
       },
     },
 

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getCampusCaptcha, getQQAuthorizeUrl } from '@/api/auth'
+import PrivacyPolicyModal from '@/components/PrivacyPolicyModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -36,6 +37,7 @@ const loading = ref(false)
 const errorMessage = ref('')
 const campusCaptchaImage = ref('')
 const captchaLoading = ref(false)
+const showPrivacyPolicy = ref(false)
 
 // 监听 tab 变化
 watch(activeTab, (tab) => {
@@ -46,22 +48,30 @@ watch(activeTab, (tab) => {
 })
 
 // 加载校园网验证码
-async function loadCampusCaptcha() {
+// in-flight 去重：避免 watcher、登录失败回调、用户点击刷新并发触发，
+// 拿到两个不同 JSESSIONID 互相覆盖导致提交时验证码错。
+let campusCaptchaInFlight: Promise<void> | null = null
+function loadCampusCaptcha() {
+  if (campusCaptchaInFlight) return campusCaptchaInFlight
   captchaLoading.value = true
-  try {
-    const res = await getCampusCaptcha()
-    if (res.data.code === 200) {
-      campusCaptchaImage.value = res.data.data.captchaImage
-      campusForm.value.jsessionId = res.data.data.jsessionId
-      campusForm.value.captchaCode = ''
-    } else {
-      errorMessage.value = res.data.message || '获取验证码失败'
+  campusCaptchaInFlight = (async () => {
+    try {
+      const res = await getCampusCaptcha()
+      if (res.data.code === 200) {
+        campusCaptchaImage.value = res.data.data.captchaImage
+        campusForm.value.jsessionId = res.data.data.jsessionId
+        campusForm.value.captchaCode = ''
+      } else {
+        errorMessage.value = res.data.message || '获取验证码失败'
+      }
+    } catch {
+      errorMessage.value = '网络错误，请稍后重试'
+    } finally {
+      captchaLoading.value = false
+      campusCaptchaInFlight = null
     }
-  } catch {
-    errorMessage.value = '网络错误，请稍后重试'
-  } finally {
-    captchaLoading.value = false
-  }
+  })()
+  return campusCaptchaInFlight
 }
 
 // 普通登录
@@ -451,6 +461,12 @@ function goHome() {
         </form>
       </div>
 
+      <!-- 隐私政策提示 -->
+      <p class="privacy-agreement">
+        登录或注册即表示您已阅读并同意
+        <button class="privacy-link" @click="showPrivacyPolicy = true">《隐私政策》</button>
+      </p>
+
       <!-- 返回首页 -->
       <button class="back-home" @click="goHome">
         <span class="back-arrow">&larr;</span>
@@ -458,6 +474,8 @@ function goHome() {
       </button>
     </div>
   </div>
+
+  <PrivacyPolicyModal :show="showPrivacyPolicy" @close="showPrivacyPolicy = false" />
 </template>
 
 <style scoped>
@@ -908,6 +926,27 @@ function goHome() {
   text-align: center;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+/* 隐私政策 */
+.privacy-agreement {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  margin-top: var(--spacing-md);
+}
+
+.privacy-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.privacy-link:hover {
+  text-decoration: underline;
 }
 
 /* 返回首页 */

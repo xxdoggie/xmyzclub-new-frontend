@@ -62,8 +62,6 @@ const deleteTarget = ref<Block | null>(null)
 const isDeleting = ref(false)
 
 // 拖拽排序
-const isDragging = ref(false)
-const dragIndex = ref<number | null>(null)
 
 // 模块类型选项
 const blockTypes: { value: BlockType; label: string; icon: string }[] = [
@@ -108,18 +106,20 @@ function openAddBlockModal(type: BlockType) {
 }
 
 // 获取默认内容
-function getDefaultContent(type: BlockType): Record<string, unknown> {
+function getDefaultContent(type: BlockType): BlockRequest['content'] {
   switch (type) {
     case 'text':
       return { text: '' }
     case 'gallery':
       return { images: [] }
+    case 'video':
+      return { fileId: 0 }
+    case 'file':
+      return { files: [] }
     case 'timeline':
       return { items: [] }
     case 'link':
       return { links: [] }
-    default:
-      return {}
   }
 }
 
@@ -195,6 +195,7 @@ async function handleGalleryUpload(e: Event) {
       }
       const response = await uploadFile(file, 'museum')
       content.images.push({
+        fileId: response.data.data.id,
         url: response.data.data.fileUrl,
         caption: '',
       })
@@ -272,6 +273,7 @@ async function moveBlock(index: number, direction: 'up' | 'down') {
 
   const newBlocks = [...blocks.value]
   const [moved] = newBlocks.splice(index, 1)
+  if (!moved) return
   newBlocks.splice(newIndex, 0, moved)
 
   // 更新排序

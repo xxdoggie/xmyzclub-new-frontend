@@ -12,7 +12,6 @@ import type {
   BatchEventActionRequest,
   Block,
   BlockRequest,
-  Moment,
   MomentDetail,
   GetMomentsParams,
   MomentsResponse,

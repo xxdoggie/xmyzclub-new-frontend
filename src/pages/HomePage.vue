@@ -291,7 +291,7 @@ function toggleMobileMenu() {
         <!-- 可滚动内容区域 -->
         <div class="sidebar-scroll-content">
           <!-- 管理区域 -->
-          <div class="sidebar-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers || userStore.canManageBanners || userStore.canManageMuseum">
+          <div class="sidebar-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers || userStore.canManageBanners || userStore.canManageMuseum || userStore.canManageVoices">
             <div class="sidebar-section-header">
               <span class="sidebar-section-title">管理后台</span>
             </div>
@@ -321,6 +321,16 @@ function toggleMobileMenu() {
                   </svg>
                 </div>
                 <span>活动管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageCampaigns" to="/admin/music-download" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </div>
+                <span>歌曲下载</span>
               </router-link>
               <router-link v-if="userStore.canManageRating" to="/admin/rating" class="sidebar-nav-item">
                 <div class="sidebar-nav-icon admin">
@@ -377,6 +387,34 @@ function toggleMobileMenu() {
                   </svg>
                 </div>
                 <span>时间线管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageDebate" to="/admin/debate" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <span>辩论赛管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageVoices" to="/admin/voices" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 20 l1.2 -4.2 L16.6 4.4 a2 2 0 0 1 2.8 0 l0.2 0.2 a2 2 0 0 1 0 2.8 L8.2 18.8 Z"></path>
+                    <path d="M14.5 6.5 l3 3"></path>
+                  </svg>
+                </div>
+                <span>跨代留声管理</span>
+              </router-link>
+              <router-link v-if="userStore.canManageTally" to="/admin/tally" class="sidebar-nav-item">
+                <div class="sidebar-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3v18h18"></path>
+                    <path d="M7 14v4"></path>
+                    <path d="M12 10v8"></path>
+                    <path d="M17 6v12"></path>
+                  </svg>
+                </div>
+                <span>实时唱票</span>
               </router-link>
             </nav>
           </div>
@@ -553,6 +591,16 @@ function toggleMobileMenu() {
                 </div>
                 <span>活动管理</span>
               </a>
+              <a v-if="userStore.canManageCampaigns" class="drawer-nav-item" @click="navigateTo('/admin/music-download')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </div>
+                <span>歌曲下载</span>
+              </a>
               <a v-if="userStore.canManageRating" class="drawer-nav-item" @click="navigateTo('/admin/rating')">
                 <div class="drawer-nav-icon admin">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -608,6 +656,25 @@ function toggleMobileMenu() {
                   </svg>
                 </div>
                 <span>时间线管理</span>
+              </a>
+              <a v-if="userStore.canManageDebate" class="drawer-nav-item" @click="navigateTo('/admin/debate')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <span>辩论赛管理</span>
+              </a>
+              <a v-if="userStore.canManageTally" class="drawer-nav-item" @click="navigateTo('/admin/tally')">
+                <div class="drawer-nav-icon admin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3v18h18"></path>
+                    <path d="M7 14v4"></path>
+                    <path d="M12 10v8"></path>
+                    <path d="M17 6v12"></path>
+                  </svg>
+                </div>
+                <span>实时唱票</span>
               </a>
             </nav>
           </Transition>
@@ -777,6 +844,26 @@ function toggleMobileMenu() {
               </svg>
             </div>
           </router-link>
+
+          <!-- 跨代留声（与采墨文学社合作）：入口暂时隐藏，恢复时取消下方注释
+          <router-link to="/voices" class="entry-card entry-card-voices">
+            <div class="entry-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 20 l1.2 -4.2 L16.6 4.4 a2 2 0 0 1 2.8 0 l0.2 0.2 a2 2 0 0 1 0 2.8 L8.2 18.8 Z"></path>
+                <path d="M14.5 6.5 l3 3"></path>
+              </svg>
+            </div>
+            <div class="entry-content">
+              <h3 class="entry-title">跨代留声</h3>
+              <p class="entry-desc">匿名出卷、答卷，和另一代人聊聊</p>
+            </div>
+            <div class="entry-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          </router-link>
+          -->
 
           <!-- 次要入口 -->
           <div class="secondary-entries">
@@ -1590,6 +1677,12 @@ function toggleMobileMenu() {
   --entry-color: #A29BFE;
   --entry-bg: rgba(162, 155, 254, 0.1);
   --entry-bg-hover: rgba(162, 155, 254, 0.05);
+}
+
+.entry-card-voices {
+  --entry-color: #B08257;
+  --entry-bg: rgba(176, 130, 87, 0.1);
+  --entry-bg-hover: rgba(176, 130, 87, 0.05);
 }
 
 .entry-icon {

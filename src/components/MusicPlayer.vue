@@ -44,7 +44,7 @@ async function loadMusic() {
   try {
     const res = await getMusicUrl(props.music.mid)
     if (res.data.code === 200 && res.data.data.url) {
-      audioUrl.value = res.data.data.url
+      audioUrl.value = res.data.data.url.replace(/^http:\/\//, 'https://')
       // 等待 audio 元素加载完成后自动播放
       await nextTick()
       if (audioRef.value) {

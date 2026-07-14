@@ -1,0 +1,614 @@
+/* ============================================
+   跨代留声「全国卷」试卷体主题
+   独立于站点设计系统（合作项目，单独入口）
+   所有类名以 vx- 前缀隔离
+   ============================================ */
+
+.vx-page {
+  --vx-paper: #fdfbf4;
+  --vx-paper-dim: #f5f1e4;
+  --vx-desk: #e8e2d4;
+  --vx-line: #d8d2c0;
+  --vx-line-dash: #c9c2ac;
+  --vx-ink: #1a1611;
+  --vx-ink-soft: #33302a;
+  --vx-ink-faint: #8a8168;
+  --vx-red: #c0392b;
+  --vx-red-dark: #96281c;
+  --vx-junior: #b45309;
+  --vx-senior: #1d4ed8;
+  --vx-college: #c0392b;
+  --vx-society: #047857;
+  --vx-serif: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
+  --vx-kaiti: 'KaiTi', 'STKaiti', 'Kaiti SC', 'SimSun', serif;
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--vx-desk);
+  background-image:
+    radial-gradient(circle at 12% 15%, rgba(192, 57, 43, 0.05) 0, transparent 42%),
+    radial-gradient(circle at 88% 85%, rgba(29, 78, 216, 0.05) 0, transparent 42%);
+  color: var(--vx-ink);
+  font-family: var(--vx-serif);
+  display: flex;
+  flex-direction: column;
+}
+
+.vx-container {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  flex: 1;
+  /* 纵向 flex：让页脚在内容不足一屏时也能贴底（margin-top:auto） */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 单屏锁定页（配合 usePageScrollLock 使用） */
+.vx-page--lock {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* ---------- 顶栏 ---------- */
+.vx-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 2px solid var(--vx-ink);
+  background: var(--vx-paper);
+}
+
+.vx-topbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+
+.vx-topbar-title .vx-stamp {
+  margin-left: 8px;
+}
+
+.vx-back {
+  font-size: 13px;
+  color: var(--vx-ink-faint);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.vx-back:hover {
+  color: var(--vx-red);
+}
+
+/* 子页面顶栏：标题居中 + 左上角圆形返回 */
+.vx-topbar--center {
+  position: relative;
+  justify-content: center;
+}
+
+.vx-back-circle {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--vx-line-dash);
+  background: var(--vx-paper);
+  color: var(--vx-ink-soft);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vx-back-circle:hover {
+  color: var(--vx-red);
+  border-color: var(--vx-red);
+  box-shadow: 1px 2px 0 rgba(120, 110, 90, 0.3);
+}
+
+/* ---------- 印章 ---------- */
+.vx-stamp {
+  display: inline-block;
+  font-family: var(--vx-serif);
+  font-size: 12px;
+  color: var(--vx-red);
+  border: 1.5px solid var(--vx-red);
+  border-radius: 3px;
+  padding: 1px 7px;
+  transform: rotate(6deg);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.vx-stamp--flat {
+  transform: none;
+}
+
+/* ---------- 试卷纸卡 ---------- */
+.vx-paper-card {
+  position: relative;
+  background: var(--vx-paper);
+  border: 1px solid var(--vx-line);
+  box-shadow: 2px 3px 0 rgba(120, 110, 90, 0.18);
+  padding: 18px 18px 14px 42px;
+}
+
+.vx-paper-card--plain {
+  padding: 18px;
+}
+
+.vx-paper-card--clickable {
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.vx-paper-card--clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 3px 8px 18px rgba(120, 110, 90, 0.3);
+}
+
+/* 密封线 */
+.vx-seal {
+  position: absolute;
+  left: 28px;
+  top: 10px;
+  bottom: 10px;
+  border-left: 1.5px dashed var(--vx-line-dash);
+  pointer-events: none;
+}
+
+.vx-seal-text {
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  overflow: hidden;
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: #b4ac94;
+  pointer-events: none;
+  user-select: none;
+}
+
+.vx-seal-text > span {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ---------- 页脚落款（贴底：内容不足一屏时也在页面底部） ---------- */
+.vx-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--vx-ink-faint);
+  letter-spacing: 1px;
+  margin: 0;
+  margin-top: auto;
+  padding-top: 40px;
+}
+
+/* ---------- 卷头 ---------- */
+.vx-exam-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 2px solid #2f2a20;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.vx-exam-head h3 {
+  margin: 0;
+  font-family: var(--vx-serif);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #2f2a20;
+}
+
+/* ---------- 手写体 ---------- */
+.vx-kaiti {
+  font-family: var(--vx-kaiti);
+  color: var(--vx-ink);
+}
+
+.vx-question-text {
+  font-family: var(--vx-kaiti);
+  font-size: 21px;
+  line-height: 1.55;
+  color: var(--vx-ink);
+  word-break: break-word;
+}
+
+/* 作答横线 */
+.vx-ruled {
+  background-image: linear-gradient(transparent 96%, var(--vx-line) 96%);
+  background-size: 100% 2em;
+  line-height: 2em;
+}
+
+/* ---------- 身份 ---------- */
+/* 四个身份统一墨色，靠 IdentityIcon 图标区分 */
+.vx-id-1,
+.vx-id-2,
+.vx-id-3,
+.vx-id-4 {
+  color: var(--vx-ink);
+}
+
+.vx-identity-icon {
+  display: inline-block;
+  vertical-align: -0.18em;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+/* 身份小方章（目标人群） */
+.vx-target-chip {
+  display: inline-block;
+  font-size: 11px;
+  border: 1px solid #b4ac94;
+  border-radius: 2px;
+  padding: 0 6px;
+  color: #6b6249;
+  white-space: nowrap;
+}
+
+/* ---------- 卡片脚注 ---------- */
+.vx-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--vx-line-dash);
+  font-size: 12px;
+  color: var(--vx-ink-faint);
+}
+
+.vx-card-meta b {
+  color: var(--vx-red);
+  font-size: 15px;
+}
+
+/* 卡片右上角状态章（已答/我出的） */
+.vx-corner-stamp {
+  position: absolute;
+  right: 10px;
+  top: 34px;
+  font-size: 11px;
+  color: var(--vx-red);
+  border: 1.5px solid var(--vx-red);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(12deg);
+  opacity: 0.85;
+  background: rgba(253, 251, 244, 0.7);
+  pointer-events: none;
+}
+
+/* ---------- 按钮 ---------- */
+.vx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--vx-serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 9px 22px;
+  cursor: pointer;
+  border: 1.5px solid var(--vx-ink);
+  background: var(--vx-paper);
+  color: var(--vx-ink);
+  box-shadow: 2px 2px 0 rgba(120, 110, 90, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  user-select: none;
+  text-decoration: none;
+}
+
+.vx-btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 rgba(120, 110, 90, 0.4);
+}
+
+.vx-btn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 rgba(120, 110, 90, 0.3);
+}
+
+.vx-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vx-btn--red {
+  border-color: var(--vx-red);
+  color: var(--vx-red);
+}
+
+.vx-btn--red:hover:not(:disabled) {
+  background: rgba(192, 57, 43, 0.06);
+}
+
+.vx-btn--sm {
+  font-size: 13px;
+  padding: 5px 14px;
+  letter-spacing: 1px;
+}
+
+/* ---------- 页签（tabs，带滑块动画，见 VxTabs.vue） ---------- */
+.vx-tabs {
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: 1.5px solid var(--vx-ink);
+  background: var(--vx-paper);
+  box-shadow: 2px 2px 0 rgba(120, 110, 90, 0.25);
+  overflow: hidden;
+}
+
+.vx-tabs-slider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(100% / var(--vx-tabs-count, 1));
+  background: var(--vx-ink);
+  transform: translateX(calc(var(--vx-tabs-index, 0) * 100%));
+  transition: transform 0.28s cubic-bezier(0.3, 0.9, 0.35, 1);
+  pointer-events: none;
+}
+
+.vx-tab {
+  position: relative;
+  z-index: 1;
+  font-family: var(--vx-serif);
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 6px 16px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--vx-ink-faint);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.vx-tab--active {
+  color: var(--vx-paper);
+  font-weight: 700;
+}
+
+/* ---------- 表单 ---------- */
+.vx-textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  font-family: var(--vx-kaiti);
+  font-size: 19px;
+  color: var(--vx-ink);
+  background-image: linear-gradient(transparent 96%, var(--vx-line) 96%);
+  background-size: 100% 2em;
+  line-height: 2em;
+  min-height: 6em;
+  padding: 0;
+}
+
+.vx-textarea::placeholder {
+  color: #b4ac94;
+}
+
+.vx-textarea--tall {
+  min-height: 20em;
+}
+
+.vx-field-label {
+  font-family: var(--vx-serif);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--vx-ink-faint);
+  margin: 16px 0 8px;
+}
+
+.vx-char-count {
+  font-size: 12px;
+  color: var(--vx-ink-faint);
+  text-align: right;
+}
+
+.vx-char-count--over {
+  color: var(--vx-red);
+}
+
+/* 目标人群选择章 */
+.vx-target-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vx-target-option {
+  font-family: var(--vx-serif);
+  font-size: 14px;
+  letter-spacing: 1px;
+  padding: 6px 16px;
+  border: 1.5px dashed var(--vx-line-dash);
+  background: transparent;
+  color: var(--vx-ink-faint);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vx-target-option--active {
+  border: 1.5px solid var(--vx-red);
+  color: var(--vx-red);
+  font-weight: 700;
+  background: rgba(192, 57, 43, 0.05);
+  transform: rotate(-2deg);
+}
+
+/* ---------- 答题区 ---------- */
+.vx-answer-sheet {
+  border-top: 2px solid #2f2a20;
+  margin-top: 14px;
+  padding-top: 4px;
+}
+
+.vx-sheet-label {
+  font-family: var(--vx-serif);
+  font-size: 12px;
+  color: var(--vx-ink-faint);
+  letter-spacing: 4px;
+  margin: 8px 0;
+}
+
+.vx-answer-item {
+  padding: 12px 2px;
+  border-bottom: 1px dashed var(--vx-line-dash);
+}
+
+.vx-answer-who {
+  font-family: var(--vx-serif);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vx-answer-check {
+  float: right;
+  color: var(--vx-red);
+  font-size: 14px;
+  font-family: var(--vx-kaiti);
+  user-select: none;
+}
+
+.vx-answer-text {
+  font-family: var(--vx-kaiti);
+  font-size: 18px;
+  color: var(--vx-ink-soft);
+  word-break: break-word;
+  margin-top: 4px;
+}
+
+/* ---------- 提示条 ---------- */
+.vx-notice {
+  font-size: 13px;
+  color: var(--vx-ink-faint);
+  border: 1px dashed var(--vx-line-dash);
+  background: var(--vx-paper-dim);
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.vx-notice--red {
+  color: var(--vx-red);
+  border-color: rgba(192, 57, 43, 0.4);
+  background: rgba(192, 57, 43, 0.04);
+}
+
+/* ---------- 空状态 / 加载 ---------- */
+.vx-empty {
+  text-align: center;
+  color: var(--vx-ink-faint);
+  font-size: 14px;
+  padding: 48px 16px;
+  letter-spacing: 2px;
+}
+
+/* ---------- 弹窗 ---------- */
+.vx-modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 22, 17, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.vx-modal {
+  width: 100%;
+  max-width: 420px;
+  background: var(--vx-paper);
+  border: 1px solid var(--vx-line);
+  box-shadow: 4px 6px 0 rgba(0, 0, 0, 0.25);
+  padding: 24px;
+}
+
+/* 弹窗过渡：像一张纸落到桌面 / 被抽走 */
+.vx-modal-enter-active {
+  transition: opacity 0.25s ease;
+}
+
+.vx-modal-enter-active .vx-modal {
+  transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.18), opacity 0.25s ease;
+}
+
+.vx-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.vx-modal-leave-active .vx-modal {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.vx-modal-enter-from,
+.vx-modal-leave-to {
+  opacity: 0;
+}
+
+.vx-modal-enter-from .vx-modal {
+  transform: translateY(-22px) rotate(-1.5deg);
+  opacity: 0;
+}
+
+.vx-modal-leave-to .vx-modal {
+  transform: translateY(12px) rotate(1deg);
+  opacity: 0;
+}
+
+/* ---------- 网格 ---------- */
+.vx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 560px) {
+  .vx-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vx-container {
+    padding: 8px 12px 48px;
+  }
+
+  .vx-question-text {
+    font-size: 19px;
+  }
+}

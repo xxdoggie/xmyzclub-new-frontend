@@ -12,7 +12,7 @@ export interface ApiResponse<T = unknown> {
 
 /**
  * API 基础地址
- * 开发环境：通过 vite proxy 代理到 localhost:6666
+ * 开发环境：通过 vite proxy 代理到 localhost:6680
  * 生产环境：直接访问 api.xmyzstudent.com
  */
 const baseURL = import.meta.env.PROD

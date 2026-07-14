@@ -95,6 +95,21 @@ export const useUserStore = defineStore('user', () => {
    */
   const canManageMuseum = computed(() => hasPermission('museum.manage'))
 
+  /**
+   * 检查用户是否可以管理辩论赛投票
+   */
+  const canManageDebate = computed(() => hasPermission('debate.manage'))
+
+  /**
+   * 检查用户是否可以管理实时唱票
+   */
+  const canManageTally = computed(() => hasPermission('tally.manage'))
+
+  /**
+   * 检查用户是否可以管理跨代留声
+   */
+  const canManageVoices = computed(() => hasPermission('voices.manage'))
+
   // ==================== Actions ====================
 
   /**
@@ -162,6 +177,8 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem(EXPIRES_KEY)
     localStorage.removeItem(CAMPUS_INFO_KEY)
     localStorage.removeItem(PERMISSIONS_KEY)
+    // 跨代留声的身份缓存随登录态一起清除
+    localStorage.removeItem('vx-identity')
   }
 
   /**
@@ -547,6 +564,9 @@ export const useUserStore = defineStore('user', () => {
     canManageUsers,
     canManageBanners,
     canManageMuseum,
+    canManageDebate,
+    canManageTally,
+    canManageVoices,
 
     // Actions - 认证
     restoreSession,

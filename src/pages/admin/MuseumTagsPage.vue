@@ -9,7 +9,6 @@ import {
   adminUpdateTag,
   adminDeleteTag,
   adminToggleTagStatus,
-  adminSortTags,
 } from '@/api/museum'
 import type { Tag, TagRequest } from '@/types/museum'
 import PageHeader from '@/components/layout/PageHeader.vue'

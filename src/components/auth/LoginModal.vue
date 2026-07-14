@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { getCampusCaptcha, getQQAuthorizeUrl } from '@/api/auth'
 import { sendSmsCode } from '@/api/sms'
+import PrivacyPolicyModal from '@/components/PrivacyPolicyModal.vue'
 
 const props = defineProps<{
   show: boolean
@@ -90,6 +91,7 @@ const showLoginPassword = ref(false)
 const showRegisterPassword = ref(false)
 const showRegisterConfirmPassword = ref(false)
 const showCampusPassword = ref(false)
+const showPrivacyPolicy = ref(false)
 
 // 监听 show 变化
 watch(
@@ -113,22 +115,30 @@ watch(activeTab, (tab) => {
 })
 
 // 加载校园网验证码
-async function loadCampusCaptcha() {
+// 用 in-flight promise 去重：watcher 双触发或用户快速点击刷新时
+// 只发一次请求，避免并发拿到两个不同的 JSESSIONID 互相覆盖。
+let campusCaptchaInFlight: Promise<void> | null = null
+function loadCampusCaptcha() {
+  if (campusCaptchaInFlight) return campusCaptchaInFlight
   captchaLoading.value = true
-  try {
-    const res = await getCampusCaptcha()
-    if (res.data.code === 200) {
-      campusCaptchaImage.value = res.data.data.captchaImage
-      campusForm.value.jsessionId = res.data.data.jsessionId
-      campusForm.value.captchaCode = ''
-    } else {
-      toast.error(res.data.message || '获取验证码失败')
+  campusCaptchaInFlight = (async () => {
+    try {
+      const res = await getCampusCaptcha()
+      if (res.data.code === 200) {
+        campusCaptchaImage.value = res.data.data.captchaImage
+        campusForm.value.jsessionId = res.data.data.jsessionId
+        campusForm.value.captchaCode = ''
+      } else {
+        toast.error(res.data.message || '获取验证码失败')
+      }
+    } catch {
+      toast.error('网络错误，请稍后重试')
+    } finally {
+      captchaLoading.value = false
+      campusCaptchaInFlight = null
     }
-  } catch {
-    toast.error('网络错误，请稍后重试')
-  } finally {
-    captchaLoading.value = false
-  }
+  })()
+  return campusCaptchaInFlight
 }
 
 // 普通登录
@@ -725,10 +735,18 @@ onMounted(() => {
             <p class="campus-hint">首次使用校园网登录将自动创建账号</p>
           </div>
           </Transition>
+
+          <!-- 隐私政策提示 -->
+          <p class="privacy-agreement">
+            登录或注册即表示您已阅读并同意
+            <button class="privacy-link" @click="showPrivacyPolicy = true">《隐私政策》</button>
+          </p>
         </div>
       </div>
     </Transition>
   </Teleport>
+
+  <PrivacyPolicyModal :show="showPrivacyPolicy" @close="showPrivacyPolicy = false" />
 </template>
 
 <style scoped>
@@ -1130,6 +1148,27 @@ onMounted(() => {
   text-align: center;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+
+/* 隐私政策 */
+.privacy-agreement {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+}
+
+.privacy-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.privacy-link:hover {
+  text-decoration: underline;
 }
 
 /* 表单内容填充 - 确保按钮位置一致 */

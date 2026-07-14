@@ -240,22 +240,30 @@ function closeCampusBindDrawer() {
 }
 
 // 加载校园网验证码
-async function loadCampusCaptcha() {
+// in-flight 去重：避免抽屉打开、绑定失败回调、用户点击刷新并发触发，
+// 拿到两个不同 JSESSIONID 互相覆盖导致提交时验证码错。
+let campusCaptchaInFlight: Promise<void> | null = null
+function loadCampusCaptcha() {
+  if (campusCaptchaInFlight) return campusCaptchaInFlight
   captchaLoading.value = true
-  try {
-    const res = await getCampusCaptcha()
-    if (res.data.code === 200) {
-      campusCaptchaImage.value = res.data.data.captchaImage
-      campusBindForm.value.jsessionId = res.data.data.jsessionId
-      campusBindForm.value.captchaCode = ''
-    } else {
-      bindErrorMessage.value = res.data.message || '获取验证码失败'
+  campusCaptchaInFlight = (async () => {
+    try {
+      const res = await getCampusCaptcha()
+      if (res.data.code === 200) {
+        campusCaptchaImage.value = res.data.data.captchaImage
+        campusBindForm.value.jsessionId = res.data.data.jsessionId
+        campusBindForm.value.captchaCode = ''
+      } else {
+        bindErrorMessage.value = res.data.message || '获取验证码失败'
+      }
+    } catch {
+      bindErrorMessage.value = '网络错误，请稍后重试'
+    } finally {
+      captchaLoading.value = false
+      campusCaptchaInFlight = null
     }
-  } catch {
-    bindErrorMessage.value = '网络错误，请稍后重试'
-  } finally {
-    captchaLoading.value = false
-  }
+  })()
+  return campusCaptchaInFlight
 }
 
 // 提交校园网绑定

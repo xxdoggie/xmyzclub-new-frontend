@@ -44,7 +44,9 @@ export const useUserStore = defineStore('user', () => {
   const loginModalMessage = ref<string | null>(null)
 
   // 登录成功后的跳转目标
-  const redirectRoute = ref<string | null>(null)
+  // 持久化到 sessionStorage：QQ 登录是整页跳转，内存状态会丢失
+  const REDIRECT_KEY = 'loginRedirect'
+  const redirectRoute = ref<string | null>(sessionStorage.getItem(REDIRECT_KEY))
 
   // ==================== Getters ====================
   const isLoggedIn = computed(() => {
@@ -529,6 +531,8 @@ export const useUserStore = defineStore('user', () => {
    */
   function setRedirectRoute(route: string | null) {
     redirectRoute.value = route
+    if (route) sessionStorage.setItem(REDIRECT_KEY, route)
+    else sessionStorage.removeItem(REDIRECT_KEY)
   }
 
   /**
@@ -537,6 +541,7 @@ export const useUserStore = defineStore('user', () => {
   function consumeRedirectRoute(): string | null {
     const route = redirectRoute.value
     redirectRoute.value = null
+    sessionStorage.removeItem(REDIRECT_KEY)
     return route
   }
 

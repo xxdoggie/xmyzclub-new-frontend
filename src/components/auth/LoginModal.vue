@@ -331,6 +331,11 @@ async function handleSmsLogin() {
 async function handleQQLogin() {
   loading.value = true
 
+  // 整页跳转前记录当前页面，QQ 回调后跳回来（守卫已设置的目标优先）
+  if (!userStore.redirectRoute) {
+    userStore.setRedirectRoute(router.currentRoute.value.fullPath)
+  }
+
   try {
     const res = await getQQAuthorizeUrl()
     if (res.data.code === 200) {
@@ -357,6 +362,8 @@ function handleLoginSuccess() {
 // 关闭弹窗
 function handleClose() {
   if (!loading.value) {
+    // 放弃登录时清掉暂存的跳转目标，避免影响下一次登录
+    userStore.setRedirectRoute(null)
     emit('close')
   }
 }

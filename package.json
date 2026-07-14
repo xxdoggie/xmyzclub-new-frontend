@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/noto-serif-sc": "^5.2.9",
     "@types/qrcode": "^1.5.6",
     "axios": "^1.13.2",
     "driver.js": "^1.4.0",
+    "lxgw-wenkai-webfont": "^1.7.0",
     "pinia": "^3.0.4",
     "qrcode": "^1.5.4",
     "vue": "^3.5.24",

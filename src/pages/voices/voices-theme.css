@@ -4,6 +4,12 @@
    所有类名以 vx- 前缀隔离
    ============================================ */
 
+/* 打包 Web 字体：用户设备（尤其手机）大多没有宋体/楷体，
+   按 unicode-range 切片，浏览器只下载用到的字块 */
+@import 'lxgw-wenkai-webfont/lxgwwenkai-regular.css';
+@import '@fontsource/noto-serif-sc/400.css';
+@import '@fontsource/noto-serif-sc/700.css';
+
 .vx-page {
   --vx-paper: #fdfbf4;
   --vx-paper-dim: #f5f1e4;
@@ -19,8 +25,8 @@
   --vx-senior: #1d4ed8;
   --vx-college: #c0392b;
   --vx-society: #047857;
-  --vx-serif: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
-  --vx-kaiti: 'KaiTi', 'STKaiti', 'Kaiti SC', 'SimSun', serif;
+  --vx-serif: 'Noto Serif SC', 'SimSun', 'Songti SC', serif;
+  --vx-kaiti: 'LXGW WenKai', 'KaiTi', 'STKaiti', 'Kaiti SC', 'SimSun', serif;
 
   min-height: 100vh;
   min-height: 100dvh;
@@ -286,17 +292,17 @@
   font-size: 15px;
 }
 
-/* 卡片右上角状态章（已答/我出的） */
+/* 卡片右上角状态章（已答/我出的）：与卷头标题同一行 */
 .vx-corner-stamp {
   position: absolute;
   right: 10px;
-  top: 34px;
+  top: 8px;
   font-size: 11px;
   color: var(--vx-red);
   border: 1.5px solid var(--vx-red);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;

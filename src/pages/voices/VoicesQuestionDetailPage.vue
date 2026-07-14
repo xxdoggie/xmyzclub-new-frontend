@@ -101,6 +101,12 @@ function cycleSort() {
   if (next === 'random') reshuffle()
 }
 
+/** 刷新：回到随机排序并重抽一次乱序（与答题大厅的刷新按钮逻辑一致） */
+function refreshRandom() {
+  if (answerSort.value !== 'random') answerSort.value = 'random'
+  reshuffle()
+}
+
 function reshuffle() {
   const ids = (detail.value?.answers ?? []).map((a) => a.id)
   for (let i = ids.length - 1; i > 0; i--) {
@@ -457,6 +463,18 @@ function onBound(identity: VoiceIdentity) {
               <button class="sheet-tool" type="button" @click="cycleSort">
                 排序：{{ SORT_LABELS[answerSort] }}
               </button>
+              <button
+                class="sheet-tool sheet-tool--icon"
+                type="button"
+                title="换一换"
+                aria-label="换一换"
+                @click="refreshRandom"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 12 a9 9 0 1 1 -2.64 -6.36" />
+                  <path d="M21 3 v5 h-5" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -642,7 +660,7 @@ function onBound(identity: VoiceIdentity) {
 }
 
 .detail-q {
-  font-size: 24px;
+  font-size: 21px;
   margin: 6px 0 10px;
 }
 
@@ -827,6 +845,13 @@ function onBound(identity: VoiceIdentity) {
 .sheet-tool:hover {
   color: var(--vx-red);
   border-color: var(--vx-red);
+}
+
+.sheet-tool--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
 }
 
 /* ---------- 作答入口 ---------- */
@@ -1036,6 +1061,10 @@ function onBound(identity: VoiceIdentity) {
 @media (max-width: 560px) {
   .detail-paper {
     margin-top: 8px;
+  }
+
+  .detail-q {
+    font-size: 19px;
   }
 }
 </style>

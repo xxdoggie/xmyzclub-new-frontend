@@ -166,7 +166,7 @@ onMounted(loadStatus)
             <h3>我要答卷</h3>
             <span class="vx-stamp">回答</span>
           </div>
-          <p class="entry-desc vx-kaiti">看看别的年代的人给你出了什么题，挑一道答。</p>
+          <p class="entry-desc vx-kaiti">看看另一代人给你出了什么题，选题作答。</p>
           <div class="entry-foot">进入答题大厅 →</div>
         </div>
       </section>

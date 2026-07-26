@@ -373,10 +373,11 @@ function goHome() {
           </div>
 
           <!-- 头像昵称：让「填的是谁」和「这是不是我」落在同一个单元里。
+               QQ 号还没填或填得无效时整条不渲染，不占位、不放占位图。
                昵称要向 QQ 查、可能取不到；头像是拿号码直接拼的 URL，一定有。
                取不到昵称就只显示号码，不要印一句「未能取得」去吓人。 -->
-          <div class="identity">
-            <template v-if="qqProfile">
+          <Transition name="identity">
+            <div v-if="qqProfile" class="identity">
               <img
                 v-if="!avatarFailed"
                 :src="qqProfile.avatarUrl"
@@ -392,12 +393,8 @@ function goHome() {
                 </span>
               </span>
               <span v-if="qqProfile.inGroup === false" class="pill pill--warn">不在群内</span>
-            </template>
-            <template v-else>
-              <span class="avatar avatar--blank">?</span>
-              <span class="identity-hint">填好 QQ 号后，这里会显示头像和昵称供您核对</span>
-            </template>
-          </div>
+            </div>
+          </Transition>
 
           <button
             v-if="qqLocked"
@@ -423,6 +420,16 @@ function goHome() {
               autocomplete="off"
               placeholder="校园网登录账号"
             />
+            <ul class="hint">
+              <li>
+                <span class="hint-tag">新高一</span>
+                P + 考号后 4 位 + 姓名，例如 <code>P0001张三</code>
+              </li>
+              <li>
+                <span class="hint-tag">其它年级</span>
+                3 开头的 11 位数字，例如 <code>32326010123</code>
+              </li>
+            </ul>
           </div>
 
           <div class="field">
@@ -435,6 +442,16 @@ function goHome() {
               autocomplete="off"
               placeholder="校园网登录密码"
             />
+            <ul class="hint">
+              <li>
+                <span class="hint-tag">新高一</span>
+                默认密码为 xmyz + 考号后 4 位，例如 <code>xmyz0001</code>
+              </li>
+              <li>
+                <span class="hint-tag">其它年级</span>
+                自行修改过的密码，若遗忘请联系班主任
+              </li>
+            </ul>
           </div>
 
           <div class="field">
@@ -704,6 +721,40 @@ function goHome() {
   margin-bottom: 6px;
 }
 
+/* ===== 字段格式说明 =====
+   不折叠、不藏在问号图标后面：填错账号格式是这一步最常见的卡点，
+   说明必须在动手之前就看得见。 */
+.hint {
+  list-style: none;
+  margin: 7px 0 0;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+}
+
+.hint li {
+  display: flex;
+  gap: 6px;
+}
+
+/* 定宽让「新高一」和「其它年级」两行对齐 */
+.hint-tag {
+  flex-shrink: 0;
+  min-width: 4.4em;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.hint code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
 .input {
   width: 100%;
   padding: 10px 12px;
@@ -796,12 +847,6 @@ function goHome() {
 .identity-qq.is-primary {
   font-size: 14px;
   color: var(--color-text);
-}
-
-.identity-hint {
-  font-size: 12.5px;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
 }
 
 .pill {
@@ -1116,6 +1161,27 @@ function goHome() {
   }
 }
 
+/* ===== 身份条进出 =====
+   这条现在会随 QQ 号有效性出现／消失，直接闪现会让下方内容跳一下，
+   所以连高度一起过渡。 */
+.identity-enter-active,
+.identity-leave-active {
+  overflow: hidden;
+  transition: opacity 180ms ease, transform 180ms ease, max-height 200ms ease;
+}
+
+.identity-enter-from,
+.identity-leave-to {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.identity-enter-to,
+.identity-leave-from {
+  max-height: 80px;
+}
+
 /* ===== 弹窗进出 =====
    遮罩淡入，卡片同时轻微放大上移。出场比入场快一些——
    关闭是用户已经决定了的事，不该让人等动画。 */
@@ -1164,6 +1230,11 @@ function goHome() {
   .check-mark {
     animation: none;
     stroke-dashoffset: 0;
+  }
+
+  .identity-enter-active,
+  .identity-leave-active {
+    transition: none;
   }
 }
 </style>

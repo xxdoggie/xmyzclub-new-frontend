@@ -19,11 +19,14 @@ const toast = useToast()
 
 const token = ref((route.query.token as string) || '')
 
-/** 页面主状态。链接无效／已认证发生在表单出现之前，所以是页面级状态；其余结果都走弹窗 */
-type PageState = 'loading' | 'linkError' | 'verified' | 'form'
+/**
+ * 页面主状态。这几种情况在表单出现之前就能判定，所以做成页面级状态：
+ * linkError 链接无效／过期、expired 该链接已完成认证、notInGroup 链接所属QQ已不在群内。
+ * 其余结果都走弹窗。
+ */
+type PageState = 'loading' | 'linkError' | 'expired' | 'ownerLeft' | 'form'
 const pageState = ref<PageState>('loading')
 const linkErrorMessage = ref('')
-const alreadyVerifiedName = ref('')
 
 /** 链接锁定的 QQ 号；点了「我不小心点击了别人的链接」后解锁 */
 const qqLocked = ref(false)
@@ -109,9 +112,16 @@ onMounted(async () => {
     form.value.qqNumber = info.qq.qqNumber
     qqLocked.value = true
 
+    // 已认证的链接一律只提示失效，不透露任何身份信息
     if (info.alreadyVerified) {
-      alreadyVerifiedName.value = info.verifiedName || ''
-      pageState.value = 'verified'
+      pageState.value = 'expired'
+      return
+    }
+
+    // 只在明确得知不在群时才拦。inGroup 为 null 表示机器人离线、查不到，
+    // 那种情况交给离线横幅处理，不能把「不知道」当成「不在群」
+    if (info.qq.inGroup === false) {
+      pageState.value = 'ownerLeft'
       return
     }
 
@@ -310,7 +320,7 @@ function goHome() {
       </div>
 
       <h1 class="page-title">校园网身份验证</h1>
-      <p class="page-sub">厦门一中学生社区 · 新生入群实名认证</p>
+      <p class="page-sub">新生入群实名认证 powered by xxgg</p>
 
       <!-- 机器人离线时提前拦住，别让人填完密码才发现做不了 -->
       <div v-if="botOffline && pageState === 'form'" class="banner">
@@ -329,36 +339,37 @@ function goHome() {
         <p class="state-text">请返回群聊查看最新的认证链接，或联系群管理员。</p>
       </div>
 
-      <!-- 该 QQ 已认证过 -->
-      <div v-else-if="pageState === 'verified'" class="card state-card">
-        <p class="state-title">该 QQ 号已完成实名认证</p>
-        <p class="state-text">
-          {{ alreadyVerifiedName ? `认证姓名：${alreadyVerifiedName}` : '无需重复认证。' }}
-        </p>
+      <!-- 该链接已完成认证。不显示姓名：链接发在群里，谁都点得开 -->
+      <div v-else-if="pageState === 'expired'" class="card state-card">
+        <p class="state-title">该链接已失效</p>
+        <p class="state-text">如需帮助请联系群管理员。</p>
         <button class="btn-primary" @click="goHome">去学生社区看看</button>
+      </div>
+
+      <!-- 链接所属 QQ 已不在群内，不给任何操作入口 -->
+      <div v-else-if="pageState === 'ownerLeft'" class="card state-card">
+        <p class="state-title">链接所属 QQ 用户不在群内</p>
+        <p class="state-text">请重新加入群聊获取链接。</p>
       </div>
 
       <!-- 主表单 -->
       <form v-else @submit.prevent="handleSubmit">
         <!-- 身份 -->
         <section class="card">
-          <h2 class="card-head">你的身份</h2>
+          <h2 class="card-head">你正在为如下账号进行实名：</h2>
 
           <div class="field">
             <label class="label" for="qq">QQ 号</label>
-            <div class="input-wrap">
-              <input
-                id="qq"
-                v-model="form.qqNumber"
-                class="input mono"
-                :class="{ 'is-locked': qqLocked }"
-                type="text"
-                inputmode="numeric"
-                :readonly="qqLocked"
-                placeholder="请输入您的 QQ 号"
-              />
-              <span v-if="qqLocked" class="input-suffix">本链接专属</span>
-            </div>
+            <input
+              id="qq"
+              v-model="form.qqNumber"
+              class="input mono"
+              :class="{ 'is-locked': qqLocked }"
+              type="text"
+              inputmode="numeric"
+              :readonly="qqLocked"
+              placeholder="请输入您的 QQ 号"
+            />
           </div>
 
           <!-- 头像昵称：让「填的是谁」和「这是不是我」落在同一个单元里。
@@ -461,92 +472,110 @@ function goHome() {
     </div>
 
     <!-- ══════ 弹窗：点错别人的链接 ══════ -->
-    <div v-if="showUnlockNotice" class="mask">
-      <div class="modal">
-        <h2 class="modal-title">请填写您自己的 QQ 号</h2>
-        <p class="modal-body">
-          请在 QQ 号一栏输入您的正确 QQ 号，然后重新进行验证。原先那个号不会被解除禁言。
-        </p>
-        <div class="modal-actions">
-          <button class="btn-primary" @click="unlockQqField">好，我来填</button>
+    <Transition name="modal">
+      <div v-if="showUnlockNotice" class="mask">
+        <div class="modal">
+          <h2 class="modal-title">请填写您自己的 QQ 号</h2>
+          <p class="modal-body">
+            请在 QQ 号一栏输入您的正确 QQ 号，然后重新进行验证。原先那个号不会被解除禁言。
+          </p>
+          <div class="modal-actions">
+            <button class="btn-primary" @click="unlockQqField">好，我来填</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- ══════ 弹窗：身份已被别的 QQ 绑定 ══════ -->
-    <div v-if="conflict" class="mask">
-      <div class="modal">
-        <h2 class="modal-title">该账号已被 QQ 号 {{ conflict.qqNumber }} 绑定</h2>
-        <div class="conflict-card">
-          <img :src="conflict.avatarUrl" alt="" class="avatar avatar--lg" />
-          <span class="identity-meta">
-            <span class="identity-name">{{ conflict.nickname || '昵称未能取得' }}</span>
-            <span class="identity-qq">{{ conflict.qqNumber }}</span>
-          </span>
-        </div>
-        <p class="modal-body">
-          若这不是您的另一个 QQ 号，确认绑定后它会被重新禁言并收到重新验证的通知。
-        </p>
-        <div class="modal-actions modal-actions--row">
-          <button class="btn-ghost" @click="cancelTakeover">取消绑定</button>
-          <button class="btn-primary" @click="acceptTakeover">这不是我，确认绑定</button>
+    <Transition name="modal">
+      <div v-if="conflict" class="mask">
+        <div class="modal">
+          <h2 class="modal-title">该账号已被 QQ 号 {{ conflict.qqNumber }} 绑定</h2>
+          <div class="conflict-card">
+            <img :src="conflict.avatarUrl" alt="" class="avatar avatar--lg" />
+            <span class="identity-meta">
+              <span class="identity-name">{{ conflict.nickname || '昵称未能取得' }}</span>
+              <span class="identity-qq">{{ conflict.qqNumber }}</span>
+            </span>
+          </div>
+          <p class="modal-body">
+            若这不是您的另一个 QQ 号，确认绑定后它会被重新禁言并收到重新验证的通知。
+          </p>
+          <!-- 竖排：这两个按钮的文字横排放不下，会折行 -->
+          <div class="modal-actions modal-actions--stack">
+            <button class="btn-primary" @click="acceptTakeover">这不是我，确认绑定</button>
+            <button class="btn-ghost" @click="cancelTakeover">取消绑定</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- ══════ 弹窗：确认姓名 ══════ -->
-    <div v-if="confirmName" class="mask">
-      <div class="modal modal--center">
-        <p class="modal-kicker">请确认您的身份</p>
-        <p class="modal-name">{{ confirmName }}</p>
-        <div class="modal-actions">
-          <button class="btn-primary" @click="handleFinalConfirm">这就是我，开启厦一旅程</button>
+    <Transition name="modal">
+      <div v-if="confirmName" class="mask">
+        <div class="modal modal--center">
+          <p class="modal-kicker">请确认您的身份</p>
+          <p class="modal-name">{{ confirmName }}</p>
+          <div class="modal-actions">
+            <button class="btn-primary" @click="handleFinalConfirm">这就是我，开启厦一旅程</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- ══════ 弹窗：处理中 ══════ -->
-    <div v-if="finalizing" class="mask">
-      <div class="modal modal--center">
-        <p class="modal-kicker">处理中……</p>
-        <div class="loader-track"></div>
-        <p class="modal-body">正在核对您的入群状态并解除禁言，请不要关闭本页面。</p>
+    <Transition name="modal">
+      <div v-if="finalizing" class="mask">
+        <div class="modal modal--center">
+          <p class="modal-kicker">处理中……</p>
+          <div class="loader-track"></div>
+          <p class="modal-body modal-body--lg">
+            正在核对您的入群状态并解除禁言，请不要关闭本页面。
+          </p>
+        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- ══════ 弹窗：验证结果 ══════ -->
-    <div v-if="doneStatus" class="mask">
-      <!-- 已不在群内 -->
-      <div v-if="doneStatus === 'NOT_IN_GROUP'" class="modal">
-        <h2 class="modal-title">检测到您已不在群内</h2>
-        <div class="conflict-card">
-          <img :src="result?.qq.avatarUrl" alt="" class="avatar avatar--lg" />
-          <span class="identity-meta">
-            <span class="identity-name">{{ result?.qq.nickname || '昵称未能取得' }}</span>
-            <span class="identity-qq">{{ result?.qq.qqNumber }}</span>
-          </span>
+    <Transition name="modal">
+      <div v-if="doneStatus" class="mask">
+        <!-- 已不在群内 -->
+        <div v-if="doneStatus === 'NOT_IN_GROUP'" class="modal">
+          <h2 class="modal-title">检测到您已不在群内</h2>
+          <div class="conflict-card">
+            <img :src="result?.qq.avatarUrl" alt="" class="avatar avatar--lg" />
+            <span class="identity-meta">
+              <span class="identity-name">{{ result?.qq.nickname || '昵称未能取得' }}</span>
+              <span class="identity-qq">{{ result?.qq.qqNumber }}</span>
+            </span>
+          </div>
+          <p class="modal-body">请重新加入群聊后再次进行验证。本次验证未做任何改动。</p>
         </div>
-        <p class="modal-body">请重新加入群聊后再次进行验证。本次验证未做任何改动。</p>
-      </div>
 
-      <!-- 验证成功 -->
-      <div v-else class="modal modal--center">
-        <span class="check">✓</span>
-        <h2 class="modal-title">核验成功</h2>
-        <p class="modal-name modal-name--sm">{{ result?.name }}</p>
-        <p class="modal-body">
-          <template v-if="doneStatus === 'UNMUTE_FAILED'">
-            身份已认证通过，但自动解禁未能确认生效，已通知管理员为您手动解除。
-          </template>
-          <template v-else>
-            群内禁言已解除，去群里打个招呼吧。
-          </template>
-        </p>
-        <div class="modal-actions">
-          <button class="btn-primary" @click="goHome">去学生社区看看</button>
+        <!-- 验证成功 -->
+        <div v-else class="modal modal--center">
+          <span class="check">
+            <svg viewBox="0 0 36 36" aria-hidden="true">
+              <circle class="check-ring" cx="18" cy="18" r="16" />
+              <path class="check-mark" d="M11 18.5 L15.8 23.2 L25 13" />
+            </svg>
+          </span>
+          <h2 class="modal-title">核验成功</h2>
+          <p class="modal-name modal-name--sm">{{ result?.name }}</p>
+          <p class="modal-body">
+            <template v-if="doneStatus === 'UNMUTE_FAILED'">
+              身份已认证通过，但自动解禁未能确认生效，已通知管理员为您手动解除。
+            </template>
+            <template v-else>
+              群内禁言已解除，去群里打个招呼吧。
+            </template>
+          </p>
+          <div class="modal-actions">
+            <button class="btn-primary" @click="goHome">去学生社区看看</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -675,10 +704,6 @@ function goHome() {
   margin-bottom: 6px;
 }
 
-.input-wrap {
-  position: relative;
-}
-
 .input {
   width: 100%;
   padding: 10px 12px;
@@ -711,18 +736,7 @@ function goHome() {
 */
 .input.is-locked {
   background: var(--color-bg);
-  padding-right: 76px;
   cursor: default;
-}
-
-.input-suffix {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 11px;
-  color: var(--color-text-placeholder);
-  pointer-events: none;
 }
 
 /* ===== 身份核对 ===== */
@@ -976,17 +990,24 @@ function goHome() {
   margin: 0;
 }
 
+/* 等待期间用户只有这行字可看，给足字号 */
+.modal-body--lg {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
 .modal-actions {
   margin-top: var(--spacing-lg);
 }
 
-.modal-actions--row {
+.modal-actions--stack {
   display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
 }
 
-.modal-actions--row > * {
-  flex: 1;
+.modal-actions--stack > * {
   margin-top: 0;
 }
 
@@ -1000,18 +1021,57 @@ function goHome() {
   border-radius: var(--radius-md);
 }
 
+/* ===== 成功的勾 =====
+   圆环先扫出来，勾再描上去，两段错开，比整块淡入有分量。 */
 .check {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
+  display: block;
+  width: 52px;
+  height: 52px;
   margin: 0 auto var(--spacing-md);
-  border-radius: var(--radius-full);
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  font-size: 22px;
-  font-weight: 600;
+}
+
+.check svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.check-ring,
+.check-mark {
+  fill: none;
+  stroke: var(--color-success);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.check-ring {
+  stroke-width: 2;
+  opacity: 0.35;
+  /* 2πr ≈ 100.5 */
+  stroke-dasharray: 101;
+  stroke-dashoffset: 101;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  animation: ring-draw 420ms cubic-bezier(0.33, 1, 0.68, 1) 60ms forwards;
+}
+
+.check-mark {
+  stroke-linejoin: round;
+  stroke-dasharray: 26;
+  stroke-dashoffset: 26;
+  animation: mark-draw 300ms cubic-bezier(0.65, 0, 0.35, 1) 340ms forwards;
+}
+
+@keyframes ring-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes mark-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* ===== 等待指示 =====
@@ -1053,6 +1113,57 @@ function goHome() {
     animation: none;
     width: 100%;
     opacity: 0.5;
+  }
+}
+
+/* ===== 弹窗进出 =====
+   遮罩淡入，卡片同时轻微放大上移。出场比入场快一些——
+   关闭是用户已经决定了的事，不该让人等动画。 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity var(--transition-normal) ease;
+}
+
+.modal-leave-active {
+  transition-duration: 160ms;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active .modal,
+.modal-leave-active .modal {
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease;
+}
+
+.modal-leave-active .modal {
+  transition-duration: 160ms;
+}
+
+.modal-enter-from .modal {
+  opacity: 0;
+  transform: translateY(10px) scale(0.96);
+}
+
+.modal-leave-to .modal {
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-enter-active,
+  .modal-leave-active,
+  .modal-enter-active .modal,
+  .modal-leave-active .modal {
+    transition: none;
+  }
+
+  .check-ring,
+  .check-mark {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 </style>

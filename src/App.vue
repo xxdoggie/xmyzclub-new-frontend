@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import LoginModal from '@/components/auth/LoginModal.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
+import AppSidebar from '@/components/layout/AppSidebar.vue'
+import AppTopbar from '@/components/layout/AppTopbar.vue'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+// 是否显示全局导航壳（侧栏+顶栏，仅桌面端渲染）
+// 全屏展示类页面（投屏、唱票大屏、认证回调等）通过 meta.shell: false 关闭
+const hasShell = computed(() => route.meta.shell !== false)
 
 // 过渡动画方向
 const transitionName = ref('page-fade')
@@ -84,11 +91,19 @@ function handleCloseModal() {
 </script>
 
 <template>
-  <router-view v-slot="{ Component, route }">
-    <transition :name="transitionName">
-      <component :is="Component" :key="route.path" />
-    </transition>
-  </router-view>
+  <div class="app-layout" :class="{ 'with-shell': hasShell }">
+    <AppSidebar v-if="hasShell" />
+    <div class="app-main">
+      <AppTopbar v-if="hasShell" />
+      <div class="app-content">
+        <router-view v-slot="{ Component, route }">
+          <transition :name="transitionName">
+            <component :is="Component" :key="route.path" />
+          </transition>
+        </router-view>
+      </div>
+    </div>
+  </div>
 
   <!-- 全局登录 Modal -->
   <LoginModal
@@ -102,6 +117,40 @@ function handleCloseModal() {
 </template>
 
 <style>
+/* ===== 全局布局壳 ===== */
+/* 移动端：侧栏/顶栏组件自身隐藏，布局为普通文档流 */
+.app-main {
+  min-width: 0;
+}
+
+.app-content {
+  position: relative;
+}
+
+/* 桌面端：侧栏 + 主区域并排，文档级滚动，侧栏/顶栏 sticky 固定 */
+@media (min-width: 1024px) {
+  .app-layout.with-shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .app-layout.with-shell .app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-layout.with-shell .app-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-layout.with-shell .app-content > * {
+    flex: 1;
+  }
+}
+
 /* ===== 页面过渡动画 ===== */
 
 /* 无动画（首次加载） */

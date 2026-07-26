@@ -18,6 +18,8 @@ declare module 'vue-router' {
     title?: string
     // 父级路由名称（用于构建面包屑链）
     parent?: string
+    // 是否显示全局导航壳（桌面端侧栏+顶栏），默认 true；全屏/独立页面设为 false
+    shell?: boolean
   }
 }
 
@@ -222,6 +224,7 @@ const router = createRouter({
       meta: {
         level: 1,
         title: '设计系统',
+        shell: false,
       },
     },
 
@@ -258,6 +261,7 @@ const router = createRouter({
         level: 2,
         title: 'QQ 登录',
         parent: 'home',
+        shell: false,
       },
     },
     {
@@ -268,6 +272,19 @@ const router = createRouter({
         level: 2,
         title: 'QQ 绑定',
         parent: 'home',
+        shell: false,
+      },
+    },
+    {
+      // 新生入群校园网身份验证，从群内机器人发的链接/二维码进入，无需登录
+      path: '/verify',
+      name: 'admission-verify',
+      component: () => import('../pages/AdmissionVerifyPage.vue'),
+      meta: {
+        level: 2,
+        title: '校园网身份验证',
+        parent: 'home',
+        shell: false,
       },
     },
 
@@ -281,6 +298,7 @@ const router = createRouter({
         level: 2,
         title: 'QQ 绑定',
         parent: 'profile',
+        shell: false,
       },
     },
 
@@ -659,6 +677,7 @@ const router = createRouter({
       meta: {
         level: 1,
         title: '辩论赛投票',
+        shell: false,
       },
     },
     {
@@ -668,6 +687,7 @@ const router = createRouter({
       meta: {
         level: 1,
         title: '辩论赛实时结果',
+        shell: false,
       },
     },
     {
@@ -677,6 +697,7 @@ const router = createRouter({
       meta: {
         level: 1,
         title: '辩论赛投屏二维码',
+        shell: false,
       },
     },
     {
@@ -699,6 +720,7 @@ const router = createRouter({
       meta: {
         level: 1,
         title: '实时唱票',
+        shell: false,
       },
     },
     {
@@ -743,6 +765,7 @@ const router = createRouter({
       meta: {
         level: 1,
         title: '跨代留声',
+        shell: false,
       },
     },
     {
@@ -754,6 +777,7 @@ const router = createRouter({
         level: 2,
         title: '我要出卷',
         parent: 'voices',
+        shell: false,
       },
     },
     {
@@ -765,6 +789,7 @@ const router = createRouter({
         level: 2,
         title: '我的档案袋',
         parent: 'voices',
+        shell: false,
       },
     },
     {
@@ -775,6 +800,7 @@ const router = createRouter({
         level: 2,
         title: '答题大厅',
         parent: 'voices',
+        shell: false,
       },
     },
     {
@@ -785,6 +811,7 @@ const router = createRouter({
         level: 3,
         title: '试题详情',
         parent: 'voices-answer',
+        shell: false,
       },
     },
     {
@@ -807,6 +834,7 @@ const router = createRouter({
       meta: {
         level: 1,
         title: '页面未找到',
+        shell: false,
       },
     },
   ],

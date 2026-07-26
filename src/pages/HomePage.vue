@@ -226,15 +226,6 @@ function toggleMobileMenu() {
           <h1 class="header-title">厦门一中学生社区</h1>
         </div>
 
-        <!-- Desktop Navigation -->
-        <nav class="nav-links">
-          <router-link to="/" class="nav-link active">首页</router-link>
-          <router-link to="/ticket" class="nav-link">活动抢票</router-link>
-          <router-link to="/ringtone" class="nav-link">宿舍铃声</router-link>
-          <router-link to="/grade" class="nav-link">分数查询</router-link>
-          <router-link to="/community" class="nav-link">评分社区</router-link>
-        </nav>
-
         <!-- Right Actions -->
         <div class="header-right">
           <button class="theme-toggle-btn" @click="toggleTheme" title="切换主题">
@@ -253,219 +244,10 @@ function toggleMobileMenu() {
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </button>
-
-          <!-- Desktop Auth Buttons -->
-          <template v-if="userStore.isLoggedIn">
-            <button class="user-name-btn" @click="goToProfile">
-              {{ userStore.user?.nickname }}
-            </button>
-          </template>
-          <template v-else>
-            <button class="btn btn-primary btn-sm desktop-only" @click="handleLogin">登录</button>
-          </template>
         </div>
       </div>
     </header>
 
-    <!-- Content Wrapper (用于桌面端侧边栏布局) -->
-    <div class="content-wrapper">
-      <!-- Desktop Sidebar -->
-      <aside class="desktop-sidebar">
-        <!-- 用户区域 -->
-        <div class="sidebar-user-section" @click="goToProfile">
-          <template v-if="userStore.isLoggedIn">
-            <div class="sidebar-user-info">
-              <span class="sidebar-user-name">{{ userStore.user?.nickname }}</span>
-              <span class="sidebar-user-signature" v-if="userStore.user?.signature">{{ userStore.user.signature }}</span>
-              <span class="sidebar-user-status" v-else>点击查看个人中心</span>
-            </div>
-          </template>
-          <template v-else>
-            <div class="sidebar-user-info">
-              <span class="sidebar-user-name">游客</span>
-              <button class="sidebar-login-btn" @click.stop="handleLogin">点击登录</button>
-            </div>
-          </template>
-        </div>
-
-        <!-- 可滚动内容区域 -->
-        <div class="sidebar-scroll-content">
-          <!-- 管理区域 -->
-          <div class="sidebar-nav-section" v-if="userStore.canManageTickets || userStore.canManageCampaigns || userStore.canManageRating || userStore.canManageMessages || userStore.canManageUsers || userStore.canManageBanners || userStore.canManageMuseum || userStore.canManageVoices">
-            <div class="sidebar-section-header">
-              <span class="sidebar-section-title">管理后台</span>
-            </div>
-            <nav class="sidebar-nav">
-              <router-link v-if="userStore.canManageTickets" to="/admin/tickets" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                  </svg>
-                </div>
-                <span>票务管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageCampaigns" to="/admin/dorm" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M12 3l9 4H3l9-4z"></path>
-                  </svg>
-                </div>
-                <span>宿舍管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageCampaigns" to="/admin/campaigns" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 18V5l12-2v13"></path>
-                    <circle cx="6" cy="18" r="3"></circle>
-                    <circle cx="18" cy="16" r="3"></circle>
-                  </svg>
-                </div>
-                <span>活动管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageCampaigns" to="/admin/music-download" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                </div>
-                <span>歌曲下载</span>
-              </router-link>
-              <router-link v-if="userStore.canManageRating" to="/admin/rating" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
-                </div>
-                <span>评分社区</span>
-              </router-link>
-              <router-link v-if="userStore.canManageMessages" to="/admin/messages" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                </div>
-                <span>消息管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageCampaigns" to="/admin/qqmusic" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 18V5l12-2v13"></path>
-                    <circle cx="6" cy="18" r="3"></circle>
-                    <circle cx="18" cy="16" r="3"></circle>
-                  </svg>
-                </div>
-                <span>QQ音乐管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageUsers" to="/admin/campus" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                </div>
-                <span>校园网管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageBanners" to="/admin/banners" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                  </svg>
-                </div>
-                <span>轮播图管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageMuseum" to="/admin/museum" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                </div>
-                <span>时间线管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageDebate" to="/admin/debate" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                </div>
-                <span>辩论赛管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageVoices" to="/admin/voices" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 20 l1.2 -4.2 L16.6 4.4 a2 2 0 0 1 2.8 0 l0.2 0.2 a2 2 0 0 1 0 2.8 L8.2 18.8 Z"></path>
-                    <path d="M14.5 6.5 l3 3"></path>
-                  </svg>
-                </div>
-                <span>跨代留声管理</span>
-              </router-link>
-              <router-link v-if="userStore.canManageTally" to="/admin/tally" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon admin">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 3v18h18"></path>
-                    <path d="M7 14v4"></path>
-                    <path d="M12 10v8"></path>
-                    <path d="M17 6v12"></path>
-                  </svg>
-                </div>
-                <span>实时唱票</span>
-              </router-link>
-            </nav>
-          </div>
-
-          <!-- 账户区域 -->
-          <div class="sidebar-nav-section" v-if="userStore.isLoggedIn">
-            <div class="sidebar-section-header">
-              <span class="sidebar-section-title">我的账户</span>
-            </div>
-            <nav class="sidebar-nav">
-              <router-link to="/profile" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </div>
-                <span>个人中心</span>
-              </router-link>
-              <router-link to="/messages" class="sidebar-nav-item">
-                <div class="sidebar-nav-icon messages">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                  </svg>
-                </div>
-                <span>我的消息</span>
-              </router-link>
-              <button class="sidebar-nav-item logout-item" @click="openLogoutConfirm">
-                <div class="sidebar-nav-icon logout">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                  </svg>
-                </div>
-                <span>退出登录</span>
-              </button>
-            </nav>
-          </div>
-        </div>
-
-        <!-- 底部信息 -->
-        <div class="sidebar-footer">
-          <p class="sidebar-brand">厦门一中学生社区</p>
-          <p class="sidebar-credit">designed by 23届玄学狗狗</p>
-        </div>
-      </aside>
-
-      <!-- Main Content Area -->
-      <div class="main-content-area">
 
     <!-- Mobile Menu Overlay -->
     <Transition name="menu-fade">
@@ -906,8 +688,6 @@ function toggleMobileMenu() {
         <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="icp-link">闽ICP备2024074144号-4</a>
       </div>
     </footer>
-      </div><!-- /.main-content-area -->
-    </div><!-- /.content-wrapper -->
 
     <!-- 退出确认弹窗 -->
     <Transition name="modal-fade">
@@ -972,45 +752,6 @@ function toggleMobileMenu() {
   white-space: nowrap;
 }
 
-/* Navigation */
-.nav-links {
-  display: none;
-  align-items: center;
-  gap: var(--spacing-xs);
-  flex: 1;
-}
-
-.nav-link {
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-  position: relative;
-}
-
-.nav-link:hover {
-  color: var(--color-text);
-  background: var(--color-border);
-}
-
-.nav-link.active {
-  color: var(--color-primary);
-  font-weight: var(--font-medium);
-}
-
-.nav-link.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 3px;
-  background: var(--color-primary);
-  border-radius: var(--radius-full);
-}
 
 .header-right {
   display: flex;
@@ -1019,9 +760,6 @@ function toggleMobileMenu() {
   margin-left: auto;
 }
 
-.desktop-only {
-  display: none;
-}
 
 .theme-toggle-btn {
   width: 40px;
@@ -1065,10 +803,6 @@ function toggleMobileMenu() {
   height: 24px;
 }
 
-/* ===== Desktop Sidebar ===== */
-.desktop-sidebar {
-  display: none; /* 默认隐藏，桌面端显示 */
-}
 
 /* Mobile Menu - Overlay Drawer */
 .mobile-menu-overlay {
@@ -1408,24 +1142,6 @@ function toggleMobileMenu() {
   display: none;
 }
 
-.user-name-btn {
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  display: none;
-}
-
-.user-name-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
 
 /* Buttons */
 .btn {
@@ -1968,275 +1684,40 @@ function toggleMobileMenu() {
 
 /* ===== Responsive - Desktop ===== */
 @media (min-width: 1024px) {
-  .header-container {
-    padding: var(--spacing-sm) var(--spacing-xl);
-    gap: var(--spacing-lg);
-  }
-
-  .header-center {
-    position: static;
-    transform: none;
-  }
-
-  /* 桌面端显示顶部导航链接 */
-  .nav-links {
-    display: flex;
-    flex: 1;
-  }
-
-  .mobile-menu-btn {
+  /* 顶栏/侧栏由全局导航壳（AppSidebar/AppTopbar）提供 */
+  .header {
     display: none;
   }
 
-  .desktop-only {
-    display: inline-flex;
+  .mobile-menu-overlay,
+  .mobile-menu {
+    display: none;
   }
 
-  .user-name-btn {
-    display: inline-flex;
+  .home {
+    min-height: 0;
   }
 
-  /* 桌面端内容包裹器 - 侧边栏和主内容并排 */
-  .content-wrapper {
-    display: flex;
-    flex: 1;
-  }
-
-  /* 桌面端侧边栏显示 */
-  .desktop-sidebar {
-    display: flex;
-    flex-direction: column;
-    width: 240px;
-    flex-shrink: 0;
-    background: var(--color-card);
-    border-right: 1px solid var(--color-border);
-    height: calc(100vh - 57px);
-    position: sticky;
-    top: 57px;
-    overflow: hidden;
-  }
-
-  /* 主内容区域 */
-  .main-content-area {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* 侧边栏用户区域 */
-  .sidebar-user-section {
-    display: flex;
-    align-items: center;
-    padding: var(--spacing-lg);
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-    color: white;
-    cursor: pointer;
-    transition: opacity var(--transition-fast);
-  }
-
-  .sidebar-user-section:hover {
-    opacity: 0.95;
-  }
-
-  .sidebar-user-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .sidebar-user-name {
-    display: block;
-    font-size: var(--text-base);
-    font-weight: var(--font-semibold);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .sidebar-user-status {
-    display: block;
-    font-size: var(--text-xs);
-    opacity: 0.8;
-    margin-top: 2px;
-  }
-
-  .sidebar-user-signature {
-    display: block;
-    font-size: var(--text-xs);
-    opacity: 0.85;
-    margin-top: 2px;
-    font-style: italic;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .sidebar-login-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    font-size: var(--text-xs);
-    padding: 4px 12px;
-    border-radius: var(--radius-full);
-    cursor: pointer;
-    margin-top: 4px;
-    transition: all var(--transition-fast);
-  }
-
-  .sidebar-login-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  /* 侧边栏可滚动内容区域 */
-  .sidebar-scroll-content {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* 侧边栏导航区域 */
-  .sidebar-nav-section {
-    padding: var(--spacing-sm) var(--spacing-md);
-  }
-
-  .sidebar-section-header {
-    display: flex;
-    align-items: center;
-    padding: var(--spacing-xs) var(--spacing-sm);
-  }
-
-  .sidebar-section-title {
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .sidebar-nav-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--text-sm);
-    font-weight: var(--font-medium);
-    color: var(--color-text);
-    text-decoration: none;
-    border-radius: var(--radius-lg);
-    transition: all var(--transition-fast);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-  }
-
-  .sidebar-nav-item:hover {
-    background: var(--color-border);
-  }
-
-  .sidebar-nav-item.active,
-  .sidebar-nav-item.router-link-exact-active {
-    background: var(--color-primary-bg);
-    color: var(--color-primary);
-  }
-
-  .sidebar-nav-item.active .sidebar-nav-icon,
-  .sidebar-nav-item.router-link-exact-active .sidebar-nav-icon {
-    background: var(--color-primary);
-    color: white;
-  }
-
-  .sidebar-nav-icon {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-border);
-    border-radius: var(--radius-md);
-    flex-shrink: 0;
-    transition: all var(--transition-fast);
-  }
-
-  .sidebar-nav-icon svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .sidebar-nav-icon.logout {
-    background: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
-  }
-
-  .sidebar-nav-icon.admin {
-    background: rgba(139, 92, 246, 0.1);
-    color: #8B5CF6;
-  }
-
-  .sidebar-nav-icon.messages {
-    background: rgba(139, 92, 246, 0.1);
-    color: #8B5CF6;
-  }
-
-  .sidebar-nav-item.logout-item {
-    color: #EF4444;
-  }
-
-  .sidebar-nav-item.logout-item:hover {
-    background: rgba(239, 68, 68, 0.1);
-  }
-
-  /* 侧边栏底部信息 */
-  .sidebar-footer {
-    flex-shrink: 0;
-    padding: var(--spacing-md);
-    border-top: 1px solid var(--color-border);
-    text-align: center;
-    background: var(--color-card);
-  }
-
-  .sidebar-brand {
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    color: var(--color-text-secondary);
-    margin-bottom: 4px;
-  }
-
-  .sidebar-credit {
-    font-size: 10px;
-    color: var(--color-text-placeholder);
-  }
-
-  /* 主内容区域占据剩余空间 */
+  /* 主内容：居中工作台面板 */
   .main {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    gap: var(--spacing-md);
   }
 
-  /* Banner & Entry Desktop 适配 */
   .banner-section {
-    padding: var(--spacing-md) var(--spacing-xl);
-    padding-bottom: var(--spacing-xs);
+    padding: 0;
   }
 
-  .banner-container,
-  .entry-container {
-    max-width: 560px;
+  .banner-container {
+    max-width: none;
   }
 
-  /* 桌面端保持 16:9 比例 */
+  /* 桌面端用更扁的比例，保证首屏放得下入口卡片 */
   .banner-carousel {
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 21 / 9;
   }
 
   .banner-content {
@@ -2244,7 +1725,7 @@ function toggleMobileMenu() {
   }
 
   .banner-text {
-    max-width: 360px;
+    max-width: 420px;
   }
 
   .banner-title {
@@ -2252,16 +1733,24 @@ function toggleMobileMenu() {
   }
 
   .entry-section {
-    padding: var(--spacing-sm) var(--spacing-xl);
+    padding: 0;
     padding-bottom: var(--spacing-lg);
   }
 
-  .entry-card {
-    padding: var(--spacing-sm) var(--spacing-md);
+  .entry-container {
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .secondary-entries {
+    grid-column: 1 / -1;
+    gap: var(--spacing-md);
   }
 
   .footer {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-md) var(--spacing-xl);
   }
 
   .footer-container {
@@ -2280,21 +1769,6 @@ function toggleMobileMenu() {
   }
 }
 
-/* ===== Responsive - Large Desktop ===== */
-@media (min-width: 1280px) {
-  .header-container,
-  .banner-container,
-  .entry-container,
-  .footer-container {
-    padding-left: var(--spacing-2xl);
-    padding-right: var(--spacing-2xl);
-  }
-
-  .banner-container,
-  .entry-container {
-    max-width: 600px;
-  }
-}
 
 /* ===== Modal ===== */
 .modal-overlay {

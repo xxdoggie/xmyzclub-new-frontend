@@ -75,3 +75,85 @@ export function confirmAdmission(sessionId: string, takeover: boolean) {
 export function getBotStatus() {
   return api.get<ApiResponse<{ botOnline: boolean }>>('/admission/status')
 }
+
+/* ==================== 管理端 ====================
+   需要 admission.manage 权限。这些接口会返回学生实名信息，
+   也能直接把人移出群聊。 */
+
+export interface AdmissionGroupSummary {
+  groupId: string
+  groupName: string | null
+  isTarget: boolean
+  pending: number
+  verified: number
+  kicked: number
+  left: number
+  exempted: number
+  /** 待认证且已超期，下一轮扫描会被移出 */
+  overdue: number
+}
+
+export type MemberStatus = 'pending' | 'verified' | 'kicked' | 'left'
+
+export interface AdmissionMemberRow {
+  id: number
+  groupId: string
+  qqNumber: string
+  nickname: string | null
+  avatarUrl: string
+  status: MemberStatus
+  exempted: boolean
+  exemptedAt: string | null
+  exemptedNote: string | null
+  joinTime: string | null
+  verifyTime: string | null
+  kickTime: string | null
+  muteUntil: string | null
+  muteExpired: boolean
+  realName: string | null
+  campusAccount: string | null
+  studentId: string | null
+  classAlias: string | null
+  boundAt: string | null
+  previousQqNumber: string | null
+}
+
+export interface AdmissionMemberPage {
+  members: AdmissionMemberRow[]
+  total: number
+  page: number
+  pageSize: number
+  botOnline: boolean
+}
+
+export function adminListGroups() {
+  return api.get<ApiResponse<AdmissionGroupSummary[]>>('/admin/admission/groups')
+}
+
+export function adminListMembers(params: {
+  groupId: string
+  status?: string
+  keyword?: string
+  page?: number
+  pageSize?: number
+}) {
+  return api.get<ApiResponse<AdmissionMemberPage>>('/admin/admission/members', { params })
+}
+
+/** 豁免：本群内该 QQ 不再需要实名信息，并解除其禁言 */
+export function adminExempt(groupId: string, qqNumber: string, note?: string) {
+  return api.post<ApiResponse<unknown>>('/admin/admission/exempt', { groupId, qqNumber, note })
+}
+
+export function adminRevokeExempt(groupId: string, qqNumber: string) {
+  return api.post<ApiResponse<unknown>>('/admin/admission/revoke-exempt', { groupId, qqNumber })
+}
+
+export function adminKick(groupId: string, qqNumber: string) {
+  return api.post<ApiResponse<unknown>>('/admin/admission/kick', { groupId, qqNumber })
+}
+
+/** 重发认证链接，并把认证期限重新算起 */
+export function adminResendLink(groupId: string, qqNumber: string) {
+  return api.post<ApiResponse<unknown>>('/admin/admission/resend', { groupId, qqNumber })
+}

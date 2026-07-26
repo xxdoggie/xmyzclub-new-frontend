@@ -359,6 +359,18 @@ const router = createRouter({
       },
     },
     {
+      // 入群实名认证管理，需要 admission.manage 权限（后端逐接口校验）
+      path: '/admin/admission',
+      name: 'admin-admission',
+      component: () => import('../pages/admin/AdmissionManagePage.vue'),
+      meta: {
+        requiresAuth: true,
+        level: 2,
+        title: '入群认证管理',
+        parent: 'home',
+      },
+    },
+    {
       path: '/admin/dorm',
       name: 'admin-dorm',
       component: () => import('../pages/admin/DormManagePage.vue'),
